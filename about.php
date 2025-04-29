@@ -12,6 +12,10 @@ include_once 'includes/functions.php';
     <title>À propos - ExamSafe</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- En-tête -->
@@ -162,24 +166,24 @@ include_once 'includes/functions.php';
                 <h2>Nos partenaires</h2>
                 <p>Ils nous font confiance pour leurs évaluations en ligne</p>
             </div>
-            <div class="partners-grid">
+            <div class="partners-grid" style="display: flex;flex-wrap: wrap;justify-content: space-between ;align-items: center;">
                 <div class="partner">
-                    <img src="assets/images/partner-1.png" alt="Université de Paris">
+                    <img src="assets/images/partner-1.png" alt="Université de Paris" height="300px" width="300px">
                 </div>
                 <div class="partner">
                     <img src="assets/images/partner-2.png" alt="École Polytechnique">
                 </div>
                 <div class="partner">
-                    <img src="assets/images/partner-3.png" alt="HEC Paris">
+                    <img src="assets/images/partner-3.png" alt="HEC Paris" >
                 </div>
-                <div class="partner">
+                <!-- <div class="partner">
                     <img src="assets/images/partner-4.png" alt="Sciences Po">
                 </div>
                 <div class="partner">
                     <img src="assets/images/partner-5.png" alt="ESSEC Business School">
                 </div>
                 <div class="partner">
-                    <img src="assets/images/partner-6.png" alt="Ministère de l'Éducation Nationale">
+                    <img src="assets/images/partner-6.png" alt="Ministère de l'Éducation Nationale"> -->
                 </div>
             </div>
         </div>

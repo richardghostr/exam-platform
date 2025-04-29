@@ -12,15 +12,19 @@ include_once '../includes/functions.php';
     <title>Surveillance d'Écran - ExamSafe</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- En-tête -->
-    <?php include '../includes/header.php'; ?>
+    <?php include 'header.php'; ?>
 
     <!-- Section Hero -->
     <section class="about-hero">
         <div class="container">
-            <div class="about-content">
+            <div class="about-content" style="text-align: center;">
                 <h1>Surveillance d'Écran</h1>
                 <p>Notre technologie de surveillance d'écran détecte les applications non autorisées, les changements d'onglet et autres activités suspectes pendant les examens, garantissant l'intégrité académique sans compromettre l'expérience utilisateur.</p>
             </div>
@@ -37,7 +41,7 @@ include_once '../includes/functions.php';
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; margin-bottom: 3rem;">
                 <div>
-                    <img src="../assets/images/screen-monitor.jpg" alt="Démonstration de surveillance d'écran" style="width: 100%; border-radius: var(--border-radius); box-shadow: var(--box-shadow);">
+                    <img src="../assets/images/screen-monitor.jpg" alt="Démonstration de surveillance d'écran" style="width: 100%; ">
                 </div>
                 <div>
                     <h3>Détection des applications</h3>
@@ -189,11 +193,11 @@ include_once '../includes/functions.php';
 
     <!-- Section CTA -->
     <section class="cta">
-        <div class="container">
+        <div class="container" style="display: flex;justify-content: center; gap: 20px;flex-direction: column;align-items: center;">
             <div class="cta-content">
                 <h2>Assurez l'intégrité de vos examens en ligne</h2>
                 <p>Découvrez comment notre technologie de surveillance d'écran peut transformer vos évaluations à distance.</p>
-                <div class="hero-buttons">
+                <div class="hero-buttons" style="display: flex;justify-content: center; gap: 20px;align-items: center;">
                     <a href="../register.php" class="btn btn-primary btn-lg">Essayer ExamSafe</a>
                     <a href="../contact.php" class="btn btn-outline" style="background-color: transparent; color: white; border-color: white;">Demander une démo</a>
                 </div>
@@ -202,7 +206,7 @@ include_once '../includes/functions.php';
     </section>
 
     <!-- Pied de page -->
-    <?php include '../includes/footer.php'; ?>
+    <?php include 'footer.php'; ?>
 
     <!-- Scripts JS -->
     <script src="../assets/js/main.js"></script>

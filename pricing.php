@@ -12,6 +12,10 @@ include_once 'includes/functions.php';
     <title>Tarifs - ExamSafe</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- En-tête -->
@@ -32,7 +36,7 @@ include_once 'includes/functions.php';
     </section>
 
     <!-- Section Plans -->
-    <section class="pricing">
+    <section class="pricing" style="margin-top: -170px;">
         <div class="container">
             <div class="pricing-plans" id="pricing-plans">
                 <!-- Plan Standard -->

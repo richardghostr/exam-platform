@@ -616,13 +616,13 @@ $conn->close();
         const answers = <?php echo json_encode($answers); ?>;
         let remainingTime = <?php echo $remaining_time; ?>;
         let timerInterval;
-        let proctoringStatus = 'initializing';
-        let webcamStream = null;
+        proctoringStatus = 'initializing';
+        webcamStream = null;
         let faceDetectionInterval;
         let eyeTrackingInterval;
         let audioMonitoringInterval;
         let screenMonitoringInterval;
-        let warningCount = 0;
+        // Removed duplicate declaration of warningCount
         
         // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
@@ -660,12 +660,13 @@ $conn->close();
                 return;
             }
             
-            // Masquer la question actuelle
-            document.getElementById('question-' + questions[currentQuestion].id).style.display = 'none';
-            
-            //
+                // Masquer la question actuelle
+                document.getElementById('question-' + questions[currentQuestion].id).style.display = 'none';
+                
+            }
 
-```js file="assets/js/proctoring.js"
+
+file="assets/js/proctoring.js"
 /**
  * Module de surveillance automatisée pour ExamSafe
  * Ce script gère la reconnaissance faciale, le suivi du regard, la surveillance audio et le verrouillage du navigateur
@@ -809,7 +810,7 @@ async function initAudioMonitoring() {
             
             // Calculer le volume moyen
             let sum = 0;
-            for (let i = 0; i &lt; bufferLength; i++) {
+            for (let i = 0; i< bufferLength; i++) {
                 sum += dataArray[i];
             }
             const average = sum / bufferLength / 255; // Normaliser entre 0 et 1
@@ -849,7 +850,7 @@ function startFaceDetection() {
                 warningCount.face = Math.max(0, warningCount.face - 1);
                 
                 // Vérifier la confiance de la détection
-                if (result[0].confidence &lt; proctoringConfig.faceDetection.confidenceThreshold) {
+                if (result[0].confidence < proctoringConfig.faceDetection.confidenceThreshold) {
                     handleLowConfidenceFaceDetection(result[0].confidence);
                 }
             }
@@ -1112,7 +1113,7 @@ function simulateFaceDetection() {
         
         for (const scenario of scenarios) {
             cumulativeProbability += scenario.probability;
-            if (random &lt;= cumulativeProbability) {
+            if (random <= cumulativeProbability) {
                 resolve(scenario.result);
                 return;
             }
@@ -1138,7 +1139,7 @@ function simulateEyeTracking() {
         
         for (const scenario of scenarios) {
             cumulativeProbability += scenario.probability;
-            if (random &lt;= cumulativeProbability) {
+            if (random <= cumulativeProbability) {
                 resolve(scenario.result);
                 return;
             }

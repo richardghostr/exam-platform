@@ -12,6 +12,10 @@ include_once 'includes/functions.php';
     <title>Fonctionnalités - ExamSafe</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- En-tête -->
@@ -242,10 +246,10 @@ include_once 'includes/functions.php';
     <!-- Section CTA -->
     <section class="cta">
         <div class="container">
-            <div class="cta-content">
+            <div class="cta-content" style="display: flex;justify-content: center; gap: 20px;flex-direction: column;align-items: center;">
                 <h2>Prêt à révolutionner vos examens en ligne ?</h2>
                 <p>Rejoignez des centaines d'établissements qui font confiance à ExamSafe pour leurs évaluations à distance.</p>
-                <div class="hero-buttons">
+                <div class="hero-buttons" >
                     <a href="register.php" class="btn btn-primary btn-lg">Créer un compte</a>
                     <a href="contact.php" class="btn btn-outline" style="background-color: transparent; color: white; border-color: white;">Demander une démo</a>
                 </div>

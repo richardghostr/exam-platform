@@ -82,6 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Contact - ExamSafe</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- En-tête -->
@@ -90,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Section Contact -->
     <section class="about-hero">
         <div class="container">
-            <div class="about-content">
+            <div class="about-content" style="text-align: center;">
                 <h1>Contactez-nous</h1>
                 <p>Vous avez des questions sur ExamSafe ? Vous souhaitez organiser une démonstration ou discuter de vos besoins spécifiques ? N'hésitez pas à nous contacter. Notre équipe est là pour vous aider.</p>
             </div>
@@ -98,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 
     <!-- Formulaire de contact -->
-    <section class="features">
+    <section class="features" style="margin-top: -30px;">
         <div class="container">
             <div class="section-header">
                 <h2>Envoyez-nous un message</h2>
@@ -158,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-map-marker-alt"></i>
                         <div class="contact-info-content">
                             <h3>Adresse</h3>
-                            <p>123 Avenue des Examens<br>75001 Paris, France</p>
+                            <p>123 Avenue des Examens<br>Douala, Cameroun</p>
                         </div>
                     </div>
                     
@@ -174,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-phone-alt"></i>
                         <div class="contact-info-content">
                             <h3>Téléphone</h3>
-                            <p>+33 1 23 45 67 89<br>+33 1 98 76 54 32</p>
+                            <p>+237 6 23 45 67 89<br>+237 6 98 76 54 32</p>
                         </div>
                     </div>
                     
@@ -200,10 +204,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div style="width: 100%; height: 400px; border-radius: var(--border-radius); overflow: hidden;">
                 <!-- Intégrez ici votre carte Google Maps ou OpenStreetMap -->
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d83998.75769345056!2d2.2770202!3d48.8588377!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66e1f06e2b70f%3A0x40b82c3688c9460!2sParis%2C%20France!5e0!3m2!1sfr!2sfr!4v1620637891673!5m2!1sfr!2sfr" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d127482.8610673536!2d9.6859644!3d4.0510564!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1061126c54d5c89b%3A0x9ae59a89850dad6e!2sDouala%2C%20Cameroun!5e0!3m2!1sfr!2sfr!4v1620637891673!5m2!1sfr!2sfr" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
             </div>
         </div>
     </section>
+    <br><br>
 
     <!-- Pied de page -->
     <?php include 'includes/footer.php'; ?>

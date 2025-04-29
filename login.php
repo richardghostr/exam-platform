@@ -81,6 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Connexion - ExamSafe</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- En-tête -->
@@ -105,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="username">Nom d'utilisateur ou Email</label>
                             <div class="input-icon-wrapper">
                                 <i class="fas fa-user"></i>
-                                <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" required>
+                                <input style="padding-left: 45px;" type="text" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" required>
                             </div>
                         </div>
                         
@@ -113,9 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="password">Mot de passe</label>
                             <div class="input-icon-wrapper">
                                 <i class="fas fa-lock"></i>
-                                <input type="password" id="password" name="password" required>
+                                <input style="padding-left: 45px;" type="password" id="password" name="password" required>
                                 <button type="button" class="password-toggle" aria-label="Afficher/Masquer le mot de passe">
-                                    <i class="fas fa-eye"></i>
+                                    <i style="margin-left: -30px;" class="fas fa-eye"></i>
                                 </button>
                             </div>
                         </div>
