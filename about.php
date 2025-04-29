@@ -23,12 +23,15 @@ include_once 'includes/functions.php';
 
     <!-- Section À propos -->
     <section class="about-hero">
-        <div class="container">
-            <div class="about-content">
+        <div class="container"style="width: 100%;display: flex;flex-wrap: wrap;justify-content: space-between ;align-items: center;flex-direction:row" >
+            <div class="about-content" style="width: 50%;">
                 <h1>À propos d'ExamSafe</h1>
                 <p>ExamSafe est une plateforme d'examens en ligne innovante qui révolutionne la façon dont les établissements d'enseignement et les entreprises organisent leurs évaluations à distance.</p>
                 <p>Fondée en 2023 par une équipe d'experts en éducation et en technologie, notre mission est de fournir une solution sécurisée, fiable et facile à utiliser pour les examens en ligne, tout en garantissant l'intégrité académique grâce à notre technologie de surveillance automatisée par intelligence artificielle.</p>
                 <p>Nous croyons fermement que l'éducation à distance ne devrait pas compromettre la qualité et la fiabilité des évaluations. C'est pourquoi nous avons développé une plateforme qui combine des fonctionnalités avancées de surveillance avec une expérience utilisateur intuitive, tant pour les enseignants que pour les étudiants.</p>
+            </div>
+            <div class="about-image" style="width: 50%;">
+                <img src="assets/images/about-hero.jpg" alt="À propos d'ExamSafe" height="850px" width="750px">
             </div>
         </div>
     </section>
@@ -176,14 +179,6 @@ include_once 'includes/functions.php';
                 <div class="partner">
                     <img src="assets/images/partner-3.png" alt="HEC Paris" >
                 </div>
-                <!-- <div class="partner">
-                    <img src="assets/images/partner-4.png" alt="Sciences Po">
-                </div>
-                <div class="partner">
-                    <img src="assets/images/partner-5.png" alt="ESSEC Business School">
-                </div>
-                <div class="partner">
-                    <img src="assets/images/partner-6.png" alt="Ministère de l'Éducation Nationale"> -->
                 </div>
             </div>
         </div>

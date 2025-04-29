@@ -657,6 +657,11 @@
   
   /* Responsive Design */
   @media (max-width: 992px) {
+    .about-hero.container {
+      padding: 6rem 0 4rem;
+      flex-direction: column;
+      background-color: var(--danger-color);
+    }
     h1 {
       font-size: 2.2rem;
     }
