@@ -1,53 +1,60 @@
-<aside class="admin-sidebar">
-    <div class="admin-sidebar-header">
-        <img src="../assets/images/logo.png" alt="ExamSafe Logo" class="admin-logo">
-        <h2>ExamSafe</h2>
+<aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+        <a href="index.php" class="sidebar-logo">
+            <div class="logo-icon">E</div>
+            <span class="logo-text">ExamSafe</span>
+        </a>
     </div>
     
-    <nav class="admin-nav">
+    <div class="sidebar-menu">
+        <div class="menu-category">MENU</div>
         <ul>
-            <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : ''; ?>">
-                <a href="index.php">
-                    <i class="fas fa-tachometer-alt"></i>
+            <li class="menu-item">
+                <a href="index.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
+                    <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
                     <span>Tableau de bord</span>
                 </a>
             </li>
-            <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'create-exam.php' ? 'active' : ''; ?>">
-                <a href="create-exam.php">
-                    <i class="fas fa-plus-circle"></i>
+            <li class="menu-item">
+                <a href="create-exam.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'create-exam.php' ? 'active' : ''; ?>">
+                    <span class="menu-icon"><i class="fas fa-plus-circle"></i></span>
                     <span>Créer un examen</span>
                 </a>
             </li>
-            <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'manage-exams.php' ? 'active' : ''; ?>">
-                <a href="manage-exams.php">
-                    <i class="fas fa-file-alt"></i>
+            <li class="menu-item">
+                <a href="manage-exams.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'manage-exams.php' ? 'active' : ''; ?>">
+                    <span class="menu-icon"><i class="fas fa-file-alt"></i></span>
                     <span>Gérer les examens</span>
                 </a>
             </li>
-            <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'users.php' ? 'active' : ''; ?>">
-                <a href="users.php">
-                    <i class="fas fa-users"></i>
+            <li class="menu-item">
+                <a href="users.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'users.php' ? 'active' : ''; ?>">
+                    <span class="menu-icon"><i class="fas fa-users"></i></span>
                     <span>Utilisateurs</span>
                 </a>
             </li>
-            <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'reports.php' ? 'active' : ''; ?>">
-                <a href="reports.php">
-                    <i class="fas fa-chart-bar"></i>
+            <li class="menu-item">
+                <a href="reports.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>">
+                    <span class="menu-icon"><i class="fas fa-chart-bar"></i></span>
                     <span>Rapports</span>
                 </a>
             </li>
-            <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>">
-                <a href="settings.php">
-                    <i class="fas fa-cog"></i>
+        </ul>
+        
+        <div class="menu-category">AUTRES</div>
+        <ul>
+            <li class="menu-item">
+                <a href="settings.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'settings.php' ? 'active' : ''; ?>">
+                    <span class="menu-icon"><i class="fas fa-cog"></i></span>
                     <span>Paramètres</span>
                 </a>
             </li>
-            <li>
-                <a href="../api/auth.php?action=logout">
-                    <i class="fas fa-sign-out-alt"></i>
+            <li class="menu-item">
+                <a href="../logout.php" class="menu-link">
+                    <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
                     <span>Déconnexion</span>
                 </a>
             </li>
         </ul>
-    </nav>
+    </div>
 </aside>

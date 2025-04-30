@@ -1,361 +1,240 @@
 <?php
-// Inclure les fichiers de configuration et fonctions
-include_once '../includes/config.php';
-include_once '../includes/functions.php';
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 
-// Vérifier si l'utilisateur est connecté et a le rôle admin
-require_login('../login.php');
-require_role('admin', '../index.php');
-
-// Connexion à la base de données
-include_once '../includes/db.php';
+// Vérifier si l'utilisateur est connecté et est un administrateur
+if (!isLoggedIn() || !isAdmin()) {
+    header('Location: ../login.php');
+    exit();
+}
 
 // Traitement des actions
-if (isset($_POST['action'])) {
-    $action = $_POST['action'];
-    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+if (isset($_GET['action']) && isset($_GET['id'])) {
+    $userId = $_GET['id'];
+    $action = $_GET['action'];
     
-    if ($action === 'delete' && $user_id > 0) {
-        // Vérifier que l'utilisateur n'est pas l'administrateur actuel
-        if ($user_id == $_SESSION['user_id']) {
-            $error_message = "Vous ne pouvez pas supprimer votre propre compte.";
-        } else {
-            // Supprimer l'utilisateur
-            $delete_query = "DELETE FROM users WHERE id = ?";
-            $stmt = $conn->prepare($delete_query);
-            $stmt->bind_param("i", $user_id);
+    switch ($action) {
+        case 'activate':
+            $conn->query("UPDATE users SET status = 'active' WHERE id = $userId");
+            $successMessage = "L'utilisateur a été activé avec succès.";
+            break;
             
-            if ($stmt->execute()) {
-                $success_message = "Utilisateur supprimé avec succès.";
+        case 'deactivate':
+            $conn->query("UPDATE users SET status = 'inactive' WHERE id = $userId");
+            $successMessage = "L'utilisateur a été désactivé avec succès.";
+            break;
+            
+        case 'delete':
+            // Vérifier si l'utilisateur a des examens ou des résultats
+            $hasExams = $conn->query("SELECT COUNT(*) as count FROM exams WHERE teacher_id = $userId")->fetch_assoc()['count'] > 0;
+            $hasResults = $conn->query("SELECT COUNT(*) as count FROM exam_results WHERE user_id = $userId")->fetch_assoc()['count'] > 0;
+            
+            if ($hasExams || $hasResults) {
+                $errorMessage = "Impossible de supprimer cet utilisateur car il a des examens ou des résultats associés.";
             } else {
-                $error_message = "Erreur lors de la suppression de l'utilisateur: " . $conn->error;
+                $conn->query("DELETE FROM users WHERE id = $userId");
+                $successMessage = "L'utilisateur a été supprimé avec succès.";
             }
-            
-            $stmt->close();
-        }
-    } elseif ($action === 'update' && $user_id > 0) {
-        $role = isset($_POST['role']) ? $_POST['role'] : '';
-        $status = isset($_POST['status']) ? $_POST['status'] : '';
-        
-        if (!empty($role) && !empty($status)) {
-            // Mettre à jour le rôle et le statut de l'utilisateur
-            $update_query = "UPDATE users SET role = ?, status = ? WHERE id = ?";
-            $stmt = $conn->prepare($update_query);
-            $stmt->bind_param("ssi", $role, $status, $user_id);
-            
-            if ($stmt->execute()) {
-                $success_message = "Utilisateur mis à jour avec succès.";
-            } else {
-                $error_message = "Erreur lors de la mise à jour de l'utilisateur: " . $conn->error;
-            }
-            
-            $stmt->close();
-        }
+            break;
     }
 }
 
-// Paramètres de pagination
-$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-$limit = 10;
-$offset = ($page - 1) * $limit;
+// Filtres et recherche
+$roleFilter = isset($_GET['role']) ? $_GET['role'] : 'all';
+$statusFilter = isset($_GET['status']) ? $_GET['status'] : 'all';
+$searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
 
-// Paramètres de recherche et filtrage
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$role_filter = isset($_GET['role']) ? $_GET['role'] : '';
-$status_filter = isset($_GET['status']) ? $_GET['status'] : '';
+// Construction de la requête SQL
+$sql = "SELECT * FROM users WHERE 1=1";
 
-// Construction de la requête
-$query = "SELECT * FROM users WHERE 1=1";
-$count_query = "SELECT COUNT(*) as total FROM users WHERE 1=1";
-
-$params = [];
-$types = "";
-
-if (!empty($search)) {
-    $query .= " AND (username LIKE ? OR email LIKE ? OR full_name LIKE ?)";
-    $count_query .= " AND (username LIKE ? OR email LIKE ? OR full_name LIKE ?)";
-    $search_param = "%$search%";
-    $params[] = $search_param;
-    $params[] = $search_param;
-    $params[] = $search_param;
-    $types .= "sss";
+// Ajouter le filtre de rôle
+if ($roleFilter !== 'all') {
+    $sql .= " AND role = '$roleFilter'";
 }
 
-if (!empty($role_filter)) {
-    $query .= " AND role = ?";
-    $count_query .= " AND role = ?";
-    $params[] = $role_filter;
-    $types .= "s";
+// Ajouter le filtre de statut
+if ($statusFilter !== 'all') {
+    $sql .= " AND status = '$statusFilter'";
 }
 
-if (!empty($status_filter)) {
-    $query .= " AND status = ?";
-    $count_query .= " AND status = ?";
-    $params[] = $status_filter;
-    $types .= "s";
+// Ajouter la recherche
+if (!empty($searchTerm)) {
+    $sql .= " AND (username LIKE '%$searchTerm%' OR email LIKE '%$searchTerm%' OR first_name LIKE '%$searchTerm%' OR last_name LIKE '%$searchTerm%')";
 }
 
-// Ajouter l'ordre et la limite
-$query .= " ORDER BY created_at DESC LIMIT ?, ?";
-$params[] = $offset;
-$params[] = $limit;
-$types .= "ii";
+$sql .= " ORDER BY created_at DESC";
 
-// Préparer et exécuter la requête pour compter le nombre total d'utilisateurs
-$count_stmt = $conn->prepare($count_query);
-if (!empty($types) && !empty($params)) {
-    $count_types = substr($types, 0, -2); // Enlever les deux derniers caractères (ii pour offset et limit)
-    $count_params = array_slice($params, 0, -2); // Enlever les deux derniers paramètres
-    
-    if (!empty($count_types)) {
-        $count_stmt->bind_param($count_types, ...$count_params);
-    }
-}
-$count_stmt->execute();
-$count_result = $count_stmt->get_result();
-$count_row = $count_result->fetch_assoc();
-$total_users = $count_row['total'];
-$total_pages = ceil($total_users / $limit);
-$count_stmt->close();
+// Exécuter la requête
+$users = $conn->query($sql);
 
-// Préparer et exécuter la requête pour récupérer les utilisateurs
-$stmt = $conn->prepare($query);
-if (!empty($types) && !empty($params)) {
-    $stmt->bind_param($types, ...$params);
-}
-$stmt->execute();
-$result = $stmt->get_result();
-$users = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
-
-// Fermer la connexion à la base de données
-$conn->close();
+$pageTitle = "Gestion des utilisateurs";
+include 'includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des utilisateurs - ExamSafe</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/admin.css">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-</head>
-<body>
-    <div class="admin-layout">
-        <!-- Sidebar -->
-        <?php include 'includes/sidebar.php'; ?>
-        
-        <!-- Contenu principal -->
-        <main class="admin-main">
-            <!-- En-tête -->
-            <?php include 'includes/header.php'; ?>
-            
-            <!-- Contenu de la page -->
-            <div class="admin-content">
-                <div class="page-header">
-                    <h1>Gestion des utilisateurs</h1>
-                    <a href="add-user.php" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Ajouter un utilisateur
-                    </a>
-                </div>
-                
-                <?php if (isset($success_message)): ?>
-                    <div class="alert alert-success">
-                        <?php echo $success_message; ?>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (isset($error_message)): ?>
-                    <div class="alert alert-danger">
-                        <?php echo $error_message; ?>
-                    </div>
-                <?php endif; ?>
-                
-                <!-- Filtres et recherche -->
-                <section class="filters-section">
-                    <form action="" method="GET" class="filters-form">
-                        <div class="form-group">
-                            <input type="text" name="search" placeholder="Rechercher..." value="<?php echo htmlspecialchars($search); ?>" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <select name="role" class="form-control">
-                                <option value="">Tous les rôles</option>
-                                <option value="admin" <?php echo $role_filter === 'admin' ? 'selected' : ''; ?>>Administrateur</option>
-                                <option value="teacher" <?php echo $role_filter === 'teacher' ? 'selected' : ''; ?>>Enseignant</option>
-                                <option value="student" <?php echo $role_filter === 'student' ? 'selected' : ''; ?>>Étudiant</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <select name="status" class="form-control">
-                                <option value="">Tous les statuts</option>
-                                <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Actif</option>
-                                <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Inactif</option>
-                                <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>En attente</option>
-                                <option value="suspended" <?php echo $status_filter === 'suspended' ? 'selected' : ''; ?>>Suspendu</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-outline">Filtrer</button>
-                        <a href="users.php" class="btn btn-link">Réinitialiser</a>
-                    </form>
-                </section>
-                
-                <!-- Liste des utilisateurs -->
-                <section class="users-section">
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nom d'utilisateur</th>
-                                    <th>Nom complet</th>
-                                    <th>Email</th>
-                                    <th>Rôle</th>
-                                    <th>Statut</th>
-                                    <th>Date d'inscription</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (empty($users)): ?>
-                                    <tr>
-                                        <td colspan="8" class="text-center">Aucun utilisateur trouvé</td>
-                                    </tr>
-                                <?php else: ?>
-                                    <?php foreach ($users as $user): ?>
-                                        <tr>
-                                            <td><?php echo $user['id']; ?></td>
-                                            <td><?php echo htmlspecialchars($user['username']); ?></td>
-                                            <td><?php echo htmlspecialchars($user['full_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                            <td>
-                                                <span class="role-badge role-<?php echo $user['role']; ?>">
-                                                    <?php 
-                                                        switch($user['role']) {
-                                                            case 'admin': echo 'Administrateur'; break;
-                                                            case 'teacher': echo 'Enseignant'; break;
-                                                            case 'student': echo 'Étudiant'; break;
-                                                            default: echo ucfirst($user['role']);
-                                                        }
-                                                    ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span class="status-badge status-<?php echo $user['status']; ?>">
-                                                    <?php 
-                                                        switch($user['status']) {
-                                                            case 'active': echo 'Actif'; break;
-                                                            case 'inactive': echo 'Inactif'; break;
-                                                            case 'pending': echo 'En attente'; break;
-                                                            case 'suspended': echo 'Suspendu'; break;
-                                                            default: echo ucfirst($user['status']);
-                                                        }
-                                                    ?>
-                                                </span>
-                                            </td>
-                                            <td><?php echo date('d/m/Y H:i', strtotime($user['created_at'])); ?></td>
-                                            <td>
-                                                <div class="action-buttons">
-                                                    <a href="view-user.php?id=<?php echo $user['id']; ?>" class="btn-icon" title="Voir">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <a href="edit-user.php?id=<?php echo $user['id']; ?>" class="btn-icon" title="Modifier">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                                        <button class="btn-icon delete-btn" data-id="<?php echo $user['id']; ?>" title="Supprimer">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Pagination -->
-                    <?php if ($total_pages > 1): ?>
-                        <div class="pagination">
-                            <?php if ($page > 1): ?>
-                                <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&role=<?php echo urlencode($role_filter); ?>&status=<?php echo urlencode($status_filter); ?>" class="pagination-link">
-                                    <i class="fas fa-chevron-left"></i> Précédent
-                                </a>
-                            <?php endif; ?>
-                            
-                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&role=<?php echo urlencode($role_filter); ?>&status=<?php echo urlencode($status_filter); ?>" class="pagination-link <?php echo $i === $page ? 'active' : ''; ?>">
-                                    <?php echo $i; ?>
-                                </a>
-                            <?php endfor; ?>
-                            
-                            <?php if ($page < $total_pages): ?>
-                                <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&role=<?php echo urlencode($role_filter); ?>&status=<?php echo urlencode($status_filter); ?>" class="pagination-link">
-                                    Suivant <i class="fas fa-chevron-right"></i>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                </section>
-            </div>
-        </main>
+<div class="d-flex justify-content-between align-items-center mb-20">
+    <h1 class="page-title">Gestion des utilisateurs</h1>
+    <a href="add-user.php" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i> Ajouter un utilisateur
+    </a>
+</div>
+
+<?php if (isset($successMessage)): ?>
+    <div class="alert alert-success">
+        <?php echo $successMessage; ?>
     </div>
-    
-    <!-- Modal de confirmation de suppression -->
-    <div id="delete-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Confirmer la suppression</h2>
-                <span class="close">&times;</span>
+<?php endif; ?>
+
+<?php if (isset($errorMessage)): ?>
+    <div class="alert alert-danger">
+        <?php echo $errorMessage; ?>
+    </div>
+<?php endif; ?>
+
+<div class="card mb-20">
+    <div class="card-header">
+        <h2 class="card-title">Filtres</h2>
+    </div>
+    <div class="card-body">
+        <form action="" method="get" class="d-flex gap-20">
+            <div class="form-group" style="flex: 1;">
+                <label for="role" class="form-label">Rôle</label>
+                <select id="role" name="role" class="form-control">
+                    <option value="all" <?php echo $roleFilter === 'all' ? 'selected' : ''; ?>>Tous les rôles</option>
+                    <option value="student" <?php echo $roleFilter === 'student' ? 'selected' : ''; ?>>Étudiants</option>
+                    <option value="teacher" <?php echo $roleFilter === 'teacher' ? 'selected' : ''; ?>>Enseignants</option>
+                    <option value="admin" <?php echo $roleFilter === 'admin' ? 'selected' : ''; ?>>Administrateurs</option>
+                </select>
             </div>
-            <div class="modal-body">
-                <p>Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.</p>
+            
+            <div class="form-group" style="flex: 1;">
+                <label for="status" class="form-label">Statut</label>
+                <select id="status" name="status" class="form-control">
+                    <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>Tous les statuts</option>
+                    <option value="active" <?php echo $statusFilter === 'active' ? 'selected' : ''; ?>>Actif</option>
+                    <option value="inactive" <?php echo $statusFilter === 'inactive' ? 'selected' : ''; ?>>Inactif</option>
+                    <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>En attente</option>
+                </select>
             </div>
-            <div class="modal-footer">
-                <form action="" method="POST">
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="user_id" id="delete-user-id" value="">
-                    <button type="button" class="btn btn-outline" id="cancel-delete">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Supprimer</button>
-                </form>
+            
+            <div class="form-group" style="flex: 2;">
+                <label for="search" class="form-label">Recherche</label>
+                <input type="text" id="search" name="search" class="form-control" placeholder="Nom, email..." value="<?php echo htmlspecialchars($searchTerm); ?>">
             </div>
+            
+            <div class="form-group d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Filtrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Liste des utilisateurs</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom d'utilisateur</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Statut</th>
+                        <th>Date d'inscription</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($users->num_rows > 0): ?>
+                        <?php while ($user = $users->fetch_assoc()): ?>
+                            <tr>
+                                <td><?php echo $user['id']; ?></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-10">
+                                        <img src="../assets/images/avatar.png" alt="Avatar" class="user-avatar" style="width: 32px; height: 32px;">
+                                        <div>
+                                            <div><?php echo htmlspecialchars($user['username']); ?></div>
+                                            <div class="text-muted"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td>
+                                    <span class="badge badge-<?php echo getRoleBadgeClass($user['role']); ?>">
+                                        <?php echo ucfirst($user['role']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-<?php echo getStatusBadgeClass($user['status']); ?>">
+                                        <?php echo ucfirst($user['status']); ?>
+                                    </span>
+                                </td>
+                                <td><?php echo date('d/m/Y', strtotime($user['created_at'])); ?></td>
+                                <td>
+                                    <div class="d-flex gap-10">
+                                        <a href="edit-user.php?id=<?php echo $user['id']; ?>" class="btn btn-info btn-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        
+                                        <?php if ($user['status'] === 'active'): ?>
+                                            <a href="?action=deactivate&id=<?php echo $user['id']; ?>" class="btn btn-warning btn-sm">
+                                                <i class="fas fa-user-slash"></i>
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="?action=activate&id=<?php echo $user['id']; ?>" class="btn btn-success btn-sm">
+                                                <i class="fas fa-user-check"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        
+                                        <a href="?action=delete&id=<?php echo $user['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="7" class="text-center">Aucun utilisateur trouvé</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Gestion du modal de suppression
-            const modal = document.getElementById('delete-modal');
-            const deleteButtons = document.querySelectorAll('.delete-btn');
-            const closeButton = document.querySelector('.close');
-            const cancelButton = document.getElementById('cancel-delete');
-            const deleteUserIdInput = document.getElementById('delete-user-id');
-            
-            deleteButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const userId = this.getAttribute('data-id');
-                    deleteUserIdInput.value = userId;
-                    modal.style.display = 'block';
-                });
-            });
-            
-            closeButton.addEventListener('click', function() {
-                modal.style.display = 'none';
-            });
-            
-            cancelButton.addEventListener('click', function() {
-                modal.style.display = 'none';
-            });
-            
-            window.addEventListener('click', function(event) {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+</div>
+
+<?php
+// Helper functions for badges
+function getRoleBadgeClass($role) {
+    switch($role) {
+        case 'admin':
+            return 'danger';
+        case 'teacher':
+            return 'info';
+        case 'student':
+            return 'success';
+        default:
+            return 'secondary';
+    }
+}
+
+function getStatusBadgeClass($status) {
+    switch($status) {
+        case 'active':
+            return 'success';
+        case 'inactive':
+            return 'warning';
+        case 'pending':
+            return 'info';
+        default:
+            return 'secondary';
+    }
+}
+?>
+
+<?php include 'includes/footer.php'; ?>

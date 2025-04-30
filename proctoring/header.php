@@ -23,10 +23,10 @@
                 <?php else: ?>
                     <a href="student/index.php" class="btn btn-outline">Mes examens</a>
                 <?php endif; ?>
-                <a href="logout.php" class="btn btn-primary">Déconnexion</a>
+                <a href="../logout.php" class="btn btn-primary">Déconnexion</a>
             <?php else: ?>
-                <a href="login.php" class="btn btn-outline">Connexion</a>
-                <a href="register.php" class="btn btn-primary">Inscription</a>
+                <a href="../login.php" class="btn btn-outline">Connexion</a>
+                <a href="../register.php" class="btn btn-primary">Inscription</a>
             <?php endif; ?>
         </div>
         <div class="mobile-menu-toggle">

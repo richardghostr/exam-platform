@@ -355,3 +355,19 @@ function generate_unique_filename($original_filename) {
     
     return $basename . '_' . time() . '_' . substr(md5(rand()), 0, 6) . '.' . $extension;
 }
+// Define the isLoggedIn function if not already defined
+if (!function_exists('isLoggedIn')) {
+    function isLoggedIn() {
+        return isset($_SESSION['user_id']); // Example logic, adjust as needed
+    }
+}
+
+// Define the isAdmin function if not already defined
+if (!function_exists('isAdmin')) {
+    function isAdmin() {
+        return isset($_SESSION['role']) && $_SESSION['role'] === 'admin'; // Example logic, adjust as needed
+    }
+}
+function isTeacher() {
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'teacher';
+}

@@ -1,46 +1,43 @@
-<header class="admin-header">
-    <div class="admin-header-left">
-        <button id="sidebar-toggle" class="sidebar-toggle">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div class="search-container">
-            <input type="text" placeholder="Rechercher..." class="search-input">
-            <button class="search-button">
-                <i class="fas fa-search"></i>
-            </button>
-        </div>
-    </div>
-    <div class="admin-header-right">
-        <div class="admin-notifications">
-            <button class="notification-button">
-                <i class="fas fa-bell"></i>
-                <?php
-                // Récupérer le nombre de notifications non lues
-                $notifications_count = 0; // À remplacer par une requête réelle
-                if ($notifications_count > 0): ?>
-                    <span class="notification-badge"><?php echo $notifications_count; ?></span>
-                <?php endif; ?>
-            </button>
-        </div>
-        <div class="admin-user-menu">
-            <button class="user-menu-button">
-                <?php if (!empty($_SESSION['profile_image'])): ?>
-                    <img src="<?php echo htmlspecialchars($_SESSION['profile_image']); ?>" alt="Photo de profil" class="user-avatar">
-                <?php else: ?>
-                    <div class="user-avatar-placeholder">
-                        <i class="fas fa-user"></i>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo isset($pageTitle) ? $pageTitle . ' - ExamSafe Admin' : 'ExamSafe Admin'; ?></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <?php if (isset($extraCss)): ?>
+        <?php foreach ($extraCss as $css): ?>
+            <link rel="stylesheet" href="<?php echo $css; ?>">
+        <?php endforeach; ?>
+    <?php endif; ?>
+</head>
+<body>
+    <div class="admin-container">
+        <?php include 'sidebar.php'; ?>
+        
+        <div class="admin-content">
+            <header class="admin-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Rechercher...">
+                </div>
+                
+                <div class="header-actions">
+                    <div class="notifications">
+                        <i class="fas fa-bell notifications-icon"></i>
+                        <span class="notifications-badge">3</span>
                     </div>
-                <?php endif; ?>
-                <span class="user-name"><?php echo htmlspecialchars($_SESSION['full_name'] ?? $_SESSION['username']); ?></span>
-                <i class="fas fa-chevron-down"></i>
-            </button>
-            <div class="user-dropdown">
-                <ul>
-                    <li><a href="profile.php"><i class="fas fa-user-circle"></i> Mon profil</a></li>
-                    <li><a href="settings.php"><i class="fas fa-cog"></i> Paramètres</a></li>
-                    <li><a href="../api/auth.php?action=logout"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</header>
+                    
+                    <div class="user-profile">
+                        <img src="../assets/images/avatar.png" alt="Avatar" class="user-avatar">
+                        <div class="user-info">
+                            <span class="user-name"><?php echo isset($_SESSION['username']) ? $_SESSION['username'] : 'Admin'; ?></span>
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <main class="main-content">
