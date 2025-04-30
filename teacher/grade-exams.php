@@ -58,116 +58,122 @@ $pageTitle = "Noter les examens";
 include '../includes/header.php';
 ?>
 
-<link rel="stylesheet" href="../assets/css/teacher.css">
-
-<div class="teacher-container">
-    <div class="teacher-sidebar">
-        <div class="sidebar-header">
-            <a href="index.php" class="sidebar-logo">
-                <div class="logo-icon">E</div>
-                <span class="logo-text">ExamSafe</span>
-            </a>
-            <button class="sidebar-toggle" id="sidebarCollapseBtn">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-        </div>
-        
-        <div class="sidebar-menu">
-            <div class="menu-category">Menu principal</div>
-            <ul class="menu-items">
-                <li class="menu-item">
-                    <a href="index.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
-                        <span class="menu-item-text">Tableau de bord</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="create-exam.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-plus-circle"></i></span>
-                        <span class="menu-item-text">Créer un examen</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="manage-exams.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-file-alt"></i></span>
-                        <span class="menu-item-text">Gérer les examens</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="grade-exams.php" class="menu-link active">
-                        <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
-                        <span class="menu-item-text">Noter les examens</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="reports.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-chart-bar"></i></span>
-                        <span class="menu-item-text">Rapports</span>
-                    </a>
-                </li>
-            </ul>
-            
-            <div class="menu-category">Configuration</div>
-            <ul class="menu-items">
-                <li class="menu-item">
-                    <a href="../profile.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-user"></i></span>
-                        <span class="menu-item-text">Mon profil</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="../logout.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
-                        <span class="menu-item-text">Déconnexion</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-    
-    <div class="teacher-content">
-        <div class="teacher-header">
-            <div class="header-left">
-                <button id="sidebarToggle" class="sidebar-toggle">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $pageTitle; ?> | ExamSafe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/teacher.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="../assets/images/logo.png" alt="ExamSafe Logo">
+                    <span>ExamSafe</span>
+                </div>
+                <button class="menu-toggle" id="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1 class="header-title"><?php echo $pageTitle; ?></h1>
             </div>
             
-            <div class="header-right">
-                <div class="notifications">
-                    <i class="fas fa-bell notifications-icon"></i>
-                    <span class="notifications-badge">3</span>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="index.php" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="create-exam.php" class="nav-link">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Créer un examen</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="manage-exams.php" class="nav-link">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Gérer les examens</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="grade-exams.php" class="nav-link">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Noter les examens</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.php" class="nav-link">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Rapports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="../profile.php" class="nav-link">
+                            <i class="fas fa-user"></i>
+                            <span>Mon profil</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="../logout.php" class="nav-link">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Déconnexion</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">Noter les examens</h1>
                 </div>
                 
-                <div class="user-profile">
-                    <img src="../assets/images/avatar.png" alt="Avatar" class="user-avatar">
-                    <span class="user-name"><?php echo $_SESSION['username']; ?></span>
-                    <i class="fas fa-chevron-down dropdown-toggle"></i>
+                <div class="header-right">
+                    <div class="search-box">
+                        <input type="text" placeholder="Rechercher...">
+                        <i class="fas fa-search"></i>
+                    </div>
                     
-                    <div class="dropdown-menu">
-                        <a href="../profile.php" class="dropdown-item">
-                            <i class="fas fa-user"></i> Mon profil
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="../logout.php" class="dropdown-item text-danger">
-                            <i class="fas fa-sign-out-alt"></i> Déconnexion
-                        </a>
+                    <div class="notifications">
+                        <button class="notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge">3</span>
+                        </button>
+                    </div>
+                    
+                    <div class="user-profile">
+                        <img src="../assets/images/avatar.png" alt="Avatar" class="avatar">
+                        <div class="user-info">
+                            <span class="user-name"><?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?></span>
+                            <span class="user-role">Enseignant</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="main-content">
-            <div class="dashboard-section">
-                <div class="dashboard-card">
+            </header>
+            
+            <!-- Grade Exams Content -->
+            <div class="dashboard">
+                <div class="card table-card">
                     <div class="card-header">
-                        <h2>Examens à noter</h2>
+                        <h2 class="card-title">Examens à noter</h2>
                     </div>
                     <div class="card-body">
                         <?php if ($examsToGrade->num_rows > 0): ?>
                             <div class="table-responsive">
-                                <table class="teacher-table">
+                                <table class="table">
                                     <thead>
                                         <tr>
                                             <th>Titre</th>
@@ -181,7 +187,13 @@ include '../includes/header.php';
                                     <tbody>
                                         <?php while ($exam = $examsToGrade->fetch_assoc()): ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($exam['title']); ?></td>
+                                                <td>
+                                                    <div class="table-user">
+                                                        <div class="user-info">
+                                                            <span class="user-name"><?php echo htmlspecialchars($exam['title']); ?></span>
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td><?php echo htmlspecialchars($exam['subject']); ?></td>
                                                 <td>
                                                     <span class="status-badge <?php echo $exam['status']; ?>">
@@ -204,24 +216,24 @@ include '../includes/header.php';
                             </div>
                         <?php else: ?>
                             <div class="empty-state">
-                                <div class="empty-icon"><i class="fas fa-check-circle"></i></div>
+                                <div class="empty-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
                                 <h3>Aucun examen à noter</h3>
                                 <p>Tous les examens ont été notés ou aucun examen ne contient de questions à réponse libre.</p>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
-            </div>
-            
-            <div class="dashboard-section">
-                <div class="dashboard-card">
+                
+                <div class="card table-card">
                     <div class="card-header">
-                        <h2>Examens récemment notés</h2>
+                        <h2 class="card-title">Examens récemment notés</h2>
                     </div>
                     <div class="card-body">
                         <?php if ($recentlyGraded->num_rows > 0): ?>
                             <div class="table-responsive">
-                                <table class="teacher-table">
+                                <table class="table">
                                     <thead>
                                         <tr>
                                             <th>Examen</th>
@@ -234,7 +246,14 @@ include '../includes/header.php';
                                     <tbody>
                                         <?php while ($result = $recentlyGraded->fetch_assoc()): ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($result['title']); ?></td>
+                                                <td>
+                                                    <div class="table-user">
+                                                        <div class="user-info">
+                                                            <span class="user-name"><?php echo htmlspecialchars($result['title']); ?></span>
+                                                            <span class="user-date"><?php echo htmlspecialchars($result['subject']); ?></span>
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td><?php echo htmlspecialchars($result['first_name'] . ' ' . $result['last_name']); ?></td>
                                                 <td><?php echo $result['score']; ?>%</td>
                                                 <td><?php echo date('d/m/Y H:i', strtotime($result['graded_at'])); ?></td>
@@ -250,19 +269,19 @@ include '../includes/header.php';
                             </div>
                         <?php else: ?>
                             <div class="empty-state">
-                                <div class="empty-icon"><i class="fas fa-history"></i></div>
+                                <div class="empty-icon">
+                                    <i class="fas fa-history"></i>
+                                </div>
                                 <h3>Aucun examen récemment noté</h3>
                                 <p>Vous n'avez pas encore noté d'examens.</p>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
-            </div>
-            
-            <div class="dashboard-section">
-                <div class="dashboard-card">
+                
+                <div class="card">
                     <div class="card-header">
-                        <h2>Exemple de notation</h2>
+                        <h2 class="card-title">Exemple de notation</h2>
                     </div>
                     <div class="card-body">
                         <div class="grading-container">
@@ -280,10 +299,13 @@ include '../includes/header.php';
                             <div class="answer-panel">
                                 <h3>Réponse de l'étudiant</h3>
                                 <div class="student-answer">
-                                    <p>La programmation orientée objet (POO) est un paradigme de programmation basé sur le concept d'objets qui contiennent des données et du code. Les principes fondamentaux sont :</p>
-                                    <p>1. <strong>Encapsulation</strong> : Regrouper les données et les méthodes qui les manipulent. Par exemple, une classe "Compte" qui encapsule le solde et les méthodes pour déposer/retirer de l'argent.</p>
-                                    <p>2. <strong>Héritage</strong> : Permet à une classe d'hériter des propriétés d'une autre classe. Par exemple, une classe "CompteCourant" qui hérite de "Compte" mais ajoute des fonctionnalités spécifiques.</p>
-                                    <p>3. <strong>Polymorphisme</strong> : Capacité d'un objet à prendre plusieurs formes. Par exemple, une méthode "calculerIntérêts" qui se comporte différemment selon qu'elle est appelée sur un "CompteCourant" ou un "CompteEpargne".</p>
+                                    <p>La programmation orientée objet (POO) est un paradigme de programmation basé sur le concept d'objets qui contiennent des données et du  est un paradigme de programmation basé sur le concept d'objets qui contiennent des données et du code. Les principes fondamentaux sont :
+
+1. <strong>Encapsulation</strong> : Regrouper les données et les méthodes qui les manipulent. Par exemple, une classe "Compte" qui encapsule le solde et les méthodes pour déposer/retirer de l'argent.
+
+2. <strong>Héritage</strong> : Permet à une classe d'hériter des propriétés d'une autre classe. Par exemple, une classe "CompteCourant" qui hérite de "Compte" mais ajoute des fonctionnalités spécifiques.
+
+3. <strong>Polymorphisme</strong> : Capacité d'un objet à prendre plusieurs formes. Par exemple, une méthode "calculerIntérêts" qui se comporte différemment selon qu'elle est appelée sur un "CompteCourant" ou un "CompteEpargne".
                                 </div>
                                 
                                 <div class="grading-form">
@@ -307,53 +329,24 @@ include '../includes/header.php';
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Gestion du menu latéral
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
-    const teacherSidebar = document.querySelector('.teacher-sidebar');
-    const teacherContent = document.querySelector('.teacher-content');
-    
-    sidebarToggle.addEventListener('click', function() {
-        teacherSidebar.classList.toggle('show');
-    });
-    
-    sidebarCollapseBtn.addEventListener('click', function() {
-        teacherSidebar.classList.toggle('collapsed');
-        teacherContent.classList.toggle('expanded');
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle sidebar
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const appContainer = document.querySelector('.app-container');
         
-        // Changer l'icône du bouton
-        const icon = this.querySelector('i');
-        if (icon.classList.contains('fa-chevron-left')) {
-            icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
-        } else {
-            icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
-        }
+        menuToggle.addEventListener('click', function() {
+            appContainer.classList.toggle('sidebar-collapsed');
+        });
+        
+        sidebarToggle.addEventListener('click', function() {
+            appContainer.classList.toggle('sidebar-collapsed');
+        });
     });
-    
-    // Gestion des dropdowns
-    const userProfile = document.querySelector('.user-profile');
-    userProfile.addEventListener('click', function() {
-        this.querySelector('.dropdown-menu').classList.toggle('show');
-    });
-    
-    // Fermer les dropdowns quand on clique ailleurs
-    window.addEventListener('click', function(event) {
-        if (!event.target.closest('.user-profile')) {
-            const dropdowns = document.querySelectorAll('.dropdown-menu');
-            dropdowns.forEach(dropdown => {
-                if (dropdown.classList.contains('show')) {
-                    dropdown.classList.remove('show');
-                }
-            });
-        }
-    });
-});
-</script>
-
-<?php include '../includes/footer.php'; ?>
+    </script>
+</body>
+</html>

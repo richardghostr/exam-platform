@@ -182,189 +182,217 @@ include '../includes/header.php';
         </div>
         
         <div class="main-content">
-            <div class="stats-overview">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-file-alt"></i>
+            <!-- Cartes de statistiques colorées -->
+            <div class="stats-cards">
+                <div class="stat-card gradient-pink">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Examens</h3>
+                            <h2><?php echo $totalExams; ?></h2>
+                        </div>
+                        <div class="stat-card-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <h3>Total des examens</h3>
-                        <p class="stat-number"><?php echo $totalExams; ?></p>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3>Étudiants</h3>
-                        <p class="stat-number"><?php echo $totalStudents; ?></p>
+                    <div class="stat-card-footer">
+                        <span><i class="fas fa-arrow-up"></i> 12% ce mois</span>
                     </div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-check-circle"></i>
+                <div class="stat-card gradient-blue">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Étudiants</h3>
+                            <h2><?php echo $totalStudents; ?></h2>
+                        </div>
+                        <div class="stat-card-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <h3>Examens complétés</h3>
-                        <p class="stat-number"><?php echo $totalCompletedExams; ?></p>
+                    <div class="stat-card-footer">
+                        <span><i class="fas fa-arrow-up"></i> 8% ce mois</span>
                     </div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-chart-line"></i>
+                <div class="stat-card gradient-green">
+                    <div class="stat-card-content">
+                        <div class="stat-card-info">
+                            <h3>Score moyen</h3>
+                            <h2><?php echo round($avgScore, 1); ?>%</h2>
+                        </div>
+                        <div class="stat-card-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <h3>Score moyen</h3>
-                        <p class="stat-number"><?php echo round($avgScore, 1); ?>%</p>
+                    <div class="stat-card-footer">
+                        <span><i class="fas fa-arrow-up"></i> 5% ce mois</span>
                     </div>
                 </div>
             </div>
             
-            <div class="dashboard-section">
-                <div class="dashboard-row">
-                    <div class="dashboard-card">
-                        <div class="card-header">
-                            <h2>Examens créés par mois</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="examsChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="dashboard-card">
-                        <div class="card-header">
-                            <h2>Score moyen par matière</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="scoresChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="dashboard-section">
+            <!-- Graphiques -->
+            <div class="dashboard-row">
                 <div class="dashboard-card">
                     <div class="card-header">
-                        <h2>Incidents de surveillance récents</h2>
+                        <h2>Examens et Résultats</h2>
+                        <div class="card-actions">
+                            <select class="form-control form-control-sm">
+                                <option>Cette année</option>
+                                <option>6 derniers mois</option>
+                                <option>3 derniers mois</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <?php if ($proctorIncidents->num_rows > 0): ?>
-                            <div class="table-responsive">
-                                <table class="teacher-table">
-                                    <thead>
+                        <div class="chart-container">
+                            <canvas id="examsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2>Répartition par matière</h2>
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-light"><i class="fas fa-download"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="subjectsChart"></canvas>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #FF6384;"></span>
+                                <span>Mathématiques (35%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #36A2EB;"></span>
+                                <span>Physique (25%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #FFCE56;"></span>
+                                <span>Chimie (20%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #4BC0C0;"></span>
+                                <span>Biologie (15%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: #9966FF;"></span>
+                                <span>Autres (5%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tableau des incidents récents -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h2>Incidents récents</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-primary">Voir tout</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <?php if ($proctorIncidents->num_rows > 0): ?>
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Étudiant</th>
+                                        <th>Examen</th>
+                                        <th>Type d'incident</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($incident = $proctorIncidents->fetch_assoc()): ?>
                                         <tr>
-                                            <th>Examen</th>
-                                            <th>Étudiant</th>
-                                            <th>Type d'incident</th>
-                                            <th>Date</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php while ($incident = $proctorIncidents->fetch_assoc()): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($incident['exam_title']); ?></td>
-                                                <td><?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?></td>
-                                                <td>
-                                                    <span class="incident-badge <?php echo strtolower($incident['incident_type']); ?>">
-                                                        <?php echo htmlspecialchars($incident['incident_type']); ?>
-                                                    </span>
-                                                </td>
-                                                <td><?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?></td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-info view-incident" data-id="<?php echo $incident['id']; ?>">
-                                                        <i class="fas fa-eye"></i> Détails
+                                            <td>
+                                                <div class="user-info">
+                                                    <div class="user-avatar-sm">
+                                                        <?php echo strtoupper(substr($incident['first_name'], 0, 1) . substr($incident['last_name'], 0, 1)); ?>
+                                                    </div>
+                                                    <div class="user-name">
+                                                        <?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($incident['exam_title']); ?></td>
+                                            <td>
+                                                <span class="badge <?php echo strtolower($incident['incident_type']); ?>">
+                                                    <?php echo htmlspecialchars($incident['incident_type']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?></td>
+                                            <td>
+                                                <div class="table-actions">
+                                                    <button class="btn btn-icon btn-sm view-incident" data-id="<?php echo $incident['id']; ?>">
+                                                        <i class="fas fa-eye"></i>
                                                     </button>
-                                                </td>
-                                            </tr>
-                                        <?php endwhile; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php else: ?>
-                            <div class="empty-state">
-                                <div class="empty-icon"><i class="fas fa-shield-alt"></i></div>
-                                <h3>Aucun incident récent</h3>
-                                <p>Aucun incident de surveillance n'a été détecté récemment.</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                                                    <button class="btn btn-icon btn-sm">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fas fa-shield-alt"></i></div>
+                            <h3>Aucun incident récent</h3>
+                            <p>Aucun incident de surveillance n'a été détecté récemment.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             
-            <div class="dashboard-section">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h2>Générer des rapports</h2>
-                    </div>
-                    <div class="card-body">
-                        <form id="reportForm" class="teacher-form">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="reportType">Type de rapport</label>
-                                    <select id="reportType" name="reportType" class="form-control">
-                                        <option value="exam_results">Résultats d'examens</option>
-                                        <option value="student_performance">Performance des étudiants</option>
-                                        <option value="proctoring_incidents">Incidents de surveillance</option>
-                                        <option value="question_analysis">Analyse des questions</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="examId">Examen</label>
-                                    <select id="examId" name="examId" class="form-control">
-                                        <option value="all">Tous les examens</option>
-                                        <!-- Options générées dynamiquement -->
-                                    </select>
-                                </div>
+            <!-- Formulaire de génération de rapports -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h2>Générer des rapports</h2>
+                </div>
+                <div class="card-body">
+                    <form id="reportForm" class="modern-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reportType">Type de rapport</label>
+                                <select id="reportType" name="reportType" class="form-control">
+                                    <option value="exam_results">Résultats d'examens</option>
+                                    <option value="student_performance">Performance des étudiants</option>
+                                    <option value="proctoring_incidents">Incidents de surveillance</option>
+                                    <option value="question_analysis">Analyse des questions</option>
+                                </select>
                             </div>
                             
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="dateRange">Période</label>
-                                    <select id="dateRange" name="dateRange" class="form-control">
-                                        <option value="7days">7 derniers jours</option>
-                                        <option value="30days">30 derniers jours</option>
-                                        <option value="90days">90 derniers jours</option>
-                                        <option value="year">Année en cours</option>
-                                        <option value="custom">Personnalisé</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="format">Format</label>
-                                    <select id="format" name="format" class="form-control">
-                                        <option value="pdf">PDF</option>
-                                        <option value="excel">Excel</option>
-                                        <option value="csv">CSV</option>
-                                    </select>
-                                </div>
+                            <div class="form-group">
+                                <label for="examId">Examen</label>
+                                <select id="examId" name="examId" class="form-control">
+                                    <option value="all">Tous les examens</option>
+                                    <!-- Options générées dynamiquement -->
+                                </select>
                             </div>
                             
-                            <div id="customDateRange" class="form-row" style="display: none;">
-                                <div class="form-group">
-                                    <label for="startDate">Date de début</label>
-                                    <input type="date" id="startDate" name="startDate" class="form-control">
-                                </div>
-                                <div class="form-group">
-                                    <label for="endDate">Date de fin</label>
-                                    <input type="date" id="endDate" name="endDate" class="form-control">
-                                </div>
+                            <div class="form-group">
+                                <label for="format">Format</label>
+                                <select id="format" name="format" class="form-control">
+                                    <option value="pdf">PDF</option>
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                </select>
                             </div>
-                            
-                            <div class="form-buttons">
-                                <button type="submit" class="btn btn-primary">Générer le rapport</button>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                        
+                        <div class="form-buttons">
+                            <button type="submit" class="btn btn-primary">Générer le rapport</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -455,13 +483,22 @@ document.addEventListener('DOMContentLoaded', function() {
         type: 'bar',
         data: {
             labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
-            datasets: [{
-                label: 'Nombre d\'examens',
-                data: [12, 19, 15, 25, 22, 30, 18, 15, 20, 25, 28, 30],
-                backgroundColor: 'rgba(74, 108, 247, 0.6)',
-                borderColor: 'rgba(74, 108, 247, 1)',
-                borderWidth: 1
-            }]
+            datasets: [
+                {
+                    label: 'Examens créés',
+                    data: [12, 19, 15, 25, 22, 30, 18, 15, 20, 25, 28, 30],
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Examens complétés',
+                    data: [10, 15, 12, 20, 18, 25, 15, 12, 18, 22, 24, 28],
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -477,46 +514,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Configuration du graphique des scores moyens par matière
-    const scoresCtx = document.getElementById('scoresChart').getContext('2d');
-    const scoresChart = new Chart(scoresCtx, {
-        type: 'horizontalBar',
+    // Configuration du graphique circulaire des matières
+    const subjectsCtx = document.getElementById('subjectsChart').getContext('2d');
+    const subjectsChart = new Chart(subjectsCtx, {
+        type: 'doughnut',
         data: {
-            labels: ['Mathématiques', 'Physique', 'Chimie', 'Biologie', 'Histoire', 'Géographie', 'Anglais'],
+            labels: ['Mathématiques', 'Physique', 'Chimie', 'Biologie', 'Autres'],
             datasets: [{
-                label: 'Score moyen (%)',
-                data: [75, 68, 82, 79, 85, 72, 88],
-                backgroundColor: 'rgba(40, 167, 69, 0.6)',
-                borderColor: 'rgba(40, 167, 69, 1)',
-                borderWidth: 1
+                data: [35, 25, 20, 15, 5],
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF'
+                ],
+                borderWidth: 0
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    max: 100
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: false
                 }
             }
         }
-    });
-    
-    // Afficher/masquer les dates personnalisées
-    document.getElementById('dateRange').addEventListener('change', function() {
-        const customDateRange = document.getElementById('customDateRange');
-        if (this.value === 'custom') {
-            customDateRange.style.display = 'flex';
-        } else {
-            customDateRange.style.display = 'none';
-        }
-    });
-    
-    // Soumission du formulaire de rapport
-    document.getElementById('reportForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert('Le rapport est en cours de génération et sera disponible dans quelques instants.');
     });
     
     // Gestion du modal d'incident

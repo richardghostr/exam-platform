@@ -61,6 +61,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                 $stmt = $conn->prepare("
                     INSERT INTO exams (
                         teacher_id, title, subject, description, duration, passing_score, 
+                        start_date, end_date, status, has_  description, duration, passing_score, 
                         start_date, end_date, status, has_essay, randomize_questions, 
                         show_results, allow_retake, max_retakes, enable_face_recognition, 
                         enable_eye_tracking, enable_audio_monitoring, enable_screen_monitoring
@@ -152,291 +153,296 @@ $pageTitle = "Gérer les examens";
 include '../includes/header.php';
 ?>
 
-<link rel="stylesheet" href="../assets/css/teacher.css">
-
-<div class="teacher-container">
-    <div class="teacher-sidebar">
-        <div class="sidebar-header">
-            <a href="index.php" class="sidebar-logo">
-                <div class="logo-icon">E</div>
-                <span class="logo-text">ExamSafe</span>
-            </a>
-            <button class="sidebar-toggle" id="sidebarCollapseBtn">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-        </div>
-        
-        <div class="sidebar-menu">
-            <div class="menu-category">Menu principal</div>
-            <ul class="menu-items">
-                <li class="menu-item">
-                    <a href="index.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
-                        <span class="menu-item-text">Tableau de bord</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="create-exam.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-plus-circle"></i></span>
-                        <span class="menu-item-text">Créer un examen</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="manage-exams.php" class="menu-link active">
-                        <span class="menu-icon"><i class="fas fa-file-alt"></i></span>
-                        <span class="menu-item-text">Gérer les examens</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="grade-exams.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
-                        <span class="menu-item-text">Noter les examens</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="reports.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-chart-bar"></i></span>
-                        <span class="menu-item-text">Rapports</span>
-                    </a>
-                </li>
-            </ul>
-            
-            <div class="menu-category">Configuration</div>
-            <ul class="menu-items">
-                <li class="menu-item">
-                    <a href="../profile.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-user"></i></span>
-                        <span class="menu-item-text">Mon profil</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="../logout.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
-                        <span class="menu-item-text">Déconnexion</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-    
-    <div class="teacher-content">
-        <div class="teacher-header">
-            <div class="header-left">
-                <button id="sidebarToggle" class="sidebar-toggle">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $pageTitle; ?> | ExamSafe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/teacher.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="../assets/images/logo.png" alt="ExamSafe Logo">
+                    <span>ExamSafe</span>
+                </div>
+                <button class="menu-toggle" id="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1 class="header-title"><?php echo $pageTitle; ?></h1>
             </div>
             
-            <div class="header-right">
-                <div class="notifications">
-                    <i class="fas fa-bell notifications-icon"></i>
-                    <span class="notifications-badge">3</span>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="index.php" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="create-exam.php" class="nav-link">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Créer un examen</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="manage-exams.php" class="nav-link">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Gérer les examens</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="grade-exams.php" class="nav-link">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Noter les examens</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.php" class="nav-link">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Rapports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="../profile.php" class="nav-link">
+                            <i class="fas fa-user"></i>
+                            <span>Mon profil</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="../logout.php" class="nav-link">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Déconnexion</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">Gérer les examens</h1>
                 </div>
                 
-                <div class="user-profile">
-                    <img src="../assets/images/avatar.png" alt="Avatar" class="user-avatar">
-                    <span class="user-name"><?php echo $_SESSION['username']; ?></span>
-                    <i class="fas fa-chevron-down dropdown-toggle"></i>
+                <div class="header-right">
+                    <div class="search-box">
+                        <input type="text" placeholder="Rechercher...">
+                        <i class="fas fa-search"></i>
+                    </div>
                     
-                    <div class="dropdown-menu">
-                        <a href="../profile.php" class="dropdown-item">
-                            <i class="fas fa-user"></i> Mon profil
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="../logout.php" class="dropdown-item text-danger">
-                            <i class="fas fa-sign-out-alt"></i> Déconnexion
+                    <div class="notifications">
+                        <button class="notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge">3</span>
+                        </button>
+                    </div>
+                    
+                    <div class="user-profile">
+                        <img src="../assets/images/avatar.png" alt="Avatar" class="avatar">
+                        <div class="user-info">
+                            <span class="user-name"><?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?></span>
+                            <span class="user-role">Enseignant</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Manage Exams Content -->
+            <div class="dashboard">
+                <?php if (isset($successMessage)): ?>
+                    <div class="alert alert-success">
+                        <?php echo $successMessage; ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (isset($errorMessage)): ?>
+                    <div class="alert alert-danger">
+                        <?php echo $errorMessage; ?>
+                    </div>
+                <?php endif; ?>
+                
+                <div class="filters-bar">
+                    <div class="search-box">
+                        <form action="" method="get">
+                            <div class="search-input">
+                                <input type="text" name="search" placeholder="Rechercher un examen..." value="<?php echo htmlspecialchars($searchTerm); ?>">
+                                <button type="submit"><i class="fas fa-search"></i></button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="status-filter">
+                        <a href="?status=all" class="filter-btn <?php echo $statusFilter === 'all' ? 'active' : ''; ?>">Tous</a>
+                        <a href="?status=active" class="filter-btn <?php echo $statusFilter === 'active' ? 'active' : ''; ?>">Actifs</a>
+                        <a href="?status=draft" class="filter-btn <?php echo $statusFilter === 'draft' ? 'active' : ''; ?>">Brouillons</a>
+                        <a href="?status=scheduled" class="filter-btn <?php echo $statusFilter === 'scheduled' ? 'active' : ''; ?>">Planifiés</a>
+                        <a href="?status=completed" class="filter-btn <?php echo $statusFilter === 'completed' ? 'active' : ''; ?>">Terminés</a>
+                    </div>
+                    
+                    <div class="create-btn">
+                        <a href="create-exam.php" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Créer un examen
                         </a>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="main-content">
-            <?php if (isset($successMessage)): ?>
-                <div class="alert alert-success">
-                    <?php echo $successMessage; ?>
-                </div>
-            <?php endif; ?>
-            
-            <?php if (isset($errorMessage)): ?>
-                <div class="alert alert-danger">
-                    <?php echo $errorMessage; ?>
-                </div>
-            <?php endif; ?>
-            
-            <div class="filters-bar">
-                <div class="search-box">
-                    <form action="" method="get">
-                        <div class="search-input">
-                            <input type="text" name="search" placeholder="Rechercher un examen..." value="<?php echo htmlspecialchars($searchTerm); ?>">
-                            <button type="submit"><i class="fas fa-search"></i></button>
-                        </div>
-                    </form>
-                </div>
                 
-                <div class="status-filter">
-                    <a href="?status=all" class="filter-btn <?php echo $statusFilter === 'all' ? 'active' : ''; ?>">Tous</a>
-                    <a href="?status=active" class="filter-btn <?php echo $statusFilter === 'active' ? 'active' : ''; ?>">Actifs</a>
-                    <a href="?status=draft" class="filter-btn <?php echo $statusFilter === 'draft' ? 'active' : ''; ?>">Brouillons</a>
-                    <a href="?status=scheduled" class="filter-btn <?php echo $statusFilter === 'scheduled' ? 'active' : ''; ?>">Planifiés</a>
-                    <a href="?status=completed" class="filter-btn <?php echo $statusFilter === 'completed' ? 'active' : ''; ?>">Terminés</a>
-                </div>
-                
-                <div class="create-btn">
-                    <a href="create-exam.php" class="btn btn-primary btn-icon">
-                        <i class="fas fa-plus"></i> Créer un examen
-                    </a>
-                </div>
-            </div>
-            
-            <?php if ($exams->num_rows > 0): ?>
-                <?php while ($exam = $exams->fetch_assoc()): ?>
-                    <div class="exam-card">
-                        <div class="exam-header">
-                            <h2><?php echo htmlspecialchars($exam['title']); ?></h2>
-                            <span class="status-badge <?php echo $exam['status']; ?>">
-                                <?php echo ucfirst($exam['status']); ?>
-                            </span>
-                        </div>
-                        
-                        <div class="exam-details">
-                            <div class="detail-item">
-                                <i class="fas fa-book"></i>
-                                <span><?php echo htmlspecialchars($exam['subject']); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="fas fa-clock"></i>
-                                <span><?php echo $exam['duration']; ?> minutes</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="fas fa-question-circle"></i>
-                                <span><?php echo $exam['question_count']; ?> questions</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="fas fa-user-graduate"></i>
-                                <span><?php echo $exam['participants']; ?> participants</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="fas fa-chart-line"></i>
-                                <span><?php echo $exam['avg_score'] ? round($exam['avg_score'], 1) . '%' : 'N/A'; ?></span>
-                            </div>
-                        </div>
-                        
-                        <div class="exam-dates">
-                            <div class="date-item">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>Début: <?php echo date('d/m/Y H:i', strtotime($exam['start_date'])); ?></span>
-                            </div>
-                            <div class="date-item">
-                                <i class="fas fa-calendar-check"></i>
-                                <span>Fin: <?php echo date('d/m/Y H:i', strtotime($exam['end_date'])); ?></span>
-                            </div>
-                        </div>
-                        
-                        <div class="exam-actions">
-                            <a href="edit-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-primary btn-icon">
-                                <i class="fas fa-edit"></i> Modifier
-                            </a>
-                            <a href="view-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-info btn-icon">
-                                <i class="fas fa-eye"></i> Aperçu
-                            </a>
-                            <a href="view-results.php?id=<?php echo $exam['id']; ?>" class="btn btn-success btn-icon">
-                                <i class="fas fa-chart-bar"></i> Résultats
-                            </a>
-                            <div class="dropdown">
-                                <button class="btn btn-secondary dropdown-toggle">
-                                    <i class="fas fa-ellipsis-v"></i> Plus
-                                </button>
-                                <div class="dropdown-menu">
-                                    <?php if ($exam['status'] !== 'active'): ?>
-                                        <a href="?action=activate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
-                                            <i class="fas fa-play"></i> Activer
+                <div class="exams-grid">
+                    <?php if ($exams->num_rows > 0): ?>
+                        <?php while ($exam = $exams->fetch_assoc()): ?>
+                            <div class="card exam-card">
+                                <div class="card-header">
+                                    <h3 class="exam-title"><?php echo htmlspecialchars($exam['title']); ?></h3>
+                                    <span class="status-badge <?php echo $exam['status']; ?>">
+                                        <?php echo ucfirst($exam['status']); ?>
+                                    </span>
+                                </div>
+                                
+                                <div class="card-body">
+                                    <div class="exam-details">
+                                        <div class="detail-item">
+                                            <i class="fas fa-book"></i>
+                                            <span><?php echo htmlspecialchars($exam['subject']); ?></span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <i class="fas fa-clock"></i>
+                                            <span><?php echo $exam['duration']; ?> minutes</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <i class="fas fa-question-circle"></i>
+                                            <span><?php echo $exam['question_count']; ?> questions</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <i class="fas fa-user-graduate"></i>
+                                            <span><?php echo $exam['participants']; ?> participants</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <i class="fas fa-chart-line"></i>
+                                            <span><?php echo $exam['avg_score'] ? round($exam['avg_score'], 1) . '%' : 'N/A'; ?></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="exam-dates">
+                                        <div class="date-item">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span>Début: <?php echo date('d/m/Y H:i', strtotime($exam['start_date'])); ?></span>
+                                        </div>
+                                        <div class="date-item">
+                                            <i class="fas fa-calendar-check"></i>
+                                            <span>Fin: <?php echo date('d/m/Y H:i', strtotime($exam['end_date'])); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card-footer">
+                                    <div class="exam-actions">
+                                        <a href="edit-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-edit"></i> Modifier
                                         </a>
-                                    <?php else: ?>
-                                        <a href="?action=deactivate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
-                                            <i class="fas fa-pause"></i> Désactiver
+                                        <a href="view-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i> Aperçu
                                         </a>
-                                    <?php endif; ?>
-                                    <a href="?action=duplicate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
-                                        <i class="fas fa-copy"></i> Dupliquer
-                                    </a>
-                                    <a href="export-exam.php?id=<?php echo $exam['id']; ?>" class="dropdown-item">
-                                        <i class="fas fa-download"></i> Exporter
-                                    </a>
-                                    <?php if ($exam['participants'] == 0): ?>
-                                        <a href="?action=delete&id=<?php echo $exam['id']; ?>" class="dropdown-item text-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet examen ?');">
-                                            <i class="fas fa-trash"></i> Supprimer
+                                        <a href="view-results.php?id=<?php echo $exam['id']; ?>" class="btn btn-success btn-sm">
+                                            <i class="fas fa-chart-bar"></i> Résultats
                                         </a>
-                                    <?php endif; ?>
+                                        <div class="dropdown">
+                                            <button class="btn btn-secondary btn-sm dropdown-toggle">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <div class="dropdown-menu">
+                                                <?php if ($exam['status'] !== 'active'): ?>
+                                                    <a href="?action=activate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
+                                                        <i class="fas fa-play"></i> Activer
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="?action=deactivate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
+                                                        <i class="fas fa-pause"></i> Désactiver
+                                                    </a>
+                                                <?php endif; ?>
+                                                <a href="?action=duplicate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
+                                                    <i class="fas fa-copy"></i> Dupliquer
+                                                </a>
+                                                <a href="export-exam.php?id=<?php echo $exam['id']; ?>" class="dropdown-item">
+                                                    <i class="fas fa-download"></i> Exporter
+                                                </a>
+                                                <?php if ($exam['participants'] == 0): ?>
+                                                    <a href="?action=delete&id=<?php echo $exam['id']; ?>" class="dropdown-item text-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet examen ?');">
+                                                        <i class="fas fa-trash"></i> Supprimer
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <h3>Aucun examen trouvé</h3>
+                            <p>Vous n'avez pas encore créé d'examen ou aucun examen ne correspond à vos critères de recherche.</p>
+                            <a href="create-exam.php" class="btn btn-primary">Créer un examen</a>
                         </div>
-                    </div>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-file-alt"></i></div>
-                    <h3>Aucun examen trouvé</h3>
-                    <p>Vous n'avez pas encore créé d'examen ou aucun examen ne correspond à vos critères de recherche.</p>
-                    <a href="create-exam.php" class="btn btn-primary">Créer un examen</a>
+                    <?php endif; ?>
                 </div>
-            <?php endif; ?>
-        </div>
+            </div>
+        </main>
     </div>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Gestion du menu latéral
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
-    const teacherSidebar = document.querySelector('.teacher-sidebar');
-    const teacherContent = document.querySelector('.teacher-content');
-    
-    sidebarToggle.addEventListener('click', function() {
-        teacherSidebar.classList.toggle('show');
-    });
-    
-    sidebarCollapseBtn.addEventListener('click', function() {
-        teacherSidebar.classList.toggle('collapsed');
-        teacherContent.classList.toggle('expanded');
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle sidebar
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const appContainer = document.querySelector('.app-container');
         
-        // Changer l'icône du bouton
-        const icon = this.querySelector('i');
-        if (icon.classList.contains('fa-chevron-left')) {
-            icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
-        } else {
-            icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
-        }
-    });
-    
-    // Gestion des dropdowns
-    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
-    
-    dropdownToggles.forEach(function(toggle) {
-        toggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const dropdownMenu = this.nextElementSibling;
-            
-            // Fermer tous les autres dropdowns
-            document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
-                if (menu !== dropdownMenu) {
-                    menu.classList.remove('show');
-                }
+        menuToggle.addEventListener('click', function() {
+            appContainer.classList.toggle('sidebar-collapsed');
+        });
+        
+        sidebarToggle.addEventListener('click', function() {
+            appContainer.classList.toggle('sidebar-collapsed');
+        });
+        
+        // Gestion des dropdowns
+        const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+        
+        dropdownToggles.forEach(function(toggle) {
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dropdownMenu = this.nextElementSibling;
+                
+                // Fermer tous les autres dropdowns
+                document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                    if (menu !== dropdownMenu) {
+                        menu.classList.remove('show');
+                    }
+                });
+                
+                dropdownMenu.classList.toggle('show');
             });
-            
-            dropdownMenu.classList.toggle('show');
+        });
+        
+        // Fermer les dropdowns quand on clique ailleurs
+        window.addEventListener('click', function() {
+            document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                menu.classList.remove('show');
+            });
         });
     });
-    
-    // Fermer les dropdowns quand on clique ailleurs
-    window.addEventListener('click', function() {
-        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
-            menu.classList.remove('show');
-        });
-    });
-});
-</script>
-
-<?php include '../includes/footer.php'; ?>
+    </script>
+</body>
+</html>
