@@ -14,22 +14,22 @@ if (!isLoggedIn() || !isAdmin()) {
 $totalStudents = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'student'")->fetch_assoc()['count'];
 $totalTeachers = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'teacher'")->fetch_assoc()['count'];
 $totalExams = $conn->query("SELECT COUNT(*) as count FROM exams")->fetch_assoc()['count'];
-$totalCompletedExams = $conn->query("SELECT COUNT(*) as count FROM exam_results WHERE status = 'completed'")->fetch_assoc()['count'];
+// $totalCompletedExams = $conn->query("SELECT COUNT(*) as count FROM exam_results WHERE status = 'completed'")->fetch_assoc()['count'];
 
-// Récupérer les examens récents
-$recentExams = $conn->query("
-    SELECT 
-        e.id,
-        e.title,
-        e.subject,
-        e.status,
-        e.created_at,
-        u.username as teacher_name
-    FROM exams e
-    JOIN users u ON e.teacher_id = u.id
-    ORDER BY e.created_at DESC
-    LIMIT 5
-");
+// // Récupérer les examens récents
+// $recentExams = $conn->query("
+//     SELECT 
+//         e.id,
+//         e.title,
+//         e.subject,
+//         e.status,
+//         e.created_at,
+//         u.username as teacher_name
+//     FROM exams e
+//     JOIN users u ON e.teacher_id = u.id
+//     ORDER BY e.created_at DESC
+//     LIMIT 5
+// ");
 
 // Récupérer les utilisateurs récents
 $recentUsers = $conn->query("

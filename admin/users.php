@@ -74,7 +74,7 @@ include 'includes/header.php';
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-20">
-    <h1 class="page-title">Gestion des utilisateurs</h1>
+    <h1 class="page-title" style="margin-left: 5px;">Gestion des utilisateurs</h1>
     <a href="add-user.php" class="btn btn-primary">
         <i class="fas fa-user-plus"></i> Ajouter un utilisateur
     </a>
