@@ -236,21 +236,28 @@ include 'includes/header.php';
                     </div>
                     
                     <div class="card-footer">
-                        <div class="exam-actions">
-                            <a href="edit-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-primary btn-sm">
+                        <div class="exam-actions" style="margin-left: -15px;text-decoration: none;">
+                        
+                            <a href="edit-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-primary btn-sm" style="text-decoration: none;">
                                 <i class="fas fa-edit"></i> Modifier
                             </a>
-                            <a href="view-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-info btn-sm">
+                            <a style="text-decoration: none;" href="view-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-info btn-sm">
                                 <i class="fas fa-eye"></i> Aperçu
                             </a>
-                            <a href="view-results.php?id=<?php echo $exam['id']; ?>" class="btn btn-success btn-sm">
+                            <a style="text-decoration: none;background-color:purple ;border:none"href="view-results.php?id=<?php echo $exam['id']; ?>" class="btn btn-success btn-sm" >
                                 <i class="fas fa-chart-bar"></i> Résultats
                             </a>
+                            <a style="text-decoration: none;"href="add-questions.php?exam_id=<?php echo $exam['id']; ?>" class="btn btn-success btn-sm" >
+                                <i class="fas fa-plus"></i> Questions
+                            </a>
+                            <a href="?action=delete&id=<?php echo $exam['id']; ?>"class="btn btn-success btn-sm" style="background-color: red;border:none">
+                                <i class="fas fa-trash"></i> 
+                            </a>
                             <div class="dropdown">
-                                <button class="btn btn-secondary btn-sm dropdown-toggle">
+                                <!-- <button class="btn btn-secondary btn-sm dropdown-toggle">
                                     <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <div class="dropdown-menu" >
+                                </button> -->
+                                <!-- <div class="dropdown-menu" >
                                     <?php if ($exam['status'] !== 'active'): ?>
                                         <a href="?action=activate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
                                             <i class="fas fa-play"></i> Activer
@@ -271,7 +278,7 @@ include 'includes/header.php';
                                             <i class="fas fa-trash"></i> Supprimer
                                         </a>
                                     <?php endif; ?>
-                                </div>
+                                </div> -->
                             </div>
                         </div>
                     </div>

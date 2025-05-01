@@ -40,6 +40,7 @@ $recentlyGraded = $conn->query("
         e.id,
         e.title,
         e.subject,
+        u.id as user_id,
         u.username,
         u.first_name,
         u.last_name,
@@ -55,274 +56,280 @@ $recentlyGraded = $conn->query("
 ");
 
 $pageTitle = "Noter les examens";
-include '../includes/header.php';
+include 'includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?> | ExamSafe</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../assets/css/teacher.css">
-</head>
-<body>
-    <div class="app-container">
+<div class="container-fluid">
+    <div class="row">
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <img src="../assets/images/logo.png" alt="ExamSafe Logo">
-                    <span>ExamSafe</span>
-                </div>
-                <button class="menu-toggle" id="menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <ul>
-                    <li class="nav-item">
-                        <a href="index.php" class="nav-link">
-                            <i class="fas fa-tachometer-alt"></i>
-                            <span>Tableau de bord</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="create-exam.php" class="nav-link">
-                            <i class="fas fa-plus-circle"></i>
-                            <span>Créer un examen</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="manage-exams.php" class="nav-link">
-                            <i class="fas fa-file-alt"></i>
-                            <span>Gérer les examens</span>
-                        </a>
-                    </li>
-                    <li class="nav-item active">
-                        <a href="grade-exams.php" class="nav-link">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Noter les examens</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="reports.php" class="nav-link">
-                            <i class="fas fa-chart-bar"></i>
-                            <span>Rapports</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="../profile.php" class="nav-link">
-                            <i class="fas fa-user"></i>
-                            <span>Mon profil</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="../logout.php" class="nav-link">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Déconnexion</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
         
         <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <button class="sidebar-toggle" id="sidebar-toggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h1 class="page-title">Noter les examens</h1>
-                </div>
-                
-                <div class="header-right">
-                    <div class="search-box">
-                        <input type="text" placeholder="Rechercher...">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    
-                    <div class="notifications">
-                        <button class="notification-btn">
-                            <i class="fas fa-bell"></i>
-                            <span class="badge">3</span>
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><?php echo $pageTitle; ?></h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-filter"></i> Filtrer
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-download"></i> Exporter
                         </button>
                     </div>
-                    
-                    <div class="user-profile">
-                        <img src="../assets/images/avatar.png" alt="Avatar" class="avatar">
-                        <div class="user-info">
-                            <span class="user-name"><?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?></span>
-                            <span class="user-role">Enseignant</span>
-                        </div>
-                    </div>
                 </div>
-            </header>
+            </div>
             
-            <!-- Grade Exams Content -->
-            <div class="dashboard">
-                <div class="card table-card">
-                    <div class="card-header">
-                        <h2 class="card-title">Examens à noter</h2>
-                    </div>
-                    <div class="card-body">
-                        <?php if ($examsToGrade->num_rows > 0): ?>
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Titre</th>
-                                            <th>Matière</th>
-                                            <th>Statut</th>
-                                            <th>Soumissions totales</th>
-                                            <th>En attente de notation</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php while ($exam = $examsToGrade->fetch_assoc()): ?>
-                                            <tr>
-                                                <td>
-                                                    <div class="table-user">
-                                                        <div class="user-info">
-                                                            <span class="user-name"><?php echo htmlspecialchars($exam['title']); ?></span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td><?php echo htmlspecialchars($exam['subject']); ?></td>
-                                                <td>
-                                                    <span class="status-badge <?php echo $exam['status']; ?>">
-                                                        <?php echo ucfirst($exam['status']); ?>
-                                                    </span>
-                                                </td>
-                                                <td><?php echo $exam['total_submissions']; ?></td>
-                                                <td>
-                                                    <span class="badge badge-warning"><?php echo $exam['pending_grades']; ?></span>
-                                                </td>
-                                                <td>
-                                                    <a href="grade-exam-submissions.php?id=<?php echo $exam['id']; ?>" class="btn btn-primary btn-sm">
-                                                        Noter
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        <?php endwhile; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php else: ?>
-                            <div class="empty-state">
-                                <div class="empty-icon">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <h3>Aucun examen à noter</h3>
-                                <p>Tous les examens ont été notés ou aucun examen ne contient de questions à réponse libre.</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+            <!-- Examens à noter -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Examens à noter</h5>
+                    <span class="badge bg-primary rounded-pill">
+                        <?php echo $examsToGrade->num_rows; ?> examens
+                    </span>
                 </div>
-                
-                <div class="card table-card">
-                    <div class="card-header">
-                        <h2 class="card-title">Examens récemment notés</h2>
-                    </div>
-                    <div class="card-body">
-                        <?php if ($recentlyGraded->num_rows > 0): ?>
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
+                <div class="card-body">
+                    <?php if ($examsToGrade->num_rows > 0): ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Titre</th>
+                                        <th>Matière</th>
+                                        <th>Statut</th>
+                                        <th>Soumissions</th>
+                                        <th>En attente</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($exam = $examsToGrade->fetch_assoc()): ?>
                                         <tr>
-                                            <th>Examen</th>
-                                            <th>Étudiant</th>
-                                            <th>Score</th>
-                                            <th>Date de notation</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php while ($result = $recentlyGraded->fetch_assoc()): ?>
-                                            <tr>
-                                                <td>
-                                                    <div class="table-user">
-                                                        <div class="user-info">
-                                                            <span class="user-name"><?php echo htmlspecialchars($result['title']); ?></span>
-                                                            <span class="user-date"><?php echo htmlspecialchars($result['subject']); ?></span>
-                                                        </div>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="exam-icon me-3">
+                                                        <i class="fas fa-file-alt text-primary"></i>
                                                     </div>
-                                                </td>
-                                                <td><?php echo htmlspecialchars($result['first_name'] . ' ' . $result['last_name']); ?></td>
-                                                <td><?php echo $result['score']; ?>%</td>
-                                                <td><?php echo date('d/m/Y H:i', strtotime($result['graded_at'])); ?></td>
-                                                <td>
-                                                    <a href="view-submission.php?exam_id=<?php echo $result['id']; ?>&user_id=<?php echo $result['user_id']; ?>" class="btn btn-info btn-sm">
-                                                        <i class="fas fa-eye"></i> Voir
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        <?php endwhile; ?>
-                                    </tbody>
-                                </table>
+                                                    <div>
+                                                        <h6 class="mb-0"><?php echo htmlspecialchars($exam['title']); ?></h6>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($exam['subject']); ?></td>
+                                            <td>
+                                                <span class="badge bg-<?php echo $exam['status'] === 'active' ? 'success' : 'secondary'; ?>">
+                                                    <?php echo ucfirst($exam['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo $exam['total_submissions']; ?></td>
+                                            <td>
+                                                <span class="badge bg-warning text-dark"><?php echo $exam['pending_grades']; ?></span>
+                                            </td>
+                                            <td>
+                                                <a href="grade-exam-submissions.php?id=<?php echo $exam['id']; ?>" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-check-circle me-1"></i> Noter
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-check-circle text-success fa-4x"></i>
                             </div>
-                        <?php else: ?>
-                            <div class="empty-state">
-                                <div class="empty-icon">
-                                    <i class="fas fa-history"></i>
-                                </div>
-                                <h3>Aucun examen récemment noté</h3>
-                                <p>Vous n'avez pas encore noté d'examens.</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                            <h4>Aucun examen à noter</h4>
+                            <p class="text-muted">Tous les examens ont été notés ou aucun examen ne contient de questions à réponse libre.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Exemple de notation</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="grading-container">
-                            <div class="question-panel">
-                                <h3>Question</h3>
-                                <div class="question-text">
-                                    Expliquez les principes fondamentaux de la programmation orientée objet et donnez des exemples concrets de leur application.
+            </div>
+            
+            <!-- Examens récemment notés -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Examens récemment notés</h5>
+                </div>
+                <div class="card-body">
+                    <?php if ($recentlyGraded->num_rows > 0): ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Examen</th>
+                                        <th>Étudiant</th>
+                                        <th>Score</th>
+                                        <th>Date de notation</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($result = $recentlyGraded->fetch_assoc()): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="exam-icon me-3">
+                                                        <i class="fas fa-file-alt text-info"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="mb-0"><?php echo htmlspecialchars($result['title']); ?></h6>
+                                                        <small class="text-muted"><?php echo htmlspecialchars($result['subject']); ?></small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar me-2">
+                                                        <?php echo strtoupper(substr($result['first_name'], 0, 1) . substr($result['last_name'], 0, 1)); ?>
+                                                    </div>
+                                                    <div>
+                                                        <?php echo htmlspecialchars($result['first_name'] . ' ' . $result['last_name']); ?>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="progress" style="height: 8px; width: 80px;">
+                                                    <div class="progress-bar bg-<?php echo getScoreClass($result['score']); ?>" 
+                                                         role="progressbar" 
+                                                         style="width: <?php echo $result['score']; ?>%;" 
+                                                         aria-valuenow="<?php echo $result['score']; ?>" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                                <small class="ms-1"><?php echo $result['score']; ?>%</small>
+                                            </td>
+                                            <td><?php echo date('d/m/Y H:i', strtotime($result['graded_at'])); ?></td>
+                                            <td>
+                                                <a href="view-submission.php?exam_id=<?php echo $result['id']; ?>&user_id=<?php echo $result['user_id']; ?>" class="btn btn-outline-info btn-sm">
+                                                    <i class="fas fa-eye me-1"></i> Voir
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-history text-secondary fa-4x"></i>
+                            </div>
+                            <h4>Aucun examen récemment noté</h4>
+                            <p class="text-muted">Vous n'avez pas encore noté d'examens.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <!-- Exemple de notation -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Exemple de notation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Question</h6>
                                 </div>
-                                <div class="question-info">
-                                    <p><strong>Type:</strong> Question à réponse libre</p>
-                                    <p><strong>Points maximum:</strong> 10</p>
+                                <div class="card-body">
+                                    <p class="question-text">
+                                        Expliquez les principes fondamentaux de la programmation orientée objet et donnez des exemples concrets de leur application.
+                                    </p>
+                                    <div class="question-info mt-3">
+                                        <span class="badge bg-info me-2">Question à réponse libre</span>
+                                        <span class="badge bg-secondary">10 points</span>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="answer-panel">
-                                <h3>Réponse de l'étudiant</h3>
-                                <div class="student-answer">
-                                    <p>La programmation orientée objet (POO) est un paradigme de programmation basé sur le concept d'objets qui contiennent des données et du  est un paradigme de programmation basé sur le concept d'objets qui contiennent des données et du code. Les principes fondamentaux sont :
-
-1. <strong>Encapsulation</strong> : Regrouper les données et les méthodes qui les manipulent. Par exemple, une classe "Compte" qui encapsule le solde et les méthodes pour déposer/retirer de l'argent.
-
-2. <strong>Héritage</strong> : Permet à une classe d'hériter des propriétés d'une autre classe. Par exemple, une classe "CompteCourant" qui hérite de "Compte" mais ajoute des fonctionnalités spécifiques.
-
-3. <strong>Polymorphisme</strong> : Capacité d'un objet à prendre plusieurs formes. Par exemple, une méthode "calculerIntérêts" qui se comporte différemment selon qu'elle est appelée sur un "CompteCourant" ou un "CompteEpargne".
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Réponse de l'étudiant</h6>
                                 </div>
-                                
-                                <div class="grading-form">
-                                    <h3>Notation</h3>
-                                    <div class="score-input">
-                                        <label for="score">Score:</label>
-                                        <input type="number" id="score" class="form-control" min="0" max="10" value="8">
-                                        <span class="max-score">/ 10</span>
+                                <div class="card-body">
+                                    <div class="student-answer">
+                                        <p>La programmation orientée objet (POO) est un paradigme de programmation basé sur le concept d'objets qui contiennent des données et du code. Les principes fondamentaux sont :</p>
+                                        
+                                        <ol>
+                                            <li><strong>Encapsulation</strong> : Regrouper les données et les méthodes qui les manipulent. Par exemple, une classe "Compte" qui encapsule le solde et les méthodes pour déposer/retirer de l'argent.</li>
+                                            
+                                            <li><strong>Héritage</strong> : Permet à une classe d'hériter des propriétés d'une autre classe. Par exemple, une classe "CompteCourant" qui hérite de "Compte" mais ajoute des fonctionnalités spécifiques.</li>
+                                            
+                                            <li><strong>Polymorphisme</strong> : Capacité d'un objet à prendre plusieurs formes. Par exemple, une méthode "calculerIntérêts" qui se comporte différemment selon qu'elle est appelée sur un "CompteCourant" ou un "CompteEpargne".</li>
+                                        </ol>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="feedback">Commentaire:</label>
-                                        <textarea id="feedback" class="form-control" rows="4">Bonne explication des concepts fondamentaux de la POO. Les exemples sont pertinents. Il manque cependant une mention de l'abstraction et des interfaces qui sont aussi des concepts importants en POO.</textarea>
-                                    </div>
-                                    <div class="form-buttons">
-                                        <button class="btn btn-primary">Enregistrer</button>
-                                        <button class="btn btn-secondary">Suivant</button>
-                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Notation</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form>
+                                        <div class="mb-3">
+                                            <label for="score" class="form-label">Score</label>
+                                            <div class="input-group">
+                                                <input type="number" id="score" class="form-control" min="0" max="10" value="8">
+                                                <span class="input-group-text">/ 10</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="feedback" class="form-label">Commentaire</label>
+                                            <textarea id="feedback" class="form-control" rows="6">Bonne explication des concepts fondamentaux de la POO. Les exemples sont pertinents et bien choisis.
+
+Il manque cependant une mention de l'abstraction qui est aussi un concept important en POO. Vous auriez pu également approfondir davantage le polymorphisme avec des exemples plus concrets.
+
+Dans l'ensemble, une réponse solide qui démontre une bonne compréhension des principes de la POO.</textarea>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between">
+                                            <button type="button" class="btn btn-outline-secondary">
+                                                <i class="fas fa-arrow-left me-1"></i> Précédent
+                                            </button>
+                                            <div>
+                                                <button type="button" class="btn btn-success me-2">
+                                                    <i class="fas fa-save me-1"></i> Enregistrer
+                                                </button>
+                                                <button type="button" class="btn btn-primary">
+                                                    Suivant <i class="fas fa-arrow-right ms-1"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Critères d'évaluation</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Explication des concepts (4 points)
+                                            <span class="badge bg-primary rounded-pill">3</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Exemples pertinents (3 points)
+                                            <span class="badge bg-primary rounded-pill">3</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Clarté et structure (2 points)
+                                            <span class="badge bg-primary rounded-pill">2</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Exhaustivité (1 point)
+                                            <span class="badge bg-primary rounded-pill">0</span>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -331,22 +338,47 @@ include '../includes/header.php';
             </div>
         </main>
     </div>
+</div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Toggle sidebar
-        const menuToggle = document.getElementById('menu-toggle');
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const appContainer = document.querySelector('.app-container');
-        
-        menuToggle.addEventListener('click', function() {
-            appContainer.classList.toggle('sidebar-collapsed');
-        });
-        
-        sidebarToggle.addEventListener('click', function() {
-            appContainer.classList.toggle('sidebar-collapsed');
-        });
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation des tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
     });
-    </script>
-</body>
-</html>
+    
+    // Gestion de la soumission du formulaire d'exemple
+    const saveBtn = document.querySelector('.btn-success');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            // Simuler une sauvegarde
+            const toast = new bootstrap.Toast(document.getElementById('saveToast'));
+            toast.show();
+        });
+    }
+});
+
+// Fonction pour obtenir la classe de couleur en fonction du score
+function getScoreClass(score) {
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'info';
+    if (score >= 40) return 'warning';
+    return 'danger';
+}
+</script>
+
+<!-- Toast pour la sauvegarde -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-check-circle text-success me-2"></i>
+            <strong class="me-auto">Notation enregistrée</strong>
+            <small>À l'instant</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            La notation a été enregistrée avec succès.
+        </div>
+    </div>
+</div>

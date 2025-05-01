@@ -10,11 +10,30 @@ if (!isLoggedIn() || !isTeacher()) {
     exit();
 }
 
+// Fonction pour obtenir la classe de couleur en fonction du type d'incident
+function getIncidentClass($type) {
+    switch($type) {
+        case 'Face Detection':
+            return 'warning';
+        case 'Multiple Faces':
+            return 'danger';
+        case 'No Face':
+            return 'danger';
+        case 'Tab Switch':
+            return 'warning';
+        case 'Audio Detection':
+            return 'info';
+        default:
+            return 'secondary';
+    }
+}
+
 // Récupérer l'ID de l'enseignant
 $teacherId = $_SESSION['user_id'];
 
 // Récupérer les statistiques générales
 $totalExams = $conn->query("SELECT COUNT(*) as count FROM exams WHERE teacher_id = $teacherId")->fetch_assoc()['count'];
+$activeExams = $conn->query("SELECT COUNT(*) as count FROM exams WHERE teacher_id = $teacherId AND status = 'active'")->fetch_assoc()['count'];
 $totalStudents = $conn->query("
     SELECT COUNT(DISTINCT user_id) as count 
     FROM exam_results er 
@@ -49,26 +68,35 @@ $examsByMonth = $conn->query("
 $avgScoresBySubject = $conn->query("
     SELECT 
         e.subject,
-        AVG(er.score) as avg_score
+        AVG(er.score) as avg_score,
+        COUNT(er.id) as count
     FROM exam_results er
     JOIN exams e ON er.exam_id = e.id
     WHERE e.teacher_id = $teacherId AND er.status = 'completed'
     GROUP BY e.subject
     ORDER BY avg_score DESC
 ");
-
+$avgScoreResult = $conn->query("
+    SELECT AVG(er.score) as avg_score 
+    FROM exam_results er 
+    JOIN exams e ON er.exam_id = e.id 
+    WHERE e.teacher_id = $teacherId AND er.status = 'completed'
+")->fetch_assoc();
+$avgScore = $avgScoreResult['avg_score'] !== null ? round($avgScoreResult['avg_score'], 1) : 0;
 // Récupérer les incidents de surveillance
 $proctorIncidents = $conn->query("
     SELECT 
         p.id,
         p.exam_id,
         e.title as exam_title,
+        u.id as user_id,
         u.username,
         u.first_name,
         u.last_name,
         p.incident_type,
         p.timestamp,
-        p.details
+        p.details,
+        p.status
     FROM proctoring_incidents p
     JOIN exams e ON p.exam_id = e.id
     JOIN users u ON p.user_id = u.id
@@ -77,234 +105,211 @@ $proctorIncidents = $conn->query("
     LIMIT 10
 ");
 
+// Récupérer les examens pour le formulaire de génération de rapports
+$exams = $conn->query("
+    SELECT id, title, subject
+    FROM exams
+    WHERE teacher_id = $teacherId
+    ORDER BY created_at DESC
+");
+
 $pageTitle = "Rapports et Statistiques";
 include 'includes/header.php';
 ?>
 
-<link rel="stylesheet" href="../assets/css/teacher.css">
-
-<div class="teacher-container">
-    <div class="teacher-sidebar">
-        <div class="sidebar-header">
-            <a href="index.php" class="sidebar-logo">
-                <div class="logo-icon">E</div>
-                <span class="logo-text">ExamSafe</span>
-            </a>
-            <button class="sidebar-toggle" id="sidebarCollapseBtn">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-        </div>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar --
         
-        <div class="sidebar-menu">
-            <div class="menu-category">Menu principal</div>
-            <ul class="menu-items">
-                <li class="menu-item">
-                    <a href="index.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
-                        <span class="menu-item-text">Tableau de bord</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="create-exam.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-plus-circle"></i></span>
-                        <span class="menu-item-text">Créer un examen</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="manage-exams.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-file-alt"></i></span>
-                        <span class="menu-item-text">Gérer les examens</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="grade-exams.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-check-circle"></i></span>
-                        <span class="menu-item-text">Noter les examens</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="reports.php" class="menu-link active">
-                        <span class="menu-icon"><i class="fas fa-chart-bar"></i></span>
-                        <span class="menu-item-text">Rapports</span>
-                    </a>
-                </li>
-            </ul>
-            
-            <div class="menu-category">Configuration</div>
-            <ul class="menu-items">
-                <li class="menu-item">
-                    <a href="../profile.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-user"></i></span>
-                        <span class="menu-item-text">Mon profil</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="../logout.php" class="menu-link">
-                        <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
-                        <span class="menu-item-text">Déconnexion</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-    
-    <div class="teacher-content">
-        <div class="teacher-header">
-            <div class="header-left">
-                <button id="sidebarToggle" class="sidebar-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 class="header-title"><?php echo $pageTitle; ?></h1>
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><?php echo $pageTitle; ?></h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                            <i class="fas fa-download me-1"></i> Exporter
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="printReport">
+                            <i class="fas fa-print me-1"></i> Imprimer
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                        <i class="fas fa-file-alt me-1"></i> Générer un rapport
+                    </button>
+                </div>
             </div>
             
-            <div class="header-right">
-                <div class="notifications">
-                    <i class="fas fa-bell notifications-icon"></i>
-                    <span class="notifications-badge">3</span>
-                </div>
-                
-                <div class="user-profile">
-                    <img src="../assets/images/avatar.png" alt="Avatar" class="user-avatar">
-                    <span class="user-name"><?php echo $_SESSION['username']; ?></span>
-                    <i class="fas fa-chevron-down dropdown-toggle"></i>
-                    
-                    <div class="dropdown-menu">
-                        <a href="../profile.php" class="dropdown-item">
-                            <i class="fas fa-user"></i> Mon profil
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="../logout.php" class="dropdown-item text-danger">
-                            <i class="fas fa-sign-out-alt"></i> Déconnexion
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="main-content">
-            <!-- Cartes de statistiques colorées -->
-            <div class="stats-cards">
-                <div class="stat-card gradient-pink">
-                    <div class="stat-card-content">
-                        <div class="stat-card-info">
-                            <h3>Examens</h3>
-                            <h2><?php echo $totalExams; ?></h2>
+            <!-- Cartes de statistiques -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle text-muted">Total des examens</h6>
+                                    <h2 class="mt-2 mb-0"><?php echo $totalExams; ?></h2>
+                                </div>
+                                <div class="stat-icon bg-primary-light text-primary">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                            </div>
+                            <div class="progress mt-3" style="height: 5px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo min(100, ($totalExams / 50) * 100); ?>%"></div>
+                            </div>
+                            <div class="mt-2 small">
+                                <span class="text-success">
+                                    <i class="fas fa-arrow-up"></i> <?php echo $activeExams; ?>
+                                </span>
+                                <span class="text-muted ms-1">examens actifs</span>
+                            </div>
                         </div>
-                        <div class="stat-card-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-footer">
-                        <span><i class="fas fa-arrow-up"></i> 12% ce mois</span>
                     </div>
                 </div>
                 
-                <div class="stat-card gradient-blue">
-                    <div class="stat-card-content">
-                        <div class="stat-card-info">
-                            <h3>Étudiants</h3>
-                            <h2><?php echo $totalStudents; ?></h2>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle text-muted">Étudiants</h6>
+                                    <h2 class="mt-2 mb-0"><?php echo $totalStudents; ?></h2>
+                                </div>
+                                <div class="stat-icon bg-success-light text-success">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                            </div>
+                            <div class="progress mt-3" style="height: 5px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo min(100, ($totalStudents / 100) * 100); ?>%"></div>
+                            </div>
+                            <div class="mt-2 small">
+                                <span class="text-success">
+                                    <i class="fas fa-arrow-up"></i> 8%
+                                </span>
+                                <span class="text-muted ms-1">ce mois</span>
+                            </div>
                         </div>
-                        <div class="stat-card-icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-footer">
-                        <span><i class="fas fa-arrow-up"></i> 8% ce mois</span>
                     </div>
                 </div>
                 
-                <div class="stat-card gradient-green">
-                    <div class="stat-card-content">
-                        <div class="stat-card-info">
-                            <h3>Score moyen</h3>
-                            <h2><?php echo round($avgScore, 1); ?>%</h2>
-                        </div>
-                        <div class="stat-card-icon">
-                            <i class="fas fa-chart-line"></i>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle text-muted">Examens complétés</h6>
+                                    <h2 class="mt-2 mb-0"><?php echo $totalCompletedExams; ?></h2>
+                                </div>
+                                <div class="stat-icon bg-info-light text-info">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="progress mt-3" style="height: 5px;">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo $totalExams > 0 ? ($totalCompletedExams / $totalExams) * 100 : 0; ?>%"></div>
+                            </div>
+                            <div class="mt-2 small">
+                                <span class="text-info">
+                                    <?php echo $totalExams > 0 ? round(($totalCompletedExams / $totalExams) * 100) : 0; ?>%
+                                </span>
+                                <span class="text-muted ms-1">taux de complétion</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-card-footer">
-                        <span><i class="fas fa-arrow-up"></i> 5% ce mois</span>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle text-muted">Score moyen</h6>
+                                    <h2 class="mt-2 mb-0"><?php echo round($avgScore, 1); ?>%</h2>
+                                </div>
+                                <div class="stat-icon bg-warning-light text-warning">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                            </div>
+                            <div class="progress mt-3" style="height: 5px;">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: <?php echo $avgScore; ?>%"></div>
+                            </div>
+                            <div class="mt-2 small">
+                                <span class="<?php echo $avgScore >= 70 ? 'text-success' : 'text-warning'; ?>">
+                                    <i class="fas fa-<?php echo $avgScore >= 70 ? 'arrow-up' : 'arrow-down'; ?>"></i> 
+                                    <?php echo $avgScore >= 70 ? 'Bon' : 'Moyen'; ?>
+                                </span>
+                                <span class="text-muted ms-1">niveau global</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- Graphiques -->
-            <div class="dashboard-row">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h2>Examens et Résultats</h2>
-                        <div class="card-actions">
-                            <select class="form-control form-control-sm">
-                                <option>Cette année</option>
-                                <option>6 derniers mois</option>
-                                <option>3 derniers mois</option>
-                            </select>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Examens par mois</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chartOptionsDropdown1" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartOptionsDropdown1">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-download me-2"></i>Exporter</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-sync me-2"></i>Actualiser</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Paramètres</a></li>
+                                </ul>
+                            </div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="examsChart"></canvas>
+                        <div class="card-body">
+                            <canvas id="examsChart" height="250"></canvas>
                         </div>
                     </div>
                 </div>
                 
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h2>Répartition par matière</h2>
-                        <div class="card-actions">
-                            <button class="btn btn-sm btn-light"><i class="fas fa-download"></i></button>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Scores moyens par matière</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chartOptionsDropdown2" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartOptionsDropdown2">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-download me-2"></i>Exporter</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-sync me-2"></i>Actualiser</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Paramètres</a></li>
+                                </ul>
+                            </div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="subjectsChart"></canvas>
-                        </div>
-                        <div class="chart-legend">
-                            <div class="legend-item">
-                                <span class="legend-color" style="background-color: #FF6384;"></span>
-                                <span>Mathématiques (35%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color" style="background-color: #36A2EB;"></span>
-                                <span>Physique (25%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color" style="background-color: #FFCE56;"></span>
-                                <span>Chimie (20%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color" style="background-color: #4BC0C0;"></span>
-                                <span>Biologie (15%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color" style="background-color: #9966FF;"></span>
-                                <span>Autres (5%)</span>
-                            </div>
+                        <div class="card-body">
+                            <canvas id="subjectsChart" height="250"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Tableau des incidents récents -->
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h2>Incidents récents</h2>
-                    <div class="card-actions">
-                        <button class="btn btn-sm btn-primary">Voir tout</button>
-                    </div>
+            <!-- Incidents de surveillance -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Incidents de surveillance</h5>
+                    <a href="all-incidents.php" class="btn btn-sm btn-outline-primary">
+                        Voir tous les incidents
+                    </a>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
                     <?php if ($proctorIncidents->num_rows > 0): ?>
                         <div class="table-responsive">
-                            <table class="modern-table">
-                                <thead>
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
                                     <tr>
                                         <th>Étudiant</th>
                                         <th>Examen</th>
                                         <th>Type d'incident</th>
                                         <th>Date</th>
+                                        <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -312,31 +317,34 @@ include 'includes/header.php';
                                     <?php while ($incident = $proctorIncidents->fetch_assoc()): ?>
                                         <tr>
                                             <td>
-                                                <div class="user-info">
-                                                    <div class="user-avatar-sm">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar me-2">
                                                         <?php echo strtoupper(substr($incident['first_name'], 0, 1) . substr($incident['last_name'], 0, 1)); ?>
                                                     </div>
-                                                    <div class="user-name">
+                                                    <div>
                                                         <?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td><?php echo htmlspecialchars($incident['exam_title']); ?></td>
                                             <td>
-                                                <span class="badge <?php echo strtolower($incident['incident_type']); ?>">
+                                                <span class="badge bg-<?php echo getIncidentClass($incident['incident_type']); ?>">
                                                     <?php echo htmlspecialchars($incident['incident_type']); ?>
                                                 </span>
                                             </td>
                                             <td><?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?></td>
                                             <td>
-                                                <div class="table-actions">
-                                                    <button class="btn btn-icon btn-sm view-incident" data-id="<?php echo $incident['id']; ?>">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn btn-icon btn-sm">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                </div>
+                                                <span class="badge bg-<?php echo $incident['status'] === 'resolved' ? 'success' : 'warning'; ?>">
+                                                    <?php echo ucfirst($incident['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-info view-incident" data-id="<?php echo $incident['id']; ?>" data-bs-toggle="modal" data-bs-target="#incidentModal">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <a href="review-incident.php?id=<?php echo $incident['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
@@ -344,91 +352,290 @@ include 'includes/header.php';
                             </table>
                         </div>
                     <?php else: ?>
-                        <div class="empty-state">
-                            <div class="empty-icon"><i class="fas fa-shield-alt"></i></div>
-                            <h3>Aucun incident récent</h3>
-                            <p>Aucun incident de surveillance n'a été détecté récemment.</p>
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-shield-alt text-success fa-4x"></i>
+                            </div>
+                            <h4>Aucun incident récent</h4>
+                            <p class="text-muted">Aucun incident de surveillance n'a été détecté récemment.</p>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
             
             <!-- Formulaire de génération de rapports -->
-            <div class="dashboard-card">
+            <div class="card mb-4">
                 <div class="card-header">
-                    <h2>Générer des rapports</h2>
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Générer des rapports personnalisés</h5>
                 </div>
                 <div class="card-body">
-                    <form id="reportForm" class="modern-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="reportType">Type de rapport</label>
-                                <select id="reportType" name="reportType" class="form-control">
-                                    <option value="exam_results">Résultats d'examens</option>
-                                    <option value="student_performance">Performance des étudiants</option>
-                                    <option value="proctoring_incidents">Incidents de surveillance</option>
-                                    <option value="question_analysis">Analyse des questions</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="examId">Examen</label>
-                                <select id="examId" name="examId" class="form-control">
-                                    <option value="all">Tous les examens</option>
-                                    <!-- Options générées dynamiquement -->
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="format">Format</label>
-                                <select id="format" name="format" class="form-control">
-                                    <option value="pdf">PDF</option>
-                                    <option value="excel">Excel</option>
-                                    <option value="csv">CSV</option>
-                                </select>
-                            </div>
+                    <form id="reportForm" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="reportType" class="form-label">Type de rapport</label>
+                            <select id="reportType" name="reportType" class="form-select">
+                                <option value="exam_results">Résultats d'examens</option>
+                                <option value="student_performance">Performance des étudiants</option>
+                                <option value="proctoring_incidents">Incidents de surveillance</option>
+                                <option value="question_analysis">Analyse des questions</option>
+                            </select>
                         </div>
                         
-                        <div class="form-buttons">
-                            <button type="submit" class="btn btn-primary">Générer le rapport</button>
+                        <div class="col-md-4">
+                            <label for="examId" class="form-label">Examen</label>
+                            <select id="examId" name="examId" class="form-select">
+                                <option value="all">Tous les examens</option>
+                                <?php while ($exam = $exams->fetch_assoc()): ?>
+                                    <option value="<?php echo $exam['id']; ?>"><?php echo htmlspecialchars($exam['title']); ?></option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="format" class="form-label">Format</label>
+                            <select id="format" name="format" class="form-select">
+                                <option value="pdf">PDF</option>
+                                <option value="excel">Excel</option>
+                                <option value="csv">CSV</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-file-download me-1"></i> Générer le rapport
+                            </button>
                         </div>
                     </form>
                 </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Modal pour afficher les détails d'un incident -->
+<div class="modal fade" id="incidentModal" tabindex="-1" aria-labelledby="incidentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="incidentModalLabel">Détails de l'incident</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6>Informations générales</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Examen:</span>
+                                    <span id="incident-exam" class="fw-bold"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Étudiant:</span>
+                                    <span id="incident-student" class="fw-bold"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Type d'incident:</span>
+                                    <span id="incident-type" class="fw-bold"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Date:</span>
+                                    <span id="incident-date" class="fw-bold"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Statut:</span>
+                                    <span id="incident-status" class="fw-bold"></span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h6>Description</h6>
+                            <p id="incident-description" class="p-3 bg-light rounded"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Preuve</h6>
+                        <div id="incident-evidence-container" class="text-center">
+                            <img id="incident-image" src="../assets/images/placeholder.jpg" alt="Preuve de l'incident" class="img-fluid rounded">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-primary" id="review-incident">Examiner</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal pour afficher les détails d'un incident -->
-<div class="modal" id="incidentModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Détails de l'incident</h2>
-            <button class="close-modal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="incident-details">
-                <div class="incident-info">
-                    <p><strong>Examen:</strong> <span id="incident-exam"></span></p>
-                    <p><strong>Étudiant:</strong> <span id="incident-student"></span></p>
-                    <p><strong>Type d'incident:</strong> <span id="incident-type"></span></p>
-                    <p><strong>Date:</strong> <span id="incident-date"></span></p>
-                </div>
-                <div class="incident-description">
-                    <h3>Description</h3>
-                    <p id="incident-description"></p>
-                </div>
-                <div class="incident-evidence">
-                    <h3>Preuves</h3>
-                    <div id="incident-evidence-container">
-                        <img id="incident-image" src="../assets/images/placeholder.jpg" alt="Preuve de l'incident">
+<!-- Modal pour exporter les rapports -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporter les données</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="exportType" class="form-label">Type de données</label>
+                        <select id="exportType" class="form-select">
+                            <option value="all_data">Toutes les données</option>
+                            <option value="exam_results">Résultats d'examens</option>
+                            <option value="student_data">Données des étudiants</option>
+                            <option value="incidents">Incidents de surveillance</option>
+                        </select>
                     </div>
-                </div>
+                    <div class="mb-3">
+                        <label for="exportFormat" class="form-label">Format</label>
+                        <select id="exportFormat" class="form-select">
+                            <option value="excel">Excel (.xlsx)</option>
+                            <option value="csv">CSV</option>
+                            <option value="pdf">PDF</option>
+                            <option value="json">JSON</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dateRange" class="form-label">Période</label>
+                        <select id="dateRange" class="form-select">
+                            <option value="all_time">Tout le temps</option>
+                            <option value="this_month">Ce mois</option>
+                            <option value="last_month">Mois dernier</option>
+                            <option value="this_year">Cette année</option>
+                            <option value="custom">Personnalisé</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 date-range-custom d-none">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="startDate" class="form-label">Date de début</label>
+                                <input type="date" class="form-control" id="startDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="endDate" class="form-label">Date de fin</label>
+                                <input type="date" class="form-control" id="endDate">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary">Exporter</button>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary close-modal">Fermer</button>
-            <button class="btn btn-primary" id="review-incident">Examiner</button>
+    </div>
+</div>
+
+<!-- Modal pour générer un rapport -->
+<div class="modal fade" id="generateReportModal" tabindex="-1" aria-labelledby="generateReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="generateReportModalLabel">Générer un rapport détaillé</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="reportTitle" class="form-label">Titre du rapport</label>
+                            <input type="text" class="form-control" id="reportTitle" placeholder="Ex: Rapport trimestriel des examens">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="reportCategory" class="form-label">Catégorie</label>
+                            <select id="reportCategory" class="form-select">
+                                <option value="performance">Performance</option>
+                                <option value="analytics">Analytique</option>
+                                <option value="summary">Résumé</option>
+                                <option value="detailed">Détaillé</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="reportPeriod" class="form-label">Période</label>
+                            <select id="reportPeriod" class="form-select">
+                                <option value="last_week">Dernière semaine</option>
+                                <option value="last_month">Dernier mois</option>
+                                <option value="last_quarter">Dernier trimestre</option>
+                                <option value="last_year">Dernière année</option>
+                                <option value="custom">Personnalisé</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="reportFormat" class="form-label">Format</label>
+                            <select id="reportFormat" class="form-select">
+                                <option value="pdf">PDF</option>
+                                <option value="docx">Word (.docx)</option>
+                                <option value="pptx">PowerPoint (.pptx)</option>
+                                <option value="html">HTML</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Éléments à inclure</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="includeOverview" checked>
+                                    <label class="form-check-label" for="includeOverview">
+                                        Vue d'ensemble
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="includeExamStats" checked>
+                                    <label class="form-check-label" for="includeExamStats">
+                                        Statistiques des examens
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="includeStudentPerf" checked>
+                                    <label class="form-check-label" for="includeStudentPerf">
+                                        Performance des étudiants
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="includeCharts" checked>
+                                    <label class="form-check-label" for="includeCharts">
+                                        Graphiques et visualisations
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="includeIncidents">
+                                    <label class="form-check-label" for="includeIncidents">
+                                        Incidents de surveillance
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="includeRecommendations">
+                                    <label class="form-check-label" for="includeRecommendations">
+                                        Recommandations
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reportNotes" class="form-label">Notes additionnelles</label>
+                        <textarea class="form-control" id="reportNotes" rows="3" placeholder="Ajoutez des notes ou des commentaires à inclure dans le rapport..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary">Générer</button>
+            </div>
         </div>
     </div>
 </div>
@@ -436,53 +643,19 @@ include 'includes/header.php';
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Gestion du menu latéral
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
-    const teacherSidebar = document.querySelector('.teacher-sidebar');
-    const teacherContent = document.querySelector('.teacher-content');
-    
-    sidebarToggle.addEventListener('click', function() {
-        teacherSidebar.classList.toggle('show');
-    });
-    
-    sidebarCollapseBtn.addEventListener('click', function() {
-        teacherSidebar.classList.toggle('collapsed');
-        teacherContent.classList.toggle('expanded');
-        
-        // Changer l'icône du bouton
-        const icon = this.querySelector('i');
-        if (icon.classList.contains('fa-chevron-left')) {
-            icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
-        } else {
-            icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
-        }
-    });
-    
-    // Gestion des dropdowns
-    const userProfile = document.querySelector('.user-profile');
-    userProfile.addEventListener('click', function() {
-        this.querySelector('.dropdown-menu').classList.toggle('show');
-    });
-    
-    // Fermer les dropdowns quand on clique ailleurs
-    window.addEventListener('click', function(event) {
-        if (!event.target.closest('.user-profile')) {
-            const dropdowns = document.querySelectorAll('.dropdown-menu');
-            dropdowns.forEach(dropdown => {
-                if (dropdown.classList.contains('show')) {
-                    dropdown.classList.remove('show');
-                }
-            });
-        }
+    // Initialisation des tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
     });
     
     // Configuration du graphique des examens par mois
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
     const examsCtx = document.getElementById('examsChart').getContext('2d');
     const examsChart = new Chart(examsCtx, {
         type: 'bar',
         data: {
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+            labels: months,
             datasets: [
                 {
                     label: 'Examens créés',
@@ -510,6 +683,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         precision: 0
                     }
                 }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
             }
         }
     });
@@ -519,17 +697,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const subjectsChart = new Chart(subjectsCtx, {
         type: 'doughnut',
         data: {
-            labels: ['Mathématiques', 'Physique', 'Chimie', 'Biologie', 'Autres'],
+            labels: ['Mathématiques', 'Physique', 'Chimie', 'Biologie', 'Informatique'],
             datasets: [{
                 data: [35, 25, 20, 15, 5],
                 backgroundColor: [
-                    '#FF6384',
-                    '#36A2EB',
-                    '#FFCE56',
-                    '#4BC0C0',
-                    '#9966FF'
+                    '#4e73df',
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b'
                 ],
-                borderWidth: 0
+                borderWidth: 1
             }]
         },
         options: {
@@ -538,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cutout: '70%',
             plugins: {
                 legend: {
-                    display: false
+                    position: 'right',
                 }
             }
         }
@@ -546,9 +724,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Gestion du modal d'incident
     const viewIncidentBtns = document.querySelectorAll('.view-incident');
-    const incidentModal = document.getElementById('incidentModal');
-    const closeModalBtns = document.querySelectorAll('.close-modal');
-    
     viewIncidentBtns.forEach(function(btn) {
         btn.addEventListener('click', function() {
             const incidentId = this.getAttribute('data-id');
@@ -558,30 +733,55 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('incident-student').textContent = "Jean Dupont";
             document.getElementById('incident-type').textContent = "Détection de visage";
             document.getElementById('incident-date').textContent = "18/04/2023, 09:15";
+            document.getElementById('incident-status').textContent = "En attente";
+            document.getElementById('incident-status').className = "fw-bold text-warning";
             document.getElementById('incident-description').textContent = "L'étudiant a quitté le champ de vision de la caméra pendant plus de 30 secondes.";
-            
-            incidentModal.style.display = 'block';
         });
     });
     
-    closeModalBtns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            incidentModal.style.display = 'none';
-        });
+    // Gestion du bouton d'examen d'incident
+    document.getElementById('review-incident').addEventListener('click', function() {
+        window.location.href = 'review-incident.php?id=1'; // Remplacer par l'ID réel
     });
     
-    window.addEventListener('click', function(event) {
-        if (event.target == incidentModal) {
-            incidentModal.style.display = 'none';
+    // Gestion du formulaire de génération de rapports
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Ici, vous traiteriez normalement le formulaire pour générer le rapport
+        alert('Génération du rapport en cours...');
+    });
+    
+    // Gestion du bouton d'impression
+    document.getElementById('printReport').addEventListener('click', function() {
+        window.print();
+    });
+    
+    // Gestion de l'affichage des dates personnalisées dans le modal d'export
+    document.getElementById('dateRange').addEventListener('change', function() {
+        const dateRangeCustom = document.querySelector('.date-range-custom');
+        if (this.value === 'custom') {
+            dateRangeCustom.classList.remove('d-none');
+        } else {
+            dateRangeCustom.classList.add('d-none');
         }
     });
-    
-    // Bouton d'examen d'incident
-    document.getElementById('review-incident').addEventListener('click', function() {
-        alert('Redirection vers la page de révision détaillée de l\'incident...');
-        // Ici, vous redirigeriez normalement vers une page de révision détaillée
-    });
 });
-</script>
 
-<?php include '../includes/footer.php'; ?>
+// Fonction pour obtenir la classe de couleur en fonction du type d'incident
+function getIncidentClass(type) {
+    switch(type) {
+        case 'Face Detection':
+            return 'warning';
+        case 'Multiple Faces':
+            return 'danger';
+        case 'No Face':
+            return 'danger';
+        case 'Tab Switch':
+            return 'warning';
+        case 'Audio Detection':
+            return 'info';
+        default:
+            return 'secondary';
+    }
+}
+</script>
