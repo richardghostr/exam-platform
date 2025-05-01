@@ -6,7 +6,7 @@ require_once '../includes/functions.php';
 
 // Vérifier si l'utilisateur est connecté et est un administrateur
 if (!isLoggedIn() || !isAdmin()) {
-    header('Location: ../login.php');
+    header('Location: login.php');
     exit();
 }
 
@@ -54,11 +54,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
             // Traiter les options de réponse pour les questions à choix
             if ($question_type === 'multiple_choice' || $question_type === 'single_choice' || $question_type === 'true_false') {
                 $options = $_POST['options'];
-                $correct_options = isset($_POST['correct_options']) ? $_POST['correct_options'] : [];
+                
+                // Correction ici: s'assurer que $correct_options est toujours un tableau
+                if (isset($_POST['correct_options'])) {
+                    $correct_options = is_array($_POST['correct_options']) ? $_POST['correct_options'] : [$_POST['correct_options']];
+                } else {
+                    $correct_options = [];
+                }
                 
                 foreach ($options as $key => $option_text) {
                     if (!empty($option_text)) {
-                        $is_correct = in_array($key, $correct_options) ? 1 : 0;
+                        $is_correct = in_array((string)$key, $correct_options) ? 1 : 0;
                         
                         $optionStmt = $conn->prepare("INSERT INTO question_options (question_id, option_text, is_correct) 
                                                     VALUES (?, ?, ?)");

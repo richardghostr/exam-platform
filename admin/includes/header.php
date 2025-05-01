@@ -14,6 +14,10 @@
     <?php endif; ?>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="../../assets/js/admin.js"></script>
     <?php if (isset($extraJs)): ?>
         <?php foreach ($extraJs as $js): ?>
@@ -1069,7 +1073,7 @@ input:checked + .slider:before {
                     <div class="user-profile">
                         <img src="../assets/images/avatar.png" alt="Avatar" class="user-avatar">
                         <div class="user-info">
-                            <span class="user-name"><?php echo isset($_SESSION['username']) ? $_SESSION['username'] : 'Admin'; ?></span>
+                            <span class="user-name"><a href="profile.php"><?php echo isset($_SESSION['username']) ? $_SESSION['username'] : 'Admin'; ?></a></span>
                             <i class="fas fa-chevron-down dropdown-icon"></i>
                         </div>
                     </div>
