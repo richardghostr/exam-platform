@@ -14,6 +14,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
   <title><?php echo isset($pageTitle) ? $pageTitle : 'ExamSafe'; ?></title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
   <link rel="stylesheet" href="../assets/css/teacher.css">
   <?php if (isset($extraCss)): ?>
     <?php foreach ($extraCss as $css): ?>

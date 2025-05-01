@@ -5,9 +5,6 @@
             <img src="../assets/images/logo.png" alt="ExamSafe Logo" height="80px">
             <span>ExamSafe</span>
         </div>
-        <button class="menu-toggle" id="menu-toggle">
-            <i class="fas fa-bars"></i>
-        </button>
     </div>
 
     <nav class="sidebar-nav">

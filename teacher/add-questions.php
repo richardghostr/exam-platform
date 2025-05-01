@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
     $question_type = $_POST['question_type'];
     $points = $_POST['points'];
     $difficulty = $_POST['difficulty'];
-    
+
     // Validation des données
     if (empty($question_text)) {
         $error = "Le texte de la question est obligatoire.";
@@ -47,25 +47,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
         $stmt = $conn->prepare("INSERT INTO questions (exam_id, question_text, question_type, points, difficulty) 
                                VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("issis", $exam_id, $question_text, $question_type, $points, $difficulty);
-        
+
         if ($stmt->execute()) {
             $question_id = $stmt->insert_id;
-            
+
             // Traiter les options de réponse pour les questions à choix
             if ($question_type === 'multiple_choice' || $question_type === 'single_choice' || $question_type === 'true_false') {
                 $options = $_POST['options'];
-                
+
                 // Correction ici: s'assurer que $correct_options est toujours un tableau
                 if (isset($_POST['correct_options'])) {
                     $correct_options = is_array($_POST['correct_options']) ? $_POST['correct_options'] : [$_POST['correct_options']];
                 } else {
                     $correct_options = [];
                 }
-                
+
                 foreach ($options as $key => $option_text) {
                     if (!empty($option_text)) {
                         $is_correct = in_array((string)$key, $correct_options) ? 1 : 0;
-                        
+
                         $optionStmt = $conn->prepare("INSERT INTO question_options (question_id, option_text, is_correct) 
                                                     VALUES (?, ?, ?)");
                         $optionStmt->bind_param("isi", $question_id, $option_text, $is_correct);
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
                     }
                 }
             }
-            
+
             $success = "La question a été ajoutée avec succès.";
         } else {
             $error = "Erreur lors de l'ajout de la question: " . $conn->error;
@@ -92,123 +92,126 @@ include 'includes/header.php';
 ?>
 <style>
     .admin-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1rem;
-}
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
 
-.admin-table th,
-.admin-table td {
+    .admin-table th,
+    .admin-table td {
 
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-}
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
 
-.admin-table th {
-    background-color: #f5f5f5;
-    font-weight: 600;
-}
-.alert {
-    position: relative;
-    padding: 0.75rem 1.25rem;
-    margin-bottom: 1rem;
-    border: 1px solid transparent;
-    border-radius: 0.25rem;
-}
+    .admin-table th {
+        background-color: #f5f5f5;
+        font-weight: 600;
+    }
 
-.alert-danger {
-    color: #721c24;
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-}
+    .alert {
+        position: relative;
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
 
-.alert-success {
-    color: #155724;
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-}
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
 
-.alert-info {
-    color: #0c5460;
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-}
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
 
-.table-responsive {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
 
-.row {
-    display: flex;
-    flex-wrap: wrap;
-    margin-right: -15px;
-    margin-left: -15px;
-}
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
 
-.col-md-6 {
-    flex: 0 0 50%;
-    max-width: 50%;
-    padding-right: 15px;
-    padding-left: 15px;
-}
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: -15px;
+        margin-left: -15px;
+    }
 
-.col-md-4 {
-    flex: 0 0 33.333333%;
-    max-width: 33.333333%;
-    padding-right: 15px;
-    padding-left: 15px;
-}
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding-right: 15px;
+        padding-left: 15px;
+    }
 
-/* Icônes */
-.fas {
-    font-size: 0.875em;
-}
-.mb-20 {
-    margin-bottom: 20px;
-}
+    .col-md-4 {
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
+        padding-right: 15px;
+        padding-left: 15px;
+    }
 
-.mt-20 {
-    margin-top: 20px;
-}
+    /* Icônes */
+    .fas {
+        font-size: 0.875em;
+    }
 
-.ml-10 {
-    margin-left: 10px;
-}
-.option-row {
-    margin-bottom: 10px;
-}
+    .mb-20 {
+        margin-bottom: 20px;
+    }
 
-.remove-option {
-    margin-left: 10px;
-}
-.gap-10 {
-    gap: 10px;
-}
+    .mt-20 {
+        margin-top: 20px;
+    }
 
-.d-flex {
-    display: flex;
-}
+    .ml-10 {
+        margin-left: 10px;
+    }
 
-.align-items-center {
-    align-items: center;
-}
+    .option-row {
+        margin-bottom: 10px;
+    }
 
-.justify-content-between {
-    justify-content: space-between;
-}
+    .remove-option {
+        margin-left: 10px;
+    }
 
-.flex-grow-1 {
-    flex-grow: 1;
-}
+    .gap-10 {
+        gap: 10px;
+    }
 
-.text-muted {
-    color: #6c757d !important;
-}
+    .d-flex {
+        display: flex;
+    }
 
+    .align-items-center {
+        align-items: center;
+    }
+
+    .justify-content-between {
+        justify-content: space-between;
+    }
+
+    .flex-grow-1 {
+        flex-grow: 1;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+    }
 </style>
 <div class="d-flex justify-content-between align-items-center mb-20" style="margin-top: 20px;margin-left: 25px;margin-bottom: 20px;">
     <div>
@@ -234,9 +237,9 @@ include 'includes/header.php';
             </div>
             <div class="col-md-6">
                 <p><strong>Note de passage:</strong> <?php echo $exam['passing_score']; ?>%</p>
-                <p><strong>Statut:</strong> 
-                    <span class="status-badge <?php echo $exam['status']; ?>">
-                        <strong><?php echo ($exam['status']); ?></strong>
+                <p><strong>Statut:</strong>
+                    <span class="info-value status-badge <?php echo $exam['status']; ?>">
+                        <?php echo ucfirst($exam['status']); ?>
                     </span>
                 </p>
                 <p><strong>Surveillance:</strong> <?php echo $exam['is_proctored'] ? 'Activée' : 'Désactivée'; ?></p>
@@ -287,7 +290,7 @@ include 'includes/header.php';
                                 </td>
                                 <td><?php echo $question['points']; ?></td>
                                 <td>
-                                    <span >
+                                    <span>
                                         <?php echo getDifficultyBadgeClass($question['difficulty']); ?>
                                     </span>
                                 </td>
@@ -324,7 +327,7 @@ include 'includes/header.php';
                 <label for="question_text" class="form-label">Texte de la question *</label>
                 <textarea id="question_text" name="question_text" class="form-control" rows="4" required></textarea>
             </div>
-            
+
             <div class="row">
                 <div class="col-md-4">
                     <div class="form-group">
@@ -338,14 +341,14 @@ include 'includes/header.php';
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="form-group">
                         <label for="points" class="form-label">Points *</label>
                         <input type="number" id="points" name="points" class="form-control" min="1" value="1" required>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="form-group">
                         <label for="difficulty" class="form-label">Difficulté *</label>
@@ -357,13 +360,13 @@ include 'includes/header.php';
                     </div>
                 </div>
             </div>
-            
+
             <div id="options_container" class="mt-20">
                 <h3>Options de réponse</h3>
                 <p class="text-muted" style="margin-bottom: 15px;margin-top:5px">Cochez les options qui sont correctes.</p>
-                
+
                 <div id="options_list">
-                    <div class="option-row d-flex align-items-center mb-10" >
+                    <div class="option-row d-flex align-items-center mb-10">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="correct_options[]" value="0">
                         </div>
@@ -390,12 +393,12 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </div>
-                
+
                 <button type="button" id="add_option" class="btn btn-secondary mt-10">
                     <i class="fas fa-plus"></i> Ajouter une option
                 </button>
             </div>
-            
+
             <div class="mt-20">
                 <button type="submit" name="add_question" class="btn btn-primary">
                     <i class="fas fa-save"></i> Enregistrer la question
@@ -404,53 +407,67 @@ include 'includes/header.php';
         </form>
     </div>
 </div>
-
+<script src="https://cdn.tiny.cloud/1/1dqpp2wweuwe4ayuoiglr95zm8l7a678dl1af8u6qm2m3kip/tinymce/5/tinymce.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const questionTypeSelect = document.getElementById('question_type');
-    const optionsContainer = document.getElementById('options_container');
-    const optionsList = document.getElementById('options_list');
-    const addOptionBtn = document.getElementById('add_option');
-    
-    // Fonction pour gérer l'affichage des options en fonction du type de question
-    function toggleOptionsVisibility() {
-        const questionType = questionTypeSelect.value;
-        
-        if (questionType === 'multiple_choice' || questionType === 'single_choice') {
-            optionsContainer.style.display = 'block';
-            updateCheckboxType(questionType === 'single_choice' ? 'radio' : 'checkbox');
-        } else if (questionType === 'true_false') {
-            optionsContainer.style.display = 'block';
-            // Réinitialiser les options pour Vrai/Faux
-            optionsList.innerHTML = '';
-            addTrueFalseOptions();
-            updateCheckboxType('radio');
-        } else {
-            optionsContainer.style.display = 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+        tinymce.init({
+        selector: '.rich-editor',
+        height: 200,
+        menubar: false,
+        plugins: [
+            'advlist autolink lists link image charmap print preview anchor',
+            'searchreplace visualblocks code fullscreen',
+            'insertdatetime media table paste code help wordcount'
+        ],
+        toolbar: 'undo redo | formatselect | bold italic backcolor | \
+                alignleft aligncenter alignright alignjustify | \
+                bullist numlist outdent indent | removeformat | help'
+    });
+
+        const questionTypeSelect = document.getElementById('question_type');
+        const optionsContainer = document.getElementById('options_container');
+        const optionsList = document.getElementById('options_list');
+        const addOptionBtn = document.getElementById('add_option');
+
+        // Fonction pour gérer l'affichage des options en fonction du type de question
+        function toggleOptionsVisibility() {
+            const questionType = questionTypeSelect.value;
+
+            if (questionType === 'multiple_choice' || questionType === 'single_choice') {
+                optionsContainer.style.display = 'block';
+                updateCheckboxType(questionType === 'single_choice' ? 'radio' : 'checkbox');
+            } else if (questionType === 'true_false') {
+                optionsContainer.style.display = 'block';
+                // Réinitialiser les options pour Vrai/Faux
+                optionsList.innerHTML = '';
+                addTrueFalseOptions();
+                updateCheckboxType('radio');
+            } else {
+                optionsContainer.style.display = 'none';
+            }
         }
-    }
-    
-    // Fonction pour ajouter les options Vrai/Faux
-    function addTrueFalseOptions() {
-        const trueOption = createOptionRow(0, 'Vrai');
-        const falseOption = createOptionRow(1, 'Faux');
-        
-        optionsList.appendChild(trueOption);
-        optionsList.appendChild(falseOption);
-        
-        // Désactiver le bouton d'ajout d'option pour Vrai/Faux
-        addOptionBtn.style.display = 'none';
-    }
-    
-    // Fonction pour créer une nouvelle ligne d'option
-    function createOptionRow(index, value = '') {
-        const row = document.createElement('div');
-        row.className = 'option-row d-flex align-items-center mb-10';
-        
-        const checkboxType = questionTypeSelect.value === 'single_choice' || questionTypeSelect.value === 'true_false' ? 'radio' : 'checkbox';
-        const inputName = checkboxType === 'radio' ? 'correct_options' : 'correct_options[]';
-        
-        row.innerHTML = `
+
+        // Fonction pour ajouter les options Vrai/Faux
+        function addTrueFalseOptions() {
+            const trueOption = createOptionRow(0, 'Vrai');
+            const falseOption = createOptionRow(1, 'Faux');
+
+            optionsList.appendChild(trueOption);
+            optionsList.appendChild(falseOption);
+
+            // Désactiver le bouton d'ajout d'option pour Vrai/Faux
+            addOptionBtn.style.display = 'none';
+        }
+
+        // Fonction pour créer une nouvelle ligne d'option
+        function createOptionRow(index, value = '') {
+            const row = document.createElement('div');
+            row.className = 'option-row d-flex align-items-center mb-10';
+
+            const checkboxType = questionTypeSelect.value === 'single_choice' || questionTypeSelect.value === 'true_false' ? 'radio' : 'checkbox';
+            const inputName = checkboxType === 'radio' ? 'correct_options' : 'correct_options[]';
+
+            row.innerHTML = `
             <div class="form-check">
                 <input class="form-check-input" type="${checkboxType}" name="${inputName}" value="${index}">
             </div>
@@ -463,99 +480,100 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
         `;
-        
-        // Ajouter un gestionnaire d'événements pour le bouton de suppression
-        row.querySelector('.remove-option').addEventListener('click', function() {
-            if (questionTypeSelect.value !== 'true_false') {
-                row.remove();
-                updateOptionIndexes();
-            }
-        });
-        
-        return row;
-    }
-    
-    // Fonction pour mettre à jour les index des options
-    function updateOptionIndexes() {
-        const options = optionsList.querySelectorAll('.option-row');
-        options.forEach((option, index) => {
-            const input = option.querySelector('.form-check-input');
-            input.value = index;
-        });
-    }
-    
-    // Fonction pour mettre à jour le type de case à cocher
-    function updateCheckboxType(type) {
-        const options = optionsList.querySelectorAll('.option-row');
-        const inputName = type === 'radio' ? 'correct_options' : 'correct_options[]';
-        
-        options.forEach((option, index) => {
-            const checkboxDiv = option.querySelector('.form-check');
-            const oldInput = option.querySelector('.form-check-input');
-            const isChecked = oldInput.checked;
-            
-            checkboxDiv.innerHTML = `<input class="form-check-input" type="${type}" name="${inputName}" value="${index}" ${isChecked ? 'checked' : ''}>`;
-        });
-    }
-    
-    // Ajouter un gestionnaire d'événements pour le changement de type de question
-    questionTypeSelect.addEventListener('change', toggleOptionsVisibility);
-    
-    // Ajouter un gestionnaire d'événements pour le bouton d'ajout d'option
-    addOptionBtn.addEventListener('click', function() {
-        const options = optionsList.querySelectorAll('.option-row');
-        const newOption = createOptionRow(options.length);
-        optionsList.appendChild(newOption);
-    });
-    
-    // Initialiser l'affichage des options
-    toggleOptionsVisibility();
-    
-    // Ajouter des gestionnaires d'événements pour les boutons de suppression existants
-    document.querySelectorAll('.remove-option').forEach(button => {
-        button.addEventListener('click', function() {
-            if (questionTypeSelect.value !== 'true_false') {
-                this.closest('.option-row').remove();
-                updateOptionIndexes();
-            }
-        });
-    });
-    
-    // Validation du formulaire
-    document.getElementById('questionForm').addEventListener('submit', function(e) {
-        const questionType = questionTypeSelect.value;
-        
-        if (questionType === 'multiple_choice' || questionType === 'single_choice' || questionType === 'true_false') {
-            const options = document.querySelectorAll('input[name="options[]"]');
-            const correctOptions = document.querySelectorAll('input[name="correct_options[]"]:checked, input[name="correct_options"]:checked');
-            
-            let hasEmptyOption = false;
-            options.forEach(option => {
-                if (option.value.trim() === '') {
-                    hasEmptyOption = true;
+
+            // Ajouter un gestionnaire d'événements pour le bouton de suppression
+            row.querySelector('.remove-option').addEventListener('click', function() {
+                if (questionTypeSelect.value !== 'true_false') {
+                    row.remove();
+                    updateOptionIndexes();
                 }
             });
-            
-            if (hasEmptyOption) {
-                e.preventDefault();
-                alert('Toutes les options de réponse doivent être remplies.');
-                return;
-            }
-            
-            if (correctOptions.length === 0) {
-                e.preventDefault();
-                alert('Vous devez sélectionner au moins une option correcte.');
-                return;
-            }
+
+            return row;
         }
+
+        // Fonction pour mettre à jour les index des options
+        function updateOptionIndexes() {
+            const options = optionsList.querySelectorAll('.option-row');
+            options.forEach((option, index) => {
+                const input = option.querySelector('.form-check-input');
+                input.value = index;
+            });
+        }
+
+        // Fonction pour mettre à jour le type de case à cocher
+        function updateCheckboxType(type) {
+            const options = optionsList.querySelectorAll('.option-row');
+            const inputName = type === 'radio' ? 'correct_options' : 'correct_options[]';
+
+            options.forEach((option, index) => {
+                const checkboxDiv = option.querySelector('.form-check');
+                const oldInput = option.querySelector('.form-check-input');
+                const isChecked = oldInput.checked;
+
+                checkboxDiv.innerHTML = `<input class="form-check-input" type="${type}" name="${inputName}" value="${index}" ${isChecked ? 'checked' : ''}>`;
+            });
+        }
+
+        // Ajouter un gestionnaire d'événements pour le changement de type de question
+        questionTypeSelect.addEventListener('change', toggleOptionsVisibility);
+
+        // Ajouter un gestionnaire d'événements pour le bouton d'ajout d'option
+        addOptionBtn.addEventListener('click', function() {
+            const options = optionsList.querySelectorAll('.option-row');
+            const newOption = createOptionRow(options.length);
+            optionsList.appendChild(newOption);
+        });
+
+        // Initialiser l'affichage des options
+        toggleOptionsVisibility();
+
+        // Ajouter des gestionnaires d'événements pour les boutons de suppression existants
+        document.querySelectorAll('.remove-option').forEach(button => {
+            button.addEventListener('click', function() {
+                if (questionTypeSelect.value !== 'true_false') {
+                    this.closest('.option-row').remove();
+                    updateOptionIndexes();
+                }
+            });
+        });
+
+        // Validation du formulaire
+        document.getElementById('questionForm').addEventListener('submit', function(e) {
+            const questionType = questionTypeSelect.value;
+
+            if (questionType === 'multiple_choice' || questionType === 'single_choice' || questionType === 'true_false') {
+                const options = document.querySelectorAll('input[name="options[]"]');
+                const correctOptions = document.querySelectorAll('input[name="correct_options[]"]:checked, input[name="correct_options"]:checked');
+
+                let hasEmptyOption = false;
+                options.forEach(option => {
+                    if (option.value.trim() === '') {
+                        hasEmptyOption = true;
+                    }
+                });
+
+                if (hasEmptyOption) {
+                    e.preventDefault();
+                    alert('Toutes les options de réponse doivent être remplies.');
+                    return;
+                }
+
+                if (correctOptions.length === 0) {
+                    e.preventDefault();
+                    alert('Vous devez sélectionner au moins une option correcte.');
+                    return;
+                }
+            }
+        });
     });
-});
 </script>
 
 <?php
 // Helper functions
-function getQuestionTypeLabel($type) {
-    switch($type) {
+function getQuestionTypeLabel($type)
+{
+    switch ($type) {
         case 'multiple_choice':
             return 'Choix multiple';
         case 'single_choice':
@@ -571,8 +589,9 @@ function getQuestionTypeLabel($type) {
     }
 }
 
-function getDifficultyBadgeClass($difficulty) {
-    switch($difficulty) {
+function getDifficultyBadgeClass($difficulty)
+{
+    switch ($difficulty) {
         case 'easy':
             return 'success';
         case 'medium':
@@ -584,8 +603,9 @@ function getDifficultyBadgeClass($difficulty) {
     }
 }
 
-function getStatusBadgeClass($status) {
-    switch($status) {
+function getStatusBadgeClass($status)
+{
+    switch ($status) {
         case 'draft':
             return 'secondary';
         case 'published':
@@ -599,4 +619,3 @@ function getStatusBadgeClass($status) {
     }
 }
 ?>
-

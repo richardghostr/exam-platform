@@ -90,7 +90,69 @@ $questions = $questionsQuery->get_result();
 $pageTitle = "Ajouter des questions à l'examen";
 include 'includes/header.php';
 ?>
+<style>
+    .mb-20 {
+    margin-bottom: 20px;
+}
 
+.mt-20 {
+    margin-top: 20px;
+}
+
+.ml-10 {
+    margin-left: 10px;
+}
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-md-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.gap-10 {
+    gap: 10px;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.justify-content-between {
+    justify-content: space-between;
+}
+
+.flex-grow-1 {
+    flex-grow: 1;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+</style>
 <div class="d-flex justify-content-between align-items-center mb-20">
     <h1 class="page-title">Ajouter des questions à l'examen</h1>
     <div>
@@ -242,7 +304,7 @@ include 'includes/header.php';
             
             <div id="options_container" class="mt-20">
                 <h3>Options de réponse</h3>
-                <p class="text-muted">Cochez les options qui sont correctes.</p>
+                <p class="text-muted" style="margin-bottom: 15px;margin-top:5px">Cochez les options qui sont correctes.</p>
                 
                 <div id="options_list">
                     <div class="option-row d-flex align-items-center mb-10">
