@@ -10,6 +10,14 @@ if (!isLoggedIn() || !isTeacher()) {
     exit();
 }
 
+// Fonction pour obtenir la classe de couleur en fonction du score
+function getScoreClass($score) {
+    if ($score >= 80) return 'success';
+    if ($score >= 60) return 'info';
+    if ($score >= 40) return 'warning';
+    return 'danger';
+}
+
 // Récupérer l'ID de l'enseignant
 $teacherId = $_SESSION['user_id'];
 

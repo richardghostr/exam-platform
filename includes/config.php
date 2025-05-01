@@ -31,11 +31,34 @@ ini_set('session.cookie_secure', 0); // Mettre à 1 en production avec HTTPS
     session_start();
 }
 
+// Types d'utilisateurs
+define('USER_ADMIN', 'admin');
+define('USER_TEACHER', 'teacher');
+define('USER_STUDENT', 'student');
 // Chemins de l'application
 define('ROOT_PATH', dirname(__DIR__));
 define('INCLUDES_PATH', ROOT_PATH . '/includes');
 define('UPLOADS_PATH', ROOT_PATH . '/uploads');
 define('ASSETS_PATH', ROOT_PATH . '/assets');
+// Types d'incidents
+define('INCIDENT_WARNING', 'warning');
+define('INCIDENT_MODERATE', 'moderate');
+define('INCIDENT_SEVERE', 'severe');
+// Statuts d'examen
+define('EXAM_DRAFT', 'draft');
+define('EXAM_ACTIVE', 'active');
+define('EXAM_COMPLETED', 'completed');
+define('EXAM_ARCHIVED', 'archived');
+
+// Types de questions
+define('QUESTION_MCQ', 'mcq');
+define('QUESTION_TRUE_FALSE', 'true_false');
+define('QUESTION_SHORT_ANSWER', 'short_answer');
+define('QUESTION_ESSAY', 'essay');
+// Statuts d'examen
+
+define('QUESTION_MATCHING', 'matching');
+
 
 // Créer les dossiers nécessaires s'ils n'existent pas
 $directories = [

@@ -371,3 +371,64 @@ if (!function_exists('isAdmin')) {
 function isTeacher() {
     return isset($_SESSION['role']) && $_SESSION['role'] === 'teacher';
 }
+
+/**
+ * Définit un message flash qui sera affiché lors de la prochaine requête
+ * 
+ * @param string $type Type de message (success, danger, warning, info)
+ * @param string $message Contenu du message
+ * @return void
+ */
+function setFlashMessage($type, $message) {
+    if (!isset($_SESSION['flash_messages'])) {
+        $_SESSION['flash_messages'] = [];
+    }
+    
+    $_SESSION['flash_messages'][] = [
+        'type' => $type,
+        'message' => $message,
+        'timestamp' => time()
+    ];
+}
+
+/**
+ * Affiche tous les messages flash stockés en session
+ * 
+ * @return void
+ */
+function displayFlashMessages() {
+    if (isset($_SESSION['flash_messages']) && !empty($_SESSION['flash_messages'])) {
+        echo '<div class="flash-messages">';
+        
+        foreach ($_SESSION['flash_messages'] as $message) {
+            echo '<div class="alert alert-' . $message['type'] . ' alert-dismissible fade show" role="alert">';
+            echo $message['message'];
+            echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+            echo '</div>';
+        }
+        
+        echo '</div>';
+        
+        // Supprimer les messages après les avoir affichés
+        unset($_SESSION['flash_messages']);
+    }
+}
+
+/**
+ * Retourne une classe CSS en fonction du type d'incident
+ * 
+ * @param string $incidentType Type d'incident (warning, moderate, severe)
+ * @return string Classe CSS correspondante
+ */
+function getIncidentClass($incidentType) {
+    switch ($incidentType) {
+        case INCIDENT_WARNING:
+            return 'warning';
+        case INCIDENT_MODERATE:
+            return 'info';
+        case INCIDENT_SEVERE:
+            return 'danger';
+        default:
+            return 'secondary';
+    }
+}

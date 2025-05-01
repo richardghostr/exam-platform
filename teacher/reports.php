@@ -10,24 +10,6 @@ if (!isLoggedIn() || !isTeacher()) {
     exit();
 }
 
-// Fonction pour obtenir la classe de couleur en fonction du type d'incident
-function getIncidentClass($type) {
-    switch($type) {
-        case 'Face Detection':
-            return 'warning';
-        case 'Multiple Faces':
-            return 'danger';
-        case 'No Face':
-            return 'danger';
-        case 'Tab Switch':
-            return 'warning';
-        case 'Audio Detection':
-            return 'info';
-        default:
-            return 'secondary';
-    }
-}
-
 // Récupérer l'ID de l'enseignant
 $teacherId = $_SESSION['user_id'];
 
@@ -116,14 +98,297 @@ $exams = $conn->query("
 $pageTitle = "Rapports et Statistiques";
 include 'includes/header.php';
 ?>
+<style>
+    /* Style général */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+}
 
+/* En-tête */
+.d-flex.justify-content-between {
+    padding: 15px 20px;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: #333;
+}
+
+/* Cartes de statistiques */
+.stat-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card-subtitle {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.bg-primary-light {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.bg-success-light {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.bg-info-light {
+    background-color: rgba(13, 202, 240, 0.1);
+}
+
+.bg-warning-light {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+/* Graphiques */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px 20px;
+}
+
+/* Tableau des incidents */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #4e73df;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+    margin-right: 10px;
+}
+
+/* Badges */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.bg-primary {
+    background-color: #4e73df;
+}
+
+.bg-success {
+    background-color: #1cc88a;
+}
+
+.bg-warning {
+    background-color: #f6c23e;
+    color: #000;
+}
+
+.bg-danger {
+    background-color: #e74a3b;
+}
+
+.bg-info {
+    background-color: #36b9cc;
+}
+
+/* Boutons */
+.btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+}
+
+.btn-outline-secondary {
+    border-color: #d1d3e2;
+    color: #6e707e;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f8f9fa;
+    border-color: #d1d3e2;
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-primary:hover {
+    background-color: #3a5bc7;
+    border-color: #3a5bc7;
+}
+
+.btn-outline-primary {
+    border-color: #4e73df;
+    color: #4e73df;
+}
+
+.btn-outline-primary:hover {
+    background-color: #4e73df;
+    color: #fff;
+}
+
+/* Formulaire */
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.form-control, .form-select {
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    border: 1px solid #d1d3e2;
+    border-radius: 4px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #bac8f3;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Modals */
+.modal-content {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px 20px;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    border-top: 1px solid #e0e0e0;
+    padding: 15px 20px;
+}
+
+/* Utilitaires */
+.mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+.mt-4 {
+    margin-top: 1.5rem !important;
+}
+
+.py-5 {
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+}
+
+.text-muted {
+    color: #858796 !important;
+}
+
+.text-success {
+    color: #1cc88a !important;
+}
+
+.text-warning {
+    color: #f6c23e !important;
+}
+
+.text-info {
+    color: #36b9cc !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .col-md-3, .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .stat-card {
+        margin-bottom: 15px;
+    }
+}
+</style>
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar --
         
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <h1 class="h2"><?php echo $pageTitle; ?></h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
@@ -139,9 +404,11 @@ include 'includes/header.php';
                     </button>
                 </div>
             </div>
-            
+            <div>
+                
+            </div >
             <!-- Cartes de statistiques -->
-            <div class="row mb-4">
+            <div class="row mb-4" style="display: flex;margin-left:25px;">
                 <div class="col-md-3">
                     <div class="card stat-card">
                         <div class="card-body">
@@ -245,7 +512,7 @@ include 'includes/header.php';
             </div>
             
             <!-- Graphiques -->
-            <div class="row mb-4">
+            <div class="row mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <div class="col-md-6">
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
@@ -268,7 +535,7 @@ include 'includes/header.php';
                     </div>
                 </div>
                 
-                <div class="col-md-6">
+                <div class="col-md-6" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Scores moyens par matière</h5>
@@ -292,7 +559,7 @@ include 'includes/header.php';
             </div>
             
             <!-- Incidents de surveillance -->
-            <div class="card mb-4">
+            <div class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Incidents de surveillance</h5>
                     <a href="all-incidents.php" class="btn btn-sm btn-outline-primary">
@@ -531,9 +798,9 @@ include 'includes/header.php';
 </div>
 
 <!-- Modal pour générer un rapport -->
-<div class="modal fade" id="generateReportModal" tabindex="-1" aria-labelledby="generateReportModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+<div class="modal fade" id="generateReportModal" tabindex="-1" aria-labelledby="generateReportModalLabel" aria-hidden="true" style="background-color: red;">
+    <div class="modal-dialog modal-lg" >
+        <div class="modal-content" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
             <div class="modal-header">
                 <h5 class="modal-title" id="generateReportModalLabel">Générer un rapport détaillé</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

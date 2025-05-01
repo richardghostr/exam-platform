@@ -32,7 +32,7 @@ if ($result->num_rows === 0) {
 $exam = $result->fetch_assoc();
 
 // Récupérer les questions de l'examen
-$stmt = $conn->prepare("SELECT q.*, qt.type_name 
+$stmt = $conn->prepare("SELECT q.*, qt.name 
                         FROM questions q 
                         LEFT JOIN question_types qt ON q.question_type_id = qt.id 
                         WHERE q.exam_id = ?
