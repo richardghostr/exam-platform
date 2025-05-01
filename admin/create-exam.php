@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Préparation de la requête selon que les dates sont fournies ou non
             if ($startDate && $endDate) {
                 $stmt = $conn->prepare("INSERT INTO exams (title, description, subject,end_date, duration, passing_score, start_date, is_proctored, status,created_by,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                $stmt->bind_param("sssiiisisi", $title, $description, $subject,$endDate, $duration, $passingScore,$startDate, $isProctored, $status, $_SESSION['user_id']);
+                $stmt->bind_param("ssssiisisi", $title, $description, $subject,$endDate, $duration, $passingScore,$startDate, $isProctored, $status, $_SESSION['user_id']);
             } elseif ($startDate && !$endDate) {
                 $stmt = $conn->prepare("INSERT INTO exams (title, description, subject, duration, passing_score, start_date, is_proctored, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
                 $stmt->bind_param("sssiisisi", $title, $description, $subject, $duration, $passingScore, $startDate, $isProctored, $status, $_SESSION['user_id']);

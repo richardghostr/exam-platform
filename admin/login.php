@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="admin-login-container">
         <div class="admin-login-header">
-            <img src="logo.png" alt="ExamSafe Logo" class="admin-login-logo" height="260px" width="60px">
+            <img src="../assets/images/logo.png" alt="ExamSafe Logo" class="admin-login-logo" height="260px" width="60px">
             <h1 style="margin-top: -15px;">Administration ExamSafe</h1>
             <p>Connectez-vous au panneau d'administration</p>
         </div>

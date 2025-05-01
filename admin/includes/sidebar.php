@@ -1,7 +1,7 @@
 <aside class="admin-sidebar" id="adminSidebar">
     <div class="sidebar-header">
         <a href="index.php" class="sidebar-logo">
-            <div style="margin-left: -20px;margin-right: -20px;"><img src="logo.png" alt="logo ExamSafe" height="80px" ></div>
+            <div style="margin-left: -20px;margin-right: -20px;"><img src="../assets/images/logo.png" alt="logo ExamSafe" height="80px" ></div>
             <span class="logo-text">ExamSafe</span>
         </a>
     </div>

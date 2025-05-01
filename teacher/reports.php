@@ -78,7 +78,7 @@ $proctorIncidents = $conn->query("
 ");
 
 $pageTitle = "Rapports et Statistiques";
-include '../includes/header.php';
+include 'includes/header.php';
 ?>
 
 <link rel="stylesheet" href="../assets/css/teacher.css">

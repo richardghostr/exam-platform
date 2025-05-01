@@ -13,11 +13,6 @@ define('DB_NAME', 'exam_platform');
 define('EMAIL_FROM', 'noreply@examsafe.com');
 define('EMAIL_NAME', 'ExamSafe');
 
-// Configuration de la session
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 0); // Mettre à 1 en production avec HTTPS
-
 // Fuseau horaire
 date_default_timezone_set('Europe/Paris');
 
@@ -27,6 +22,12 @@ ini_set('display_errors', 1); // Mettre à 0 en production
 
 // Démarrer la session si elle n'est pas déjà démarrée
 if (session_status() === PHP_SESSION_NONE) {
+    
+// Configuration de la session
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_secure', 0); // Mettre à 1 en production avec HTTPS
+
     session_start();
 }
 

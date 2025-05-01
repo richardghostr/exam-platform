@@ -16,9 +16,7 @@
         </nav>
         <div class="auth-buttons">
             <?php if (is_logged_in()): ?>
-                <?php if (has_role('admin')): ?>
-                    <a href="admin/index.php" class="btn btn-outline">Tableau de bord</a>
-                <?php elseif (has_role('teacher')): ?>
+                <?php if (has_role('teacher')): ?>
                     <a href="teacher/index.php" class="btn btn-outline">Tableau de bord</a>
                 <?php else: ?>
                     <a href="student/index.php" class="btn btn-outline">Mes examens</a>
