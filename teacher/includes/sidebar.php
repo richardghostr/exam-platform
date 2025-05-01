@@ -2,16 +2,17 @@
 <aside class="sidebar">
     <div class="sidebar-header">
         <div class="logo">
-            <img src="../assets/images/logo.png" alt="ExamSafe Logo">
+            <img src="../assets/images/logo.png" alt="ExamSafe Logo" height="80px">
             <span>ExamSafe</span>
         </div>
         <button class="menu-toggle" id="menu-toggle">
             <i class="fas fa-bars"></i>
         </button>
     </div>
-    
+
     <nav class="sidebar-nav">
-        <ul>
+        <div class="sidebar-title" style="margin-left: 20px;margin-top: 15px;margin-bottom: 5px;">MENU</div>
+        <ul style="margin: 5px;">
             <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
                 <a href="index.php" class="nav-link">
                     <i class="fas fa-tachometer-alt"></i>
@@ -42,6 +43,10 @@
                     <span>Rapports</span>
                 </a>
             </li>
+        </ul>
+        <div class="sidebar-title" style="margin: 20px;">AUTRES</div>
+        <ul style="margin: 5px;">
+            
             <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'profile.php' ? 'active' : ''; ?>">
                 <a href="profile.php" class="nav-link">
                     <i class="fas fa-user"></i>

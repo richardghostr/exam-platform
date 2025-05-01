@@ -39,8 +39,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
         </div>
 
         <div class="header-right">
-          <div class="search-box">
-            <input type="text" placeholder="Rechercher...">
+          <div class="search-box" >
+            <input type="text" placeholder="Rechercher..." style="border-radius: 5px;height: 40px;width: 400px;">
             <i class="fas fa-search"></i>
           </div>
 

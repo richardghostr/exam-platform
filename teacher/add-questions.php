@@ -109,14 +109,39 @@ include 'includes/header.php';
     background-color: #f5f5f5;
     font-weight: 600;
 }
+.alert {
+    position: relative;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
 
 </style>
-<div class="d-flex justify-content-between align-items-center mb-20" style="">
+<div class="d-flex justify-content-between align-items-center mb-20" style="margin-top: 20px;margin-left: 25px;margin-bottom: 20px;">
     <div>
-        <a href="manage-exams.php" class="btn btn-secondary">
+        <a href="manage-exams.php" class="btn btn-secondary" style="text-decoration: none;">
             <i class="fas fa-arrow-left"></i> Retour aux examens
         </a>
-        <a href="view-exam.php?id=<?php echo $exam_id; ?>" class="btn btn-info">
+        <a href="view-exam.php?id=<?php echo $exam_id; ?>" class="btn btn-info" style="text-decoration: none;">
             <i class="fas fa-eye"></i> Voir l'examen
         </a>
     </div>
@@ -136,8 +161,8 @@ include 'includes/header.php';
             <div class="col-md-6">
                 <p><strong>Note de passage:</strong> <?php echo $exam['passing_score']; ?>%</p>
                 <p><strong>Statut:</strong> 
-                    <span class="badge badge-<?php echo getStatusBadgeClass($exam['status']); ?>">
-                        <?php echo ucfirst($exam['status']); ?>
+                    <span class="status-badge <?php echo $exam['status']; ?>">
+                        <?php echo ($exam['status']); ?>
                     </span>
                 </p>
                 <p><strong>Surveillance:</strong> <?php echo $exam['is_proctored'] ? 'Activée' : 'Désactivée'; ?></p>
@@ -147,18 +172,18 @@ include 'includes/header.php';
 </div>
 
 <?php if (isset($error)): ?>
-    <div class="alert alert-danger">
+    <div class="alert alert-danger" style="border-radius: 10px;width:96.5%;margin-left:25px;margin-top: 20px;">
         <?php echo $error; ?>
     </div>
 <?php endif; ?>
 
 <?php if (isset($success)): ?>
-    <div class="alert alert-success">
+    <div class="alert alert-success" style="border-radius: 10px;width:96.5%;margin-left:25px;margin-top: 20px;">
         <?php echo $success; ?>
     </div>
 <?php endif; ?>
 
-<div class="card mb-20">
+<div class="card mb-20" style="margin-top:30px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div class="card-header">
         <h2 class="card-title">Questions existantes (<?php echo $questions->num_rows; ?>)</h2>
     </div>
@@ -182,14 +207,14 @@ include 'includes/header.php';
                                 <td><?php echo $question['id']; ?></td>
                                 <td><?php echo htmlspecialchars(substr($question['question_text'], 0, 100)) . (strlen($question['question_text']) > 100 ? '...' : ''); ?></td>
                                 <td>
-                                    <span class="badge badge-info">
+                                    <span>
                                         <?php echo getQuestionTypeLabel($question['question_type']); ?>
                                     </span>
                                 </td>
                                 <td><?php echo $question['points']; ?></td>
                                 <td>
-                                    <span class="badge badge-<?php echo getDifficultyBadgeClass($question['difficulty']); ?>">
-                                        <?php echo ucfirst($question['difficulty']); ?>
+                                    <span >
+                                        <?php echo getDifficultyBadgeClass($question['difficulty']); ?>
                                     </span>
                                 </td>
                                 <td>
@@ -215,7 +240,7 @@ include 'includes/header.php';
     </div>
 </div>
 
-<div class="card">
+<div class="card" style="margin-top:30px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div class="card-header">
         <h2 class="card-title">Ajouter une nouvelle question</h2>
     </div>
@@ -264,7 +289,7 @@ include 'includes/header.php';
                 <p class="text-muted">Cochez les options qui sont correctes.</p>
                 
                 <div id="options_list">
-                    <div class="option-row d-flex align-items-center mb-10">
+                    <div class="option-row d-flex align-items-center mb-10" >
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="correct_options[]" value="0">
                         </div>
