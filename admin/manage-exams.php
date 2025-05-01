@@ -267,6 +267,9 @@ include 'includes/header.php';
                                             <td><?php echo htmlspecialchars($exam['creator_name']); ?></td>
                                             <td>
                                                 <div class="d-flex gap-10">
+                                                <a href="add-questions.php?exam_id=<?php echo $exam['id']; ?>" class="btn btn-icon-sm btn-secondary" title="Ajouter des questions">
+                                                        <i class="fas fa-plus"></i>
+                                                    </a>
                                                     <a href="view-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-icon-sm btn-secondary" title="Voir">
                                                         <i class="fas fa-eye"></i>
                                                     </a>

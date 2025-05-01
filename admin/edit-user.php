@@ -1,7 +1,8 @@
 <?php
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include '../includes/db_connection.php';
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 
 // Vérifier si l'ID de l'utilisateur est fourni
 if (!isset($_GET['id']) || empty($_GET['id'])) {
@@ -89,23 +90,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+include 'includes/header.php';
 ?>
 
-<div class="content-wrapper">
+<div class="card mb-20">
     <div class="content-header">
         <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Modifier l'utilisateur</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="index.php">Accueil</a></li>
-                        <li class="breadcrumb-item"><a href="users.php">Utilisateurs</a></li>
-                        <li class="breadcrumb-item active">Modifier l'utilisateur</li>
-                    </ol>
-                </div>
-            </div>
+        <div class="row mb-2" style="margin-left: 20px;margin-top: 20px;">
+
+<div class="page-path">
+
+    <a href="index.php">Accueil</a>
+    <span class="separator">/</span>
+    <a href="users.php">Utilisateurs</a>
+    <span class="separator">/</span>
+    <span class="breadcrumb-item active">Modifier l'utilisateur</span>
+
+</div>
+<div class="col-sm-6">
+    <h1 class="m-0">Modifier l'utilisateur</h1>
+</div>
+</div>
         </div>
     </div>
 
@@ -120,9 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
             
             <?php if (!empty($success_message)): ?>
-                <div class="alert alert-success alert-dismissible">
+                <div class="alert alert-success alert-dismissible" style="display: flex;align-items: center;">
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                    <h5><i class="icon fas fa-check"></i> Succès!</h5>
                     <?php echo $success_message; ?>
                 </div>
             <?php endif; ?>

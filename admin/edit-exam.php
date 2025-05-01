@@ -1,8 +1,8 @@
 <?php
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include '../includes/db_connection.php';
-
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 // Vérifier si l'ID de l'examen est fourni
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     header('Location: manage-exams.php');
@@ -41,10 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total_points = $_POST['total_points'];
     $status = $_POST['status'];
     $updated_by = $_SESSION['user_id'];
-    
+
     // Validation des données
-    if (empty($title) || empty($description) || empty($course_id) || empty($duration) || 
-        empty($start_time) || empty($end_time) || empty($passing_percentage) || empty($total_points)) {
+    if (
+        empty($title) || empty($description) || empty($course_id) || empty($duration) ||
+        empty($start_time) || empty($end_time) || empty($passing_percentage) || empty($total_points)
+    ) {
         $error_message = "Tous les champs sont obligatoires.";
     } else {
         // Mise à jour de l'examen
@@ -61,14 +63,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                       updated_by = ?, 
                                       updated_at = NOW() 
                                       WHERE id = ?");
-        
-        $update_stmt->bind_param("ssiissdiiii", $title, $description, $course_id, $duration, 
-                               $start_time, $end_time, $passing_percentage, $total_points, 
-                               $status, $updated_by, $exam_id);
-        
+
+        $update_stmt->bind_param(
+            "ssiissdiiii",
+            $title,
+            $description,
+            $course_id,
+            $duration,
+            $start_time,
+            $end_time,
+            $passing_percentage,
+            $total_points,
+            $status,
+            $updated_by,
+            $exam_id
+        );
+
         if ($update_stmt->execute()) {
             $success_message = "L'examen a été mis à jour avec succès.";
-            
+
             // Récupérer les données mises à jour
             $stmt->execute();
             $result = $stmt->get_result();
@@ -78,22 +91,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+// Inclure l'en-tête
+include 'includes/header.php';
 ?>
 
-<div class="content-wrapper">
+<div class="card mb-20">
     <div class="content-header">
         <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Modifier l'examen</h1>
+            <div style="margin-top: 20px;margin-left:20px">
+                <div class="page-path">
+                    <a href="index.php">Dashboard</a>
+                    <span class="separator">/</span>
+                    <a href="manage-exams.php">Examens</a>
+                    <span class="separator">/</span>
+                    <span>Modifier l'examen</span>
                 </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="index.php">Accueil</a></li>
-                        <li class="breadcrumb-item"><a href="manage-exams.php">Examens</a></li>
-                        <li class="breadcrumb-item active">Modifier l'examen</li>
-                    </ol>
-                </div>
+                <h1 class="page-title">Modifier l'examen</h1>
             </div>
         </div>
     </div>
@@ -107,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php echo $error_message; ?>
                 </div>
             <?php endif; ?>
-            
+
             <?php if (!empty($success_message)): ?>
                 <div class="alert alert-success alert-dismissible">
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
@@ -213,21 +226,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-$(document).ready(function() {
-    // Validation des dates
-    $('form').on('submit', function(e) {
-        const startDate = new Date($('#start_date').val() + 'T' + $('#start_time').val());
-        const endDate = new Date($('#end_date').val() + 'T' + $('#end_time').val());
-        
-        if (endDate <= startDate) {
-            e.preventDefault();
-            alert('La date de fin doit être postérieure à la date de début.');
-            return false;
-        }
-        
-        return true;
+    $(document).ready(function() {
+        // Validation des dates
+        $('form').on('submit', function(e) {
+            const startDate = new Date($('#start_date').val() + 'T' + $('#start_time').val());
+            const endDate = new Date($('#end_date').val() + 'T' + $('#end_time').val());
+
+            if (endDate <= startDate) {
+                e.preventDefault();
+                alert('La date de fin doit être postérieure à la date de début.');
+                return false;
+            }
+
+            return true;
+        });
     });
-});
 </script>
 
 <?php

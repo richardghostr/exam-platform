@@ -1,7 +1,8 @@
 <?php
-include 'includes/header.php';
-include 'includes/sidebar.php';
-include '../includes/db_connection.php';
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 
 $error_message = '';
 $success_message = '';
@@ -17,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $role_id = $_POST['role_id'];
     $status = $_POST['status'];
     $created_by = $_SESSION['user_id'];
-    
+
     // Validation des données
     if (empty($full_name) || empty($email) || empty($password) || empty($role_id)) {
         $error_message = "Tous les champs sont obligatoires.";
@@ -27,29 +28,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check_stmt->bind_param("s", $email);
         $check_stmt->execute();
         $check_result = $check_stmt->get_result();
-        
+
         if ($check_result->num_rows > 0) {
             $error_message = "Cette adresse email est déjà utilisée.";
         } else {
             // Hachage du mot de passe
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
+
             // Insertion de l'utilisateur
             $insert_stmt = $conn->prepare("INSERT INTO users 
                                           (full_name, email, password, role_id, status, created_by, created_at) 
                                           VALUES (?, ?, ?, ?, ?, ?, NOW())");
-            
+
             $insert_stmt->bind_param("sssiii", $full_name, $email, $hashed_password, $role_id, $status, $created_by);
-            
+
             if ($insert_stmt->execute()) {
                 $success_message = "L'utilisateur a été ajouté avec succès.";
-                
+
                 // Rediriger vers la liste des utilisateurs ou rester sur la page pour ajouter un autre utilisateur
                 if (isset($_POST['save_and_list'])) {
                     header("Location: users.php");
                     exit;
                 }
-                
+
                 // Réinitialiser le formulaire
                 $full_name = '';
                 $email = '';
@@ -61,21 +62,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+// Récupérer la liste des rôles
+include 'includes/header.php';
 ?>
 
-<div class="content-wrapper">
+<div class="card mb-20">
     <div class="content-header">
         <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Ajouter un utilisateur</h1>
+            <div class="row mb-2" style="margin-left: 20px;margin-top: 20px;">
+
+                <div class="page-path">
+
+                    <a href="index.php">Accueil</a>
+                    <span class="separator">/</span>
+                    <a href="users.php">Utilisateurs</a>
+                    <span class="separator">/</span>
+                    <span class="breadcrumb-item active">Ajouter un utilisateur</span>
+
                 </div>
                 <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="index.php">Accueil</a></li>
-                        <li class="breadcrumb-item"><a href="users.php">Utilisateurs</a></li>
-                        <li class="breadcrumb-item active">Ajouter un utilisateur</li>
-                    </ol>
+                    <h1 class="m-0">Ajouter un utilisateur</h1>
                 </div>
             </div>
         </div>
@@ -90,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php echo $error_message; ?>
                 </div>
             <?php endif; ?>
-            
+
             <?php if (!empty($success_message)): ?>
                 <div class="alert alert-success alert-dismissible">
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
@@ -127,9 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <label for="role_id">Rôle</label>
                                             <select class="form-control" id="role_id" name="role_id" required>
                                                 <option value="">Sélectionner un rôle</option>
-                                                <?php 
+                                                <?php
                                                 $roles_result->data_seek(0); // Réinitialiser le pointeur de résultat
-                                                while ($role = $roles_result->fetch_assoc()): 
+                                                while ($role = $roles_result->fetch_assoc()):
                                                 ?>
                                                     <option value="<?php echo $role['id']; ?>" <?php echo (isset($role_id) && $role['id'] == $role_id) ? 'selected' : ''; ?>>
                                                         <?php echo htmlspecialchars($role['role_name']); ?>
@@ -161,20 +167,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-$(document).ready(function() {
-    // Validation du formulaire
-    $('form').on('submit', function(e) {
-        const password = $('#password').val();
-        
-        if (password.length < 6) {
-            e.preventDefault();
-            alert('Le mot de passe doit contenir au moins 6 caractères.');
-            return false;
-        }
-        
-        return true;
+    $(document).ready(function() {
+        // Validation du formulaire
+        $('form').on('submit', function(e) {
+            const password = $('#password').val();
+
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('Le mot de passe doit contenir au moins 6 caractères.');
+                return false;
+            }
+
+            return true;
+        });
     });
-});
 </script>
 
 <?php

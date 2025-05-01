@@ -1,7 +1,10 @@
 <?php
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 include 'includes/header.php';
-include 'includes/sidebar.php';
-include '../includes/db_connection.php';
+
 
 // Vérifier si l'ID de l'examen est fourni
 if (!isset($_GET['id']) || empty($_GET['id'])) {
@@ -39,7 +42,7 @@ $stmt->execute();
 $questions_result = $stmt->get_result();
 ?>
 
-<div class="content-wrapper">
+<div class="card mb-20">
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
