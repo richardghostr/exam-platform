@@ -163,7 +163,6 @@ include 'includes/header.php';
                     <?php echo $message; ?>
                 </div>
             <?php endif; ?>
-            
             <div class="section-header">
                 <h2 class="section-title" style="margin-left: 20px;">Liste des examens</h2>
                 <div class="section-actions">

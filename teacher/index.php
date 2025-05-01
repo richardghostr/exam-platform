@@ -14,81 +14,81 @@ if (!isLoggedIn() || !isTeacher()) {
 $teacherId = $_SESSION['user_id'];
 
 // Récupérer les statistiques des examens de l'enseignant
-// $examStats = $conn->query("
-//     SELECT 
-//         COUNT(*) as total_exams,
-//         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_exams,
-//         SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_exams,
-//         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_exams
-//     FROM exams
-//     WHERE teacher_id = $teacherId
-// ")->fetch_assoc();
+$examStats = $conn->query("
+    SELECT 
+        COUNT(*) as total_exams,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_exams,
+        SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_exams,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_exams
+    FROM exams
+    WHERE teacher_id = $teacherId
+")->fetch_assoc();
 
-// // Récupérer les statistiques des étudiants
-// $studentStats = $conn->query("
-//     SELECT 
-//         COUNT(DISTINCT user_id) as total_students,
-//         AVG(score) as avg_score,
-//         MAX(score) as max_score,
-//         MIN(score) as min_score
-//     FROM exam_results er
-//     JOIN exams e ON er.exam_id = e.id
-//     WHERE e.teacher_id = $teacherId AND er.status = 'completed'
-// ")->fetch_assoc();
+// Récupérer les statistiques des étudiants
+$studentStats = $conn->query("
+    SELECT 
+        COUNT(DISTINCT user_id) as total_students,
+        AVG(score) as avg_score,
+        MAX(score) as max_score,
+        MIN(score) as min_score
+    FROM exam_results er
+    JOIN exams e ON er.exam_id = e.id
+    WHERE e.teacher_id = $teacherId AND er.status = 'completed'
+")->fetch_assoc();
 
-// // Récupérer les examens récents
-// $recentExams = $conn->query("
-//     SELECT 
-//         e.id,
-//         e.title,
-//         e.subject,
-//         e.status,
-//         e.created_at,
-//         COUNT(DISTINCT er.user_id) as participants,
-//         AVG(er.score) as avg_score
-//     FROM exams e
-//     LEFT JOIN exam_results er ON e.id = er.exam_id
-//     WHERE e.teacher_id = $teacherId
-//     GROUP BY e.id
-//     ORDER BY e.created_at DESC
-//     LIMIT 5
-// ");
+// Récupérer les examens récents
+$recentExams = $conn->query("
+    SELECT 
+        e.id,
+        e.title,
+        e.subject,
+        e.status,
+        e.created_at,
+        COUNT(DISTINCT er.user_id) as participants,
+        AVG(er.score) as avg_score
+    FROM exams e
+    LEFT JOIN exam_results er ON e.id = er.exam_id
+    WHERE e.teacher_id = $teacherId
+    GROUP BY e.id
+    ORDER BY e.created_at DESC
+    LIMIT 5
+");
 
-// // Récupérer les examens à noter
-// $examsToGrade = $conn->query("
-//     SELECT 
-//         e.id,
-//         e.title,
-//         e.subject,
-//         COUNT(er.id) as submissions,
-//         COUNT(CASE WHEN er.is_graded = 0 THEN er.id ELSE NULL END) as pending_grades
-//     FROM exams e
-//     JOIN exam_results er ON e.id = er.exam_id
-//     WHERE e.teacher_id = $teacherId AND er.status = 'completed' AND e.has_essay = 1
-//     GROUP BY e.id
-//     HAVING pending_grades > 0
-//     ORDER BY e.created_at DESC
-// ");
+// Récupérer les examens à noter
+$examsToGrade = $conn->query("
+    SELECT 
+        e.id,
+        e.title,
+        e.subject,
+        COUNT(er.id) as submissions,
+        COUNT(CASE WHEN er.is_graded = 0 THEN er.id ELSE NULL END) as pending_grades
+    FROM exams e
+    JOIN exam_results er ON e.id = er.exam_id
+    WHERE e.teacher_id = $teacherId AND er.status = 'completed' AND e.has_essay = 1
+    GROUP BY e.id
+    HAVING pending_grades > 0
+    ORDER BY e.created_at DESC
+");
 
-// // Récupérer les incidents de surveillance récents
-// $proctorIncidents = $conn->query("
-//     SELECT 
-//         p.id,
-//         p.exam_id,
-//         e.title as exam_title,
-//         u.username,
-//         u.first_name,
-//         u.last_name,
-//         p.incident_type,
-//         p.timestamp,
-//         p.details
-//     FROM proctoring_incidents p
-//     JOIN exams e ON p.exam_id = e.id
-//     JOIN users u ON p.user_id = u.id
-//     WHERE e.teacher_id = $teacherId
-//     ORDER BY p.timestamp DESC
-//     LIMIT 5
-// ");
+// Récupérer les incidents de surveillance récents
+$proctorIncidents = $conn->query("
+    SELECT 
+        p.id,
+        p.exam_id,
+        e.title as exam_title,
+        u.username,
+        u.first_name,
+        u.last_name,
+        p.incident_type,
+        p.timestamp,
+        p.details
+    FROM proctoring_incidents p
+    JOIN exams e ON p.exam_id = e.id
+    JOIN users u ON p.user_id = u.id
+    WHERE e.teacher_id = $teacherId
+    ORDER BY p.timestamp DESC
+    LIMIT 5
+");
 
 $pageTitle = "Tableau de bord de l'enseignant";
 include '../includes/header.php';

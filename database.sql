@@ -199,3 +199,84 @@ INSERT INTO `subjects` (`name`, `description`) VALUES
 ('Physique', 'Principes fondamentaux de la physique'),
 ('Chimie', 'Étude des substances et de leurs transformations'),
 ('Biologie', 'Étude des organismes vivants');
+-- Création de la table des rôles
+CREATE TABLE `roles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role_name` varchar(50) NOT NULL,
+  `description` text,
+  `permissions` text,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `role_name` (`role_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insertion des rôles par défaut
+INSERT INTO `roles` (`role_name`, `description`, `permissions`) VALUES
+('admin', 'Administrateur du système avec tous les droits', 'all'),
+('teacher', 'Enseignant pouvant créer et gérer des examens', 'create_exam,edit_exam,view_results'),
+('student', 'Étudiant pouvant passer des examens', 'take_exam,view_own_results');
+
+-- Création de la table des cours
+CREATE TABLE `courses` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `course_name` varchar(100) NOT NULL,
+  `course_code` varchar(20) NOT NULL,
+  `description` text,
+  `teacher_id` int(11) DEFAULT NULL,
+  `status` enum('active','inactive','archived') NOT NULL DEFAULT 'active',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `course_code` (`course_code`),
+  KEY `teacher_id` (`teacher_id`),
+  CONSTRAINT `courses_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Création de la table des résultats d'examen
+CREATE TABLE `exam_results` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `exam_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `score` decimal(5,2) NOT NULL,
+  `total_points` int(11) NOT NULL,
+  `points_earned` decimal(5,2) NOT NULL,
+  `passing_score` int(11) NOT NULL,
+  `passed` tinyint(1) NOT NULL DEFAULT '0',
+  `time_spent` int(11) NOT NULL COMMENT 'en secondes',
+  `completed_at` datetime NOT NULL,
+  `graded_by` int(11) DEFAULT NULL,
+  `graded_at` datetime DEFAULT NULL,
+  `feedback` text,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `exam_id` (`exam_id`),
+  KEY `user_id` (`user_id`),
+  KEY `graded_by` (`graded_by`),
+  CONSTRAINT `exam_results_ibfk_1` FOREIGN KEY (`exam_id`) REFERENCES `exams` (`id`),
+  CONSTRAINT `exam_results_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `exam_results_ibfk_3` FOREIGN KEY (`graded_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Modification de la table des utilisateurs pour ajouter la référence au rôle
+ALTER TABLE `users` 
+ADD COLUMN `role_id` int(11) DEFAULT NULL AFTER `role`,
+ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE SET NULL;
+
+-- Mise à jour des utilisateurs existants pour définir leur rôle_id
+UPDATE `users` SET `role_id` = (SELECT `id` FROM `roles` WHERE `role_name` = `users`.`role`);
+
+-- Modification de la table des examens pour ajouter la référence au cours
+ALTER TABLE `exams` 
+ADD COLUMN `course_id` int(11) DEFAULT NULL AFTER `subject`,
+ADD CONSTRAINT `exams_ibfk_3` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE SET NULL;
+
+-- Ajout d'un index sur la table des questions pour améliorer les performances
+ALTER TABLE `questions` ADD INDEX `difficulty_index` (`difficulty`);
+
+-- Ajout d'un index sur la table des tentatives d'examen pour améliorer les performances
+ALTER TABLE `exam_attempts` ADD INDEX `status_index` (`status`);
+
+-- Ajout d'un index sur la table des réponses des utilisateurs pour améliorer les performances
+ALTER TABLE `user_answers` ADD INDEX `is_correct_index` (`is_correct`);

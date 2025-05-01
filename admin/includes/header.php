@@ -1058,8 +1058,8 @@ input:checked + .slider:before {
         <?php include 'sidebar.php'; ?>
         
         <div class="admin-content">
-            <header class="admin-header">
-                <div class="search-bar" style="margin-left: -20px;">
+            <header class="admin-header" style="margin-top: -20px;">
+                <div class="search-bar" style="margin-left: -20px;height: 50px;width: 400px;">
                     <i class="fas fa-search"></i>
                     <input type="text" placeholder="Rechercher...">
                 </div>

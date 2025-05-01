@@ -60,7 +60,7 @@ $pageTitle = "Rapports et Statistiques";
 include 'includes/header.php';
 ?>
 
-<h1 class="page-title">Rapports et Statistiques</h1>
+<h1 class="page-title"style="margin-bottom: 20px; margin-left: 5px">Rapports et Statistiques</h1>
 
 <div class="stats-grid">
     <div class="stat-card">
