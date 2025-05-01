@@ -47,9 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Rediriger vers la page appropriée selon le rôle
                 switch ($user['role']) {
-                    case 'admin':
-                        header('Location: admin/index.php');
-                        break;
                     case 'teacher':
                         header('Location: teacher/index.php');
                         break;
