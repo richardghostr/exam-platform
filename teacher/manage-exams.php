@@ -250,7 +250,7 @@ include 'includes/header.php';
                                 <button class="btn btn-secondary btn-sm dropdown-toggle">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
-                                <div class="dropdown-menu">
+                                <div class="dropdown-menu" >
                                     <?php if ($exam['status'] !== 'active'): ?>
                                         <a href="?action=activate&id=<?php echo $exam['id']; ?>" class="dropdown-item">
                                             <i class="fas fa-play"></i> Activer
