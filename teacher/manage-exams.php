@@ -167,8 +167,8 @@ include 'includes/header.php';
         <div class="search-box">
             <form action="" method="get">
                 <div class="search-input">
-                    <input type="text" name="search" placeholder="Rechercher un examen..." value="<?php echo htmlspecialchars($searchTerm); ?>">
-                    <button type="submit"><i class="fas fa-search"></i></button>
+                    <input style="border-radius: 5px;height: 40px;width: 400px;"type="text" name="search" placeholder="Rechercher un examen..." value="<?php echo htmlspecialchars($searchTerm); ?>">
+                    <button type="submit"><i class="fas fa-search" style="margin-left: -390px;"></i></button>
                 </div>
             </form>
         </div>
@@ -182,7 +182,7 @@ include 'includes/header.php';
         </div>
         
         <div class="create-btn">
-            <a href="create-exam.php" class="btn btn-primary">
+            <a href="create-exam.php" class="btn btn-primary" style="text-decoration: none;">
                 <i class="fas fa-plus"></i> Créer un examen
             </a>
         </div>

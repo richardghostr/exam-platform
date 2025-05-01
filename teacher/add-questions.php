@@ -135,13 +135,87 @@ include 'includes/header.php';
     border-color: #bee5eb;
 }
 
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-md-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+/* Icônes */
+.fas {
+    font-size: 0.875em;
+}
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.ml-10 {
+    margin-left: 10px;
+}
+.option-row {
+    margin-bottom: 10px;
+}
+
+.remove-option {
+    margin-left: 10px;
+}
+.gap-10 {
+    gap: 10px;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.justify-content-between {
+    justify-content: space-between;
+}
+
+.flex-grow-1 {
+    flex-grow: 1;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
 </style>
 <div class="d-flex justify-content-between align-items-center mb-20" style="margin-top: 20px;margin-left: 25px;margin-bottom: 20px;">
     <div>
         <a href="manage-exams.php" class="btn btn-secondary" style="text-decoration: none;">
             <i class="fas fa-arrow-left"></i> Retour aux examens
         </a>
-        <a href="view-exam.php?id=<?php echo $exam_id; ?>" class="btn btn-info" style="text-decoration: none;">
+        <a href="view-exam.php?id=<?php echo $exam_id; ?>" class="btn btn-info" style="text-decoration: none;margin-left: 10px;">
             <i class="fas fa-eye"></i> Voir l'examen
         </a>
     </div>
@@ -162,7 +236,7 @@ include 'includes/header.php';
                 <p><strong>Note de passage:</strong> <?php echo $exam['passing_score']; ?>%</p>
                 <p><strong>Statut:</strong> 
                     <span class="status-badge <?php echo $exam['status']; ?>">
-                        <?php echo ($exam['status']); ?>
+                        <strong><?php echo ($exam['status']); ?></strong>
                     </span>
                 </p>
                 <p><strong>Surveillance:</strong> <?php echo $exam['is_proctored'] ? 'Activée' : 'Désactivée'; ?></p>
@@ -286,7 +360,7 @@ include 'includes/header.php';
             
             <div id="options_container" class="mt-20">
                 <h3>Options de réponse</h3>
-                <p class="text-muted">Cochez les options qui sont correctes.</p>
+                <p class="text-muted" style="margin-bottom: 15px;margin-top:5px">Cochez les options qui sont correctes.</p>
                 
                 <div id="options_list">
                     <div class="option-row d-flex align-items-center mb-10" >
