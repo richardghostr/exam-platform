@@ -20,10 +20,10 @@ $upcoming_exams_query = "
     LEFT JOIN questions q ON e.id = q.exam_id
     LEFT JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
     WHERE e.status = 'published' 
-    AND e.start_time > NOW()
+    AND e.start_date > NOW()
     AND (ee.id IS NULL OR ee.status = 'enrolled')
     GROUP BY e.id
-    ORDER BY e.start_time ASC
+    ORDER BY e.start_date ASC
     LIMIT 5
 ";
 
@@ -35,14 +35,32 @@ $stmt->close();
 
 // Examens en cours
 $current_exams_query = "
-    SELECT e.*, COUNT(q.id) as question_count, ee.id as enrollment_id
-    FROM exams e
-    LEFT JOIN questions q ON e.id = q.exam_id
-    JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
-    WHERE e.status = 'published' 
-    AND NOW() BETWEEN e.start_time AND e.end_time
-    AND ee.status = 'enrolled'
-    ORDER BY e.end_time ASC
+  SELECT 
+    e.id,
+    e.title,
+    e.description,
+    e.start_date,
+    e.end_date,
+    e.duration,
+    e.passing_score,
+    e.status,
+    MAX(ea.score) as score,
+    MAX(ea.status) as attempt_status
+FROM exams e
+JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
+LEFT JOIN exam_attempts ea ON ee.id = ea.enrollment_id
+WHERE (e.end_time < NOW() OR ee.status = 'completed')
+GROUP BY 
+    e.id,
+    e.title,
+    e.description,
+    e.start_date,
+    e.end_date,
+    e.duration,
+    e.passing_score,
+    e.status
+ORDER BY e.end_time DESC
+LIMIT 5
 ";
 
 $stmt = $conn->prepare($current_exams_query);
@@ -57,9 +75,9 @@ $past_exams_query = "
     FROM exams e
     JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
     LEFT JOIN exam_attempts ea ON ee.id = ea.enrollment_id
-    WHERE (e.end_time < NOW() OR ee.status = 'completed')
+    WHERE (e.end_date < NOW() OR ee.status = 'completed')
     GROUP BY e.id
-    ORDER BY e.end_time DESC
+    ORDER BY e.end_date DESC
     LIMIT 5
 ";
 
@@ -94,6 +112,7 @@ $conn->close();
 
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,6 +121,7 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/student.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </head>
+
 <body>
     <!-- En-tête -->
     <?php include '../includes/header.php'; ?>
@@ -113,7 +133,7 @@ $conn->close();
                 <h1>Tableau de bord étudiant</h1>
                 <p>Bienvenue, <?php echo htmlspecialchars($_SESSION['username']); ?></p>
             </div>
-            
+
             <!-- Statistiques -->
             <section class="stats-section">
                 <div class="stats-grid">
@@ -155,14 +175,14 @@ $conn->close();
                     </div>
                 </div>
             </section>
-            
+
             <!-- Examens en cours -->
             <section class="exams-section">
                 <div class="section-header">
                     <h2>Examens en cours</h2>
                     <a href="exams.php?filter=current" class="btn btn-outline btn-sm">Voir tout</a>
                 </div>
-                
+
                 <?php if (empty($current_exams)): ?>
                     <div class="empty-state">
                         <div class="empty-icon">
@@ -202,14 +222,14 @@ $conn->close();
                     </div>
                 <?php endif; ?>
             </section>
-            
+
             <!-- Examens à venir -->
             <section class="exams-section">
                 <div class="section-header">
                     <h2>Examens à venir</h2>
                     <a href="exams.php?filter=upcoming" class="btn btn-outline btn-sm">Voir tout</a>
                 </div>
-                
+
                 <?php if (empty($upcoming_exams)): ?>
                     <div class="empty-state">
                         <div class="empty-icon">
@@ -249,14 +269,14 @@ $conn->close();
                     </div>
                 <?php endif; ?>
             </section>
-            
+
             <!-- Examens passés -->
             <section class="exams-section">
                 <div class="section-header">
                     <h2>Examens passés</h2>
                     <a href="exams.php?filter=past" class="btn btn-outline btn-sm">Voir tout</a>
                 </div>
-                
+
                 <?php if (empty($past_exams)): ?>
                     <div class="empty-state">
                         <div class="empty-icon">
@@ -278,15 +298,15 @@ $conn->close();
                                     </div>
                                     <div class="info-item">
                                         <i class="fas fa-check-circle"></i>
-                                        <span>Statut: 
-                                            <?php 
-                                                if (!isset($exam['score'])) {
-                                                    echo 'Non noté';
-                                                } elseif ($exam['score'] >= $exam['passing_score']) {
-                                                    echo '<span class="text-success">Réussi</span>';
-                                                } else {
-                                                    echo '<span class="text-danger">Échoué</span>';
-                                                }
+                                        <span>Statut:
+                                            <?php
+                                            if (!isset($exam['score'])) {
+                                                echo 'Non noté';
+                                            } elseif ($exam['score'] >= $exam['passing_score']) {
+                                                echo '<span class="text-success">Réussi</span>';
+                                            } else {
+                                                echo '<span class="text-danger">Échoué</span>';
+                                            }
                                             ?>
                                         </span>
                                     </div>
@@ -312,4 +332,5 @@ $conn->close();
     <!-- Scripts JS -->
     <script src="../assets/js/main.js"></script>
 </body>
+
 </html>
