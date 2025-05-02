@@ -94,25 +94,109 @@ $pageTitle = "Modifier l'examen";
 include 'includes/header.php';
 ?>
 
-<div class="app-container">
-    <?php include 'includes/sidebar.php'; ?>
+<div class="app-container" >
     
-    <main class="main-content">
-        <?php include 'includes/navbar.php'; ?>
+    <main class="main-content"style="margin-left: 25px;margin-right: 20px;margin-top: 30px;border-radius: 20px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);margin-bottom: 20px;">
         
         <div class="content-wrapper">
-            <div class="content-header">
-                <h1 class="page-title">Modifier l'examen</h1>
-                <nav class="breadcrumb">
-                    <ol>
-                        <li><a href="index.php">Tableau de bord</a></li>
-                        <li><a href="manage-exams.php">Gérer les examens</a></li>
-                        <li class="active">Modifier l'examen</li>
-                    </ol>
-                </nav>
-            </div>
             
             <div class="content-body">
+                <style>/* Style de base pour les alertes */
+.alert {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+/* Alerte succès */
+.alert-success {
+    background-color: #f0fdf4;
+    color: #166534;
+    border-color: #22c55e;
+}
+
+/* Icônes des alertes */
+.alert i {
+    margin-right: 12px;
+    font-size: 1.2rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.alert-success i {
+    color: #22c55e;
+}
+
+/* Bouton de fermeture */
+.close-alert {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 0;
+    margin-left: auto;
+}
+
+.close-alert:hover {
+    opacity: 1;
+}
+
+/* Animation d'apparition */
+@keyframes fadeInSlide {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert {
+    animation: fadeInSlide 0.4s ease-out forwards;
+}
+
+/* Effet au survol */
+.alert:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .alert {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        align-items: center;
+    }
+    
+    .alert i {
+        font-size: 1.1rem;
+        margin-right: 10px;
+    }
+    
+    .close-alert {
+        top: 14px;
+        right: 16px;
+        font-size: 1.2rem;
+    }
+}</style>
                 <?php if (isset($_GET['success'])): ?>
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle"></i>
@@ -249,4 +333,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include 'includes/footer.php'; ?>

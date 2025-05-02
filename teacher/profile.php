@@ -333,7 +333,7 @@ include 'includes/header.php';
 
                 <div class="profile-container" >
                     <div class="profile-sidebar" >
-                        <div class="profile-card" style="margin-left: 25px;margin-right: 20px;margin-top: 30px;"">
+                        <div class="profile-card" style="margin-left: 25px;margin-right: 20px;margin-top: 30px;">
                             <div class="profile-header">
                                 <div class="profile-avatar">
                                     <?php echo strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1)); ?>
