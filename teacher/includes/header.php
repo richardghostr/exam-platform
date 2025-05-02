@@ -27,7 +27,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
   <?php endif; ?>
   
 </head>
-
+<style>
+  
+</style>
 <body>
   <div class="app-container">
     <?php include 'sidebar.php'; ?>

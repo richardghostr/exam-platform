@@ -387,9 +387,9 @@ body {
         <!-- Sidebar --
         
         <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-                <h1 class="h2"><?php echo $pageTitle; ?></h1>
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" style="margin-top: 30px;">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="margin-bottom:20px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                <h1 class="h2"><?php echo $pageTitle; ?></h1><br>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
                         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#exportModal">
@@ -398,19 +398,17 @@ body {
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="printReport">
                             <i class="fas fa-print me-1"></i> Imprimer
                         </button>
-                    </div>
+                    </div><br>
                     <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#generateReportModal">
                         <i class="fas fa-file-alt me-1"></i> Générer un rapport
                     </button>
                 </div>
             </div>
-            <div>
-                
-            </div >
+            
             <!-- Cartes de statistiques -->
-            <div class="row mb-4" style="display: flex;margin-left:25px;">
-                <div class="col-md-3">
-                    <div class="card stat-card">
+            <div class="row mb-4" style="display: flex;margin-left:25px;margin-top:30px;justify-content:space-between;margin-right:20px" >
+                <div class="col-md-3" style="width: 23%;">
+                    <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -434,12 +432,12 @@ body {
                     </div>
                 </div>
                 
-                <div class="col-md-3">
-                    <div class="card stat-card">
+                <div class="col-md-3" style="width: 23%;">
+                    <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-subtitle text-muted">Étudiants</h6>
+                                    <h6 class="card-subtitle text-muted">Étudiants Inscrits</h6>
                                     <h2 class="mt-2 mb-0"><?php echo $totalStudents; ?></h2>
                                 </div>
                                 <div class="stat-icon bg-success-light text-success">
@@ -459,8 +457,8 @@ body {
                     </div>
                 </div>
                 
-                <div class="col-md-3">
-                    <div class="card stat-card">
+                <div class="col-md-3" style="width: 23%;">
+                    <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -484,8 +482,8 @@ body {
                     </div>
                 </div>
                 
-                <div class="col-md-3">
-                    <div class="card stat-card">
+                <div class="col-md-3" style="width: 23%;">
+                    <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -512,22 +510,11 @@ body {
             </div>
             
             <!-- Graphiques -->
-            <div class="row mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-                <div class="col-md-6">
+            <div class="row mb-4" >
+                <div class="col-md-6" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                     <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="card-header d-flex justify-content-between align-items-center" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
                             <h5 class="mb-0">Examens par mois</h5>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chartOptionsDropdown1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartOptionsDropdown1">
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-download me-2"></i>Exporter</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-sync me-2"></i>Actualiser</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Paramètres</a></li>
-                                </ul>
-                            </div>
                         </div>
                         <div class="card-body">
                             <canvas id="examsChart" height="250"></canvas>
@@ -537,19 +524,9 @@ body {
                 
                 <div class="col-md-6" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                     <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="card-header d-flex justify-content-between align-items-center" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
                             <h5 class="mb-0">Scores moyens par matière</h5>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chartOptionsDropdown2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartOptionsDropdown2">
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-download me-2"></i>Exporter</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-sync me-2"></i>Actualiser</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Paramètres</a></li>
-                                </ul>
-                            </div>
+                        
                         </div>
                         <div class="card-body">
                             <canvas id="subjectsChart" height="250"></canvas>
@@ -560,9 +537,9 @@ body {
             
             <!-- Incidents de surveillance -->
             <div class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Incidents de surveillance</h5>
-                    <a href="all-incidents.php" class="btn btn-sm btn-outline-primary">
+                <div class="card-header d-flex justify-content-between align-items-center" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning" style="margin-right: 5px;"></i>Incidents de surveillance</h5>
+                    <a href="all-incidents.php" class="btn btn-sm btn-outline-primary" style="text-decoration: none;">
                         Voir tous les incidents
                     </a>
                 </div>
@@ -619,7 +596,7 @@ body {
                             </table>
                         </div>
                     <?php else: ?>
-                        <div class="text-center py-5">
+                        <div class="text-center py-5" style="text-align: center;">
                             <div class="mb-3">
                                 <i class="fas fa-shield-alt text-success fa-4x"></i>
                             </div>
@@ -631,14 +608,14 @@ body {
             </div>
             
             <!-- Formulaire de génération de rapports -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Générer des rapports personnalisés</h5>
+            <div class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                <div class="card-header" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2" style="margin-right: 3px;"></i>Générer des rapports personnalisés</h5>
                 </div>
                 <div class="card-body">
                     <form id="reportForm" class="row g-3">
                         <div class="col-md-4">
-                            <label for="reportType" class="form-label">Type de rapport</label>
+                            <label for="reportType" class="form-label" >Type de rapport</label>
                             <select id="reportType" name="reportType" class="form-select">
                                 <option value="exam_results">Résultats d'examens</option>
                                 <option value="student_performance">Performance des étudiants</option>
@@ -646,7 +623,7 @@ body {
                                 <option value="question_analysis">Analyse des questions</option>
                             </select>
                         </div>
-                        
+                        <br>
                         <div class="col-md-4">
                             <label for="examId" class="form-label">Examen</label>
                             <select id="examId" name="examId" class="form-select">
@@ -656,7 +633,7 @@ body {
                                 <?php endwhile; ?>
                             </select>
                         </div>
-                        
+                        <br>
                         <div class="col-md-4">
                             <label for="format" class="form-label">Format</label>
                             <select id="format" name="format" class="form-select">
