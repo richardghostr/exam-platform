@@ -20,6 +20,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     exit();
 }
 
+
 $questionId = intval($_GET['id']);
 
 // Récupérer les informations de la question

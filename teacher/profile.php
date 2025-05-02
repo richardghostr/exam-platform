@@ -313,8 +313,8 @@ include 'includes/header.php';
 <div>
 
     <main class="main-content" style="width:100%;margin-left: 0px;">
-        <div class="content-wrapper">
-            <div class="content-body">
+        <div class="content-wrapper" >
+            <div class="content-body" >
                 <?php if (isset($_GET['success'])): ?>
                     <?php
                     $successMessages = [
@@ -331,9 +331,9 @@ include 'includes/header.php';
                     </div>
                 <?php endif; ?>
 
-                <div class="profile-container">
+                <div class="profile-container" >
                     <div class="profile-sidebar" >
-                        <div class="profile-card" style="margin-left: 25px;margin-right: 20px;">
+                        <div class="profile-card" style="margin-left: 25px;margin-right: 20px;margin-top: 30px;"">
                             <div class="profile-header">
                                 <div class="profile-avatar">
                                     <?php echo strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1)); ?>
@@ -403,7 +403,7 @@ include 'includes/header.php';
 
                     <div class="profile-content">
                         <div class="profile-tab active" id="profile-info">
-                            <div class="card" style="margin-top:20px;margin-bottom:30px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                            <div class="card" style="margin-top:20px;margin-bottom:30px;border-radius: 20px;margin-right: 20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                                 <div class="card-header">
                                     <h2 class="card-title">Informations personnelles</h2>
                                 </div>
@@ -447,7 +447,7 @@ include 'includes/header.php';
                         </div>
 
                         <div class="profile-tab" id="change-password">
-                            <div class="card" style="margin-top:20px;margin-bottom:30px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                            <div class="card" style="margin-top:20px;margin-bottom:30px;border-radius: 20px;margin-right: 20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                                 <div class="card-header">
                                     <h2 class="card-title">Changer le mot de passe</h2>
                                 </div>
@@ -497,7 +497,7 @@ include 'includes/header.php';
                         </div>
 
                         <div class="profile-tab" id="preferences">
-                            <div class="card" style="margin-top:20px;margin-bottom:30px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                            <div class="card" style="margin-top:20px;margin-bottom:30px;border-radius: 20px;margin-right: 20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                                 <div class="card-header">
                                     <h2 class="card-title">Préférences</h2>
                                 </div>

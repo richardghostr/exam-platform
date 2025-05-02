@@ -1,7 +1,7 @@
 <?php
 // Configuration de base
 define('SITE_NAME', 'ExamSafe');
-define('SITE_URL', 'http://localhost/exam-platform');
+define('SITE_URL', 'http://localhost/exam-platform/');
 
 // Configuration de la base de données
 define('DB_HOST', 'localhost');

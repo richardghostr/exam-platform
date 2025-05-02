@@ -383,12 +383,12 @@ body {
 }
 </style>
 <div class="container-fluid">
-    <div class="row">
+    <div class="row" style="width: 100%;">
         <!-- Sidebar --
         
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" style="margin-top: 30px;">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="margin-bottom:20px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="margin-bottom:20px;border-radius: 20px;margin-right:20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <h1 class="h2"><?php echo $pageTitle; ?></h1><br>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
@@ -406,8 +406,8 @@ body {
             </div>
             
             <!-- Cartes de statistiques -->
-            <div class="row mb-4" style="display: flex;margin-left:25px;margin-top:30px;justify-content:space-between;margin-right:20px" >
-                <div class="col-md-3" style="width: 23%;">
+            <div class="row mb-4" style="display: flex;flex-wrap:wrap;margin-left:25px;margin-top:0px;justify-content:space-between;margin-right:20px" >
+                <div class="col-md-3" style="width: 23%; margin-top  : 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -415,8 +415,8 @@ body {
                                     <h6 class="card-subtitle text-muted">Total des examens</h6>
                                     <h2 class="mt-2 mb-0"><?php echo $totalExams; ?></h2>
                                 </div>
-                                <div class="stat-icon bg-primary-light text-primary">
-                                    <i class="fas fa-file-alt"></i>
+                                <div class="stat-icon bg-primary-light text-primary" style="margin-left: -8px;">
+                                    <i class="fas fa-file-alt" ></i>
                                 </div>
                             </div>
                             <div class="progress mt-3" style="height: 5px;">
@@ -432,7 +432,7 @@ body {
                     </div>
                 </div>
                 
-                <div class="col-md-3" style="width: 23%;">
+                <div class="col-md-3" style="width: 23%;margin-top: 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -440,7 +440,7 @@ body {
                                     <h6 class="card-subtitle text-muted">Étudiants Inscrits</h6>
                                     <h2 class="mt-2 mb-0"><?php echo $totalStudents; ?></h2>
                                 </div>
-                                <div class="stat-icon bg-success-light text-success">
+                                <div class="stat-icon bg-success-light text-success" style="margin-left: -8px;">
                                     <i class="fas fa-user-graduate"></i>
                                 </div>
                             </div>
@@ -457,7 +457,7 @@ body {
                     </div>
                 </div>
                 
-                <div class="col-md-3" style="width: 23%;">
+                <div class="col-md-3" style="width: 23%;margin-top  : 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -465,7 +465,7 @@ body {
                                     <h6 class="card-subtitle text-muted">Examens complétés</h6>
                                     <h2 class="mt-2 mb-0"><?php echo $totalCompletedExams; ?></h2>
                                 </div>
-                                <div class="stat-icon bg-info-light text-info">
+                                <div class="stat-icon bg-info-light text-info" style="margin-left: -8px;">
                                     <i class="fas fa-check-circle"></i>
                                 </div>
                             </div>
@@ -482,7 +482,7 @@ body {
                     </div>
                 </div>
                 
-                <div class="col-md-3" style="width: 23%;">
+                <div class="col-md-3" style="width: 23%;margin-top  : 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -490,7 +490,7 @@ body {
                                     <h6 class="card-subtitle text-muted">Score moyen</h6>
                                     <h2 class="mt-2 mb-0"><?php echo round($avgScore, 1); ?>%</h2>
                                 </div>
-                                <div class="stat-icon bg-warning-light text-warning">
+                                <div class="stat-icon bg-warning-light text-warning" style="margin-left: -8px;">
                                     <i class="fas fa-chart-line"></i>
                                 </div>
                             </div>

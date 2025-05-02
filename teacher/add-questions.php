@@ -213,7 +213,7 @@ include 'includes/header.php';
         color: #6c757d !important;
     }
 </style>
-<div class="d-flex justify-content-between align-items-center mb-20" style="margin-top: 20px;margin-left: 25px;margin-bottom: 20px;">
+<div class="d-flex justify-content-between align-items-center mb-20" style="margin-top: 20px;margin-right:20px;margin-bottom: 20px;justify-content: flex-end;">
     <div>
         <a href="manage-exams.php" class="btn btn-secondary" style="text-decoration: none;">
             <i class="fas fa-arrow-left"></i> Retour aux examens
@@ -224,7 +224,7 @@ include 'includes/header.php';
     </div>
 </div>
 
-<div class="card mb-20" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+<div class="card mb-20" style="border-radius: 20px;margin-right: 20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div class="card-header">
         <h2 class="card-title">Détails de l'examen</h2>
     </div>
@@ -249,18 +249,18 @@ include 'includes/header.php';
 </div>
 
 <?php if (isset($error)): ?>
-    <div class="alert alert-danger" style="border-radius: 10px;width:96.5%;margin-left:25px;margin-top: 20px;">
+    <div class="alert alert-danger" style="border-radius: 10px;margin-right: 20px;margin-left:25px;margin-top: 20px;">
         <?php echo $error; ?>
     </div>
 <?php endif; ?>
 
 <?php if (isset($success)): ?>
-    <div class="alert alert-success" style="border-radius: 10px;width:96.5%;margin-left:25px;margin-top: 20px;">
+    <div class="alert alert-success" style="border-radius: 10px;margin-right: 20px;margin-left:25px;margin-top: 20px;">
         <?php echo $success; ?>
     </div>
 <?php endif; ?>
 
-<div class="card mb-20" style="margin-top:30px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+<div class="card mb-20" style="margin-top:30px;border-radius: 20px;margin-right: 20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div class="card-header">
         <h2 class="card-title">Questions existantes (<?php echo $questions->num_rows; ?>)</h2>
     </div>
@@ -296,7 +296,7 @@ include 'includes/header.php';
                                 </td>
                                 <td>
                                     <div class="d-flex gap-10">
-                                        <a href="edit-question.php?id=<?php echo $question['id']; ?>" class="btn btn-info btn-sm">
+                                        <a href="edit-question.php?exam_id=<?php echo $question['id']; ?>" class="btn btn-info btn-sm">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <a href="?exam_id=<?php echo $exam_id; ?>&delete_question=<?php echo $question['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette question ?');">
@@ -317,7 +317,7 @@ include 'includes/header.php';
     </div>
 </div>
 
-<div class="card" style="margin-top:30px;border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+<div class="card" style="margin-top:30px;border-radius: 20px;margin-right: 20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div class="card-header">
         <h2 class="card-title">Ajouter une nouvelle question</h2>
     </div>

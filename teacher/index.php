@@ -192,7 +192,7 @@ include 'includes/header.php';
         <div class="card-header">
             <h2 class="card-title">Examens récents</h2>
             <div class="card-actions">
-                <a href="manage-exams.php" class="btn btn-primary btn-sm">Voir tous</a>
+                <a href="manage-exams.php" class="btn btn-primary btn-sm" style="text-decoration: none;">Voir tous</a>
             </div>
         </div>
         <div class="card-body">
@@ -257,7 +257,7 @@ include 'includes/header.php';
             <div class="card-header">
                 <h2 class="card-title">Examens à noter</h2>
                 <div class="card-actions">
-                    <a href="grade-exams.php" class="btn btn-primary btn-sm">Voir tous</a>
+                    <a href="grade-exams.php" class="btn btn-primary btn-sm" style="text-decoration: none;">Voir tous</a>
                 </div>
             </div>
             <div class="card-body">
@@ -312,7 +312,7 @@ include 'includes/header.php';
             <div class="card-header">
                 <h2 class="card-title">Incidents récents</h2>
                 <div class="card-actions">
-                    <a href="proctoring-incidents.php" class="btn btn-primary btn-sm">Voir tous</a>
+                    <a href="proctoring-incidents.php" class="btn btn-primary btn-sm" style="text-decoration: none;">Voir tous</a>
                 </div>
             </div>
             <div class="card-body">

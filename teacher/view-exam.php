@@ -65,24 +65,581 @@ $stats = $statsQuery->fetch_assoc();
 $pageTitle = "Détails de l'examen";
 include 'includes/header.php';
 ?>
+<style>
+    /* Style général */
 
-<div class="app-container">
-    <?php include 'includes/sidebar.php'; ?>
+/* Layout principal */
+
+
+a{
+    text-decoration: none;
+    color: inherit;
+}
+
+/* En-tête de l'examen */
+.exam-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.exam-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.exam-title h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    color: #2c3e50;
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-badge.draft {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.status-badge.scheduled {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.exam-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Cartes */
+.card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    border: none;
+}
+
+.card-header {
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 20px 20px 0 0;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #2c3e50;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* Informations de l'examen */
+.exam-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-row {
+    display: flex;
+}
+
+.info-label {
+    font-weight: 600;
+    width: 180px;
+    color: #2c3e50;
+}
+
+.info-value {
+    flex: 1;
+    color: #6c757d;
+}
+
+.option-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-primary {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.badge-info {
+    background-color: #e1f5fe;
+    color: #0288d1;
+}
+
+.badge-success {
+    background-color: #e8f5e9;
+    color: #388e3c;
+}
+
+.badge-warning {
+    background-color: #fff8e1;
+    color: #ffa000;
+}
+
+/* Liste des questions */
+.questions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.question-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.question-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.question-number {
+    font-weight: 600;
+    margin-right: 15px;
+    color: #2c3e50;
+}
+
+.question-type {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    margin-right: auto;
+}
+
+.question-points {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.question-content {
+    padding: 15px;
+}
+
+.question-text {
+    margin-bottom: 15px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.question-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.option-item.correct {
+    background-color: #e8f5e9;
+}
+
+.option-marker {
+    margin-right: 10px;
+    color: #388e3c;
+}
+
+.option-item:not(.correct) .option-marker {
+    color: #e53935;
+}
+
+/* Statistiques */
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Liste des classes */
+.classes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.class-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.class-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.class-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.class-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.class-details {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Lien d'accès */
+.exam-link {
+    display: flex;
+    gap: 15px;
+}
+
+.link-container {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.link-container input {
+    flex: 1;
+}
+
+.copy-link {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-code img {
+    width: 100%;
+    max-width: 150px;
+    height: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+/* États vides */
+.empty-state {
+    text-align: center;
+    padding: 30px 0;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+.empty-state h3 {
+    margin: 0 0 10px;
+    color: #2c3e50;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 500px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Notification de copie */
+.copy-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #4caf50;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.copy-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.copy-notification i {
+    margin-right: 8px;
+}
+
+/* Boutons */
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #3a5bc7;
+}
+
+.btn-success {
+    background-color: #1cc88a;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #17a673;
+}
+
+.btn-info {
+    background-color: #36b9cc;
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: #2c9faf;
+}
+
+.btn-danger {
+    background-color: #e74a3b;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #d62c1a;
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    border: 1px solid #d1d3e2;
+    color: #6e707e;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+}
+
+/* Formulaires */
+.form-control {
+    border: 1px solid #d1d3e2;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    width: 100%;
+}
+
+.form-control:focus {
+    border-color: #bac8f3;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .exam-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
     
-    <main class="main-content">
-        <?php include 'includes/navbar.php'; ?>
+    .exam-actions {
+        flex-wrap: wrap;
+    }
+    
+    .stats-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .exam-link {
+        flex-direction: column;
+    }
+    
+    .qr-code {
+        margin-top: 15px;
+        align-self: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .info-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .info-label {
+        width: auto;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+</style>
+<div class="app-container">
+    
+    <main class="main-content" style="margin-left: 25px;margin-right: 25px;margin-top: 20px;">
         
         <div class="content-wrapper">
-            <div class="content-header">
-                <h1 class="page-title">Détails de l'examen</h1>
-                <nav class="breadcrumb">
-                    <ol>
-                        <li><a href="index.php">Tableau de bord</a></li>
-                        <li><a href="manage-exams.php">Gérer les examens</a></li>
-                        <li class="active">Détails de l'examen</li>
-                    </ol>
-                </nav>
-            </div>
+        
             
             <div class="content-body">
                 <div class="exam-header">
@@ -344,14 +901,14 @@ include 'includes/header.php';
                                     <div class="link-info">
                                         <p>Partagez ce lien avec vos étudiants pour qu'ils puissent accéder à l'examen :</p>
                                         <div class="link-container">
-                                            <input type="text" class="form-control" id="examLink" value="<?php echo BASE_URL . 'exam.php?id=' . $examId; ?>" readonly>
+                                            <input type="text" class="form-control" id="examLink" value="<?php echo SITE_URL . 'exam.php?id=' . $examId; ?>" readonly>
                                             <button class="btn btn-primary copy-link" data-clipboard-target="#examLink">
                                                 <i class="fas fa-copy"></i>
                                             </button>
                                         </div>
                                     </div>
                                     <div class="qr-code">
-                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode(BASE_URL . 'exam.php?id=' . $examId); ?>" alt="QR Code">
+                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode(SITE_URL . 'exam.php?id=' . $examId); ?>" alt="QR Code">
                                     </div>
                                 </div>
                             </div>
@@ -428,4 +985,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include 'includes/footer.php'; ?>

@@ -244,7 +244,7 @@ include 'includes/header.php';
                             <a style="text-decoration: none;" href="view-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-info btn-sm">
                                 <i class="fas fa-eye"></i> Aperçu
                             </a>
-                            <a style="text-decoration: none;background-color:purple ;border:none"href="view-results.php?id=<?php echo $exam['id']; ?>" class="btn btn-success btn-sm" >
+                            <a style="text-decoration: none;background-color:purple ;border:none"href="view-results.php?exam_id=<?php echo $exam['id']; ?>" class="btn btn-success btn-sm" >
                                 <i class="fas fa-chart-bar"></i> Résultats
                             </a>
                             <a style="text-decoration: none;"href="add-questions.php?exam_id=<?php echo $exam['id']; ?>" class="btn btn-success btn-sm" >

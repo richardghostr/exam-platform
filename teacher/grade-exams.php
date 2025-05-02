@@ -66,7 +66,259 @@ $recentlyGraded = $conn->query("
 $pageTitle = "Noter les examens";
 include 'includes/header.php';
 ?>
+<style>
+    /* Style général */
 
+/* En-tête */
+.h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+
+/* Boutons */
+.btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: all 0.3s;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+}
+
+.btn-outline-secondary {
+    border-color: #d1d3e2;
+    color: #6e707e;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-primary:hover {
+    background-color: #3a5bc7;
+    border-color: #3a5bc7;
+}
+
+.btn-success {
+    background-color: #1cc88a;
+    border-color: #1cc88a;
+}
+
+.btn-success:hover {
+    background-color: #17a673;
+    border-color: #17a673;
+}
+
+.btn-outline-info {
+    border-color: #36b9cc;
+    color: #36b9cc;
+}
+
+.btn-outline-info:hover {
+    background-color: #36b9cc;
+    color: white;
+}
+
+/* Cartes */
+.card {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    background-color: white;
+    margin-left: 25px;
+    margin-right: 25px;
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 600;
+    border-radius: 20px 20px 0 0;
+}
+
+
+
+
+
+/* Tableaux */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Badges */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.bg-primary {
+    background-color: #4e73df !important;
+}
+
+.bg-success {
+    background-color: #1cc88a !important;
+}
+
+.bg-info {
+    background-color: #36b9cc !important;
+}
+
+.bg-warning {
+    background-color: #f6c23e !important;
+    color: #212529 !important;
+}
+
+.bg-secondary {
+    background-color: #858796 !important;
+}
+
+.bg-danger {
+    background-color: #e74a3b !important;
+}
+
+/* Avatars et icônes */
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #4e73df;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.exam-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(78, 115, 223, 0.1);
+    color: #4e73df;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Barres de progression */
+.progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #eaecf4;
+}
+
+.progress-bar {
+    border-radius: 4px;
+}
+
+/* Listes */
+.list-group-item {
+    border: 1px solid #e0e0e0;
+    padding: 12px 15px;
+}
+
+/* Formulaires */
+.form-control {
+    border: 1px solid #d1d3e2;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+}
+
+.form-control:focus {
+    border-color: #bac8f3;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border: 1px solid #d1d3e2;
+    font-size: 0.875rem;
+}
+
+/* Zones de texte */
+.question-text {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.student-answer {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 3px solid #4e73df;
+}
+
+/* Toast */
+.toast {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Icônes Font Awesome */
+.fas {
+    font-size: 0.875em;
+}
+
+/* Utilitaires */
+.text-muted {
+    color: #858796 !important;
+}
+
+.py-5 {
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 15px;
+    }
+    
+    .table td, .table th {
+        padding: 8px 10px;
+    }
+    
+    .btn {
+        padding: 6px 12px;
+    }
+}
+</style>
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
@@ -74,13 +326,12 @@ include 'includes/header.php';
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><?php echo $pageTitle; ?></h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                    <div class="btn-group me-2" style="margin-left: 25px;margin-right: 25px;margin-top: 20px;margin-bottom: 20px;">
+                        <button type="button" class="btn btn-secondary">
                             <i class="fas fa-filter"></i> Filtrer
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                        <button type="button" class="btn btn-info" style="margin-left: 10px;">
                             <i class="fas fa-download"></i> Exporter
                         </button>
                     </div>
@@ -298,11 +549,11 @@ Il manque cependant une mention de l'abstraction qui est aussi un concept import
 Dans l'ensemble, une réponse solide qui démontre une bonne compréhension des principes de la POO.</textarea>
                                         </div>
                                         
-                                        <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-between"><br>
                                             <button type="button" class="btn btn-outline-secondary">
                                                 <i class="fas fa-arrow-left me-1"></i> Précédent
                                             </button>
-                                            <div>
+                                            <div><br>
                                                 <button type="button" class="btn btn-success me-2">
                                                     <i class="fas fa-save me-1"></i> Enregistrer
                                                 </button>
@@ -320,7 +571,7 @@ Dans l'ensemble, une réponse solide qui démontre une bonne compréhension des 
                                     <h6 class="mb-0">Critères d'évaluation</h6>
                                 </div>
                                 <div class="card-body">
-                                    <ul class="list-group">
+                                    <ul class="list-group" style="border: none;">
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             Explication des concepts (4 points)
                                             <span class="badge bg-primary rounded-pill">3</span>
@@ -377,15 +628,15 @@ function getScoreClass(score) {
 </script>
 
 <!-- Toast pour la sauvegarde -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11" >
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" style="margin-left: 25px;margin-right: 25px;padding: 20px;margin-bottom: 20px;background-color: #fff;">
         <div class="toast-header">
             <i class="fas fa-check-circle text-success me-2"></i>
             <strong class="me-auto">Notation enregistrée</strong>
             <small>À l'instant</small>
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
-        <div class="toast-body">
+        <div class="toast-body" >
             La notation a été enregistrée avec succès.
         </div>
     </div>
