@@ -383,7 +383,7 @@ include 'includes/header.php';
                                         <div class="stat-label">Score moyen</div>
                                     </div>
                                 </div>
-                                <div class="profile-contact">
+                                <div class="profile-contact" ><br>
                                     <div class="contact-item">
                                         <i class="fas fa-envelope"></i>
                                         <span><?php echo htmlspecialchars($user['email']); ?></span>

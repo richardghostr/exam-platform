@@ -151,6 +151,121 @@ include 'includes/header.php';
 
 <!-- Manage Exams Content -->
 <div class="dashboard">
+    <style>
+        /* Style de base pour toutes les alertes */
+.alert {
+    position: relative;
+    padding: 16px 20px;
+    margin: 0 0 20px 0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid;
+    animation: fadeInSlide 0.4s ease-out;
+    transition: all 0.3s ease;
+}
+
+/* Animation d'apparition */
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Alerte succès */
+.alert-success {
+    background-color: #f0fdf4;
+    color: #166534;
+    border-color: #22c55e;
+}
+
+/* Alerte erreur */
+.alert-danger {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border-color: #ef4444;
+}
+
+/* Icônes des alertes */
+.alert i {
+    margin-right: 12px;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.alert-success i {
+    color: #22c55e;
+}
+
+.alert-danger i {
+    color: #ef4444;
+}
+
+/* Bouton de fermeture (optionnel) */
+.alert .close-alert {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 0 0 0 15px;
+}
+
+.alert .close-alert:hover {
+    opacity: 1;
+}
+
+/* Effet au survol */
+.alert:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Version avec icône automatique */
+.alert-success:not(.no-icon)::before,
+.alert-danger:not(.no-icon)::before {
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    margin-right: 12px;
+    font-size: 1.2rem;
+}
+
+.alert-success:not(.no-icon)::before {
+    content: "\f058"; /* icône check-circle */
+    color: #22c55e;
+}
+
+.alert-danger:not(.no-icon)::before {
+    content: "\f06a"; /* icône exclamation-circle */
+    color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .alert {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .alert i,
+    .alert:not(.no-icon)::before {
+        font-size: 1.1rem;
+        margin-right: 10px;
+    }
+}
+    </style>
     <?php if (isset($successMessage)): ?>
         <div class="alert alert-success">
             <?php echo $successMessage; ?>
