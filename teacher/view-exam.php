@@ -1027,7 +1027,7 @@ include 'includes/header.php';
 </div>
 
 <!-- Modal de confirmation de suppression -->
-<div class="modal" id="deleteExamModal">
+<div class="modal" id="deleteExamModal"style="justify-content: center;align-items: center;width:100% " >
     <div class="modal-content">
         <div class="modal-header">
             <h2>Confirmer la suppression</h2>

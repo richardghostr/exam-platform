@@ -432,3 +432,6 @@ function getIncidentClass($incidentType) {
             return 'secondary';
     }
 }
+function safeRound($value, $precision = 0) {
+    return round($value ?? 0, $precision);
+}

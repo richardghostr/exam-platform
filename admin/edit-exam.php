@@ -3,246 +3,331 @@ require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+
+// Vérifier si l'utilisateur est connecté et est un administrateur
+if (!isLoggedIn() || !isAdmin()) {
+    header('Location:login.php');
+    exit();
+}
+
+
+
 // Vérifier si l'ID de l'examen est fourni
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     header('Location: manage-exams.php');
-    exit;
+    exit();
 }
 
-$exam_id = $_GET['id'];
-$error_message = '';
-$success_message = '';
+$examId = intval($_GET['id']);
 
-// Récupérer les détails de l'examen
-$stmt = $conn->prepare("SELECT * FROM exams WHERE id = ?");
-$stmt->bind_param("i", $exam_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows === 0) {
-    echo "<script>alert('Examen non trouvé'); window.location.href='manage-exams.php';</script>";
-    exit;
+// Vérifier si l'examen appartient à l'enseignant
+$examQuery = $conn->query("SELECT * FROM exams WHERE id = $examId");
+if ($examQuery->num_rows === 0) {
+    header('Location: manage-exams.php');
+    exit();
 }
 
-$exam = $result->fetch_assoc();
+$exam = $examQuery->fetch_assoc();
 
-// Récupérer la liste des cours
-$courses_result = $conn->query("SELECT id, course_name FROM courses ORDER BY course_name");
+// Récupérer les classes/groupes disponibles
+$classesQuery = $conn->query("SELECT * FROM classes ORDER BY name ASC");
 
-// Traitement du formulaire de mise à jour
+// Récupérer les classes assignées à cet examen
+$assignedClassesQuery = $conn->query("SELECT class_id FROM exam_classes WHERE exam_id = $examId");
+$assignedClasses = [];
+while ($row = $assignedClassesQuery->fetch_assoc()) {
+    $assignedClasses[] = $row['class_id'];
+}
+
+// Traitement du formulaire de modification
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = $_POST['title'];
-    $description = $_POST['description'];
-    $course_id = $_POST['course_id'];
-    $duration = $_POST['duration'];
-    $start_time = $_POST['start_date'] . ' ' . $_POST['start_time'];
-    $end_time = $_POST['end_date'] . ' ' . $_POST['end_time'];
-    $passing_percentage = $_POST['passing_percentage'];
-    $total_points = $_POST['total_points'];
-    $status = $_POST['status'];
-    $updated_by = $_SESSION['user_id'];
-
-    // Validation des données
-    if (
-        empty($title) || empty($description) || empty($course_id) || empty($duration) ||
-        empty($start_time) || empty($end_time) || empty($passing_percentage) || empty($total_points)
-    ) {
-        $error_message = "Tous les champs sont obligatoires.";
-    } else {
-        // Mise à jour de l'examen
-        $update_stmt = $conn->prepare("UPDATE exams SET 
-                                      title = ?, 
-                                      description = ?, 
-                                      course_id = ?, 
-                                      duration = ?, 
-                                      start_time = ?, 
-                                      end_time = ?, 
-                                      passing_percentage = ?, 
-                                      total_points = ?, 
-                                      status = ?, 
-                                      updated_by = ?, 
-                                      updated_at = NOW() 
-                                      WHERE id = ?");
-
-        $update_stmt->bind_param(
-            "ssiissdiiii",
-            $title,
-            $description,
-            $course_id,
-            $duration,
-            $start_time,
-            $end_time,
-            $passing_percentage,
-            $total_points,
-            $status,
-            $updated_by,
-            $exam_id
-        );
-
-        if ($update_stmt->execute()) {
-            $success_message = "L'examen a été mis à jour avec succès.";
-
-            // Récupérer les données mises à jour
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $exam = $result->fetch_assoc();
-        } else {
-            $error_message = "Erreur lors de la mise à jour de l'examen: " . $conn->error;
+    $title = $conn->real_escape_string($_POST['title']);
+    $description = $conn->real_escape_string($_POST['description']);
+    $subject = $conn->real_escape_string($_POST['subject']);
+    $duration = intval($_POST['duration']);
+    $passingScore = intval($_POST['passing_score']);
+    $startDate = $conn->real_escape_string($_POST['start_date']);
+    $endDate = $conn->real_escape_string($_POST['end_date']);
+    $status = $conn->real_escape_string($_POST['status']);
+    $proctoring = isset($_POST['proctoring']) ? 1 : 0;
+    $randomizeQuestions = isset($_POST['randomize_questions']) ? 1 : 0;
+    $randomizeQuestions = isset($_POST['randomize_questions']) ? 1 : 0;
+    $showResults = isset($_POST['show_results']) ? 1 : 0;
+    
+    // Mettre à jour les informations de l'examen
+    $updateExam = $conn->query("
+        UPDATE exams SET 
+            title = '$title', 
+            description = '$description', 
+            subject = '$subject', 
+            duration = $duration, 
+            passing_score = $passingScore, 
+            start_date = '$startDate', 
+            end_date = '$endDate', 
+            status = '$status', 
+            proctoring_enabled = $proctoring, 
+            randomize_questions = $randomizeQuestions, 
+            show_results = $showResults, 
+            updated_at = NOW() 
+        WHERE id = $examId
+    ");
+    
+    if ($updateExam) {
+        // Mettre à jour les classes assignées
+        $conn->query("DELETE FROM exam_classes WHERE exam_id = $examId");
+        
+        if (isset($_POST['classes']) && is_array($_POST['classes'])) {
+            foreach ($_POST['classes'] as $classId) {
+                $classId = intval($classId);
+                $conn->query("INSERT INTO exam_classes (exam_id, class_id) VALUES ($examId, $classId)");
+            }
         }
+        
+        // Rediriger avec un message de succès
+        header("Location: edit-exam.php?id=$examId&success=1");
+        exit();
     }
 }
-// Inclure l'en-tête
+
+$pageTitle = "Modifier l'examen";
 include 'includes/header.php';
 ?>
 
-<div class="card mb-20">
-    <div class="content-header">
-        <div class="container-fluid">
-            <div style="margin-top: 20px;margin-left:20px">
-                <div class="page-path">
-                    <a href="index.php">Dashboard</a>
-                    <span class="separator">/</span>
-                    <a href="manage-exams.php">Examens</a>
-                    <span class="separator">/</span>
-                    <span>Modifier l'examen</span>
-                </div>
-                <h1 class="page-title">Modifier l'examen</h1>
-            </div>
-        </div>
-    </div>
+<div class="app-container" >
+    
+    <main class="main-content"style="margin-top: 30px;border-radius: 20px;margin-bottom: 20px;">
+        
+        <div class="content-wrapper">
+            
+            <div class="content-body">
+                <style>/* Style de base pour les alertes */
+.alert {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
 
-    <section class="content">
-        <div class="container-fluid">
-            <?php if (!empty($error_message)): ?>
-                <div class="alert alert-danger alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                    <h5><i class="icon fas fa-ban"></i> Erreur!</h5>
-                    <?php echo $error_message; ?>
-                </div>
-            <?php endif; ?>
+/* Alerte succès */
+.alert-success {
+    background-color: #f0fdf4;
+    color: #166534;
+    border-color: #22c55e;
+}
 
-            <?php if (!empty($success_message)): ?>
-                <div class="alert alert-success alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                    <h5><i class="icon fas fa-check"></i> Succès!</h5>
-                    <?php echo $success_message; ?>
-                </div>
-            <?php endif; ?>
+/* Icônes des alertes */
+.alert i {
+    margin-right: 12px;
+    font-size: 1.2rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
 
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">Informations de l'examen</h3>
-                        </div>
-                        <form method="post" action="">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="title">Titre de l'examen</label>
-                                            <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($exam['title']); ?>" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="description">Description</label>
-                                            <textarea class="form-control" id="description" name="description" rows="3" required><?php echo htmlspecialchars($exam['description']); ?></textarea>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="course_id">Cours</label>
-                                            <select class="form-control" id="course_id" name="course_id" required>
-                                                <option value="">Sélectionner un cours</option>
-                                                <?php while ($course = $courses_result->fetch_assoc()): ?>
-                                                    <option value="<?php echo $course['id']; ?>" <?php echo ($course['id'] == $exam['course_id']) ? 'selected' : ''; ?>>
-                                                        <?php echo htmlspecialchars($course['course_name']); ?>
-                                                    </option>
-                                                <?php endwhile; ?>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="duration">Durée (minutes)</label>
-                                            <input type="number" class="form-control" id="duration" name="duration" value="<?php echo htmlspecialchars($exam['duration']); ?>" min="1" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="start_date">Date de début</label>
-                                            <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo date('Y-m-d', strtotime($exam['start_time'])); ?>" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="start_time">Heure de début</label>
-                                            <input type="time" class="form-control" id="start_time" name="start_time" value="<?php echo date('H:i', strtotime($exam['start_time'])); ?>" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="end_date">Date de fin</label>
-                                            <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo date('Y-m-d', strtotime($exam['end_time'])); ?>" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="end_time">Heure de fin</label>
-                                            <input type="time" class="form-control" id="end_time" name="end_time" value="<?php echo date('H:i', strtotime($exam['end_time'])); ?>" required>
-                                        </div>
-                                    </div>
+.alert-success i {
+    color: #22c55e;
+}
+
+/* Bouton de fermeture */
+.close-alert {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 0;
+    margin-left: auto;
+}
+
+.close-alert:hover {
+    opacity: 1;
+}
+
+/* Animation d'apparition */
+@keyframes fadeInSlide {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert {
+    animation: fadeInSlide 0.4s ease-out forwards;
+}
+
+/* Effet au survol */
+.alert:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .alert {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        align-items: center;
+    }
+    
+    .alert i {
+        font-size: 1.1rem;
+        margin-right: 10px;
+    }
+    
+    .close-alert {
+        top: 14px;
+        right: 16px;
+        font-size: 1.2rem;
+    }
+}</style>
+                <?php if (isset($_GET['success'])): ?>
+                <div class="alert alert-success" style="align-items: center;">
+                    <i class="fas fa-check-circle" style="margin-left: 3px;"></i>
+                    <span>L'examen a été mis à jour avec succès.</span>
+                    <button class="close-alert">&times;</button>
+                </div>
+                <?php endif; ?>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Informations de l'examen</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="">
+                            <div class="form-row" style="margin-left: 3px;">
+                                <div class="form-group col-md-6">
+                                    <label for="title">Titre de l'examen</label>
+                                    <input type="text" id="title" name="title" class="form-control" value="<?php echo htmlspecialchars($exam['title']); ?>" required>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="passing_percentage">Pourcentage de réussite</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" id="passing_percentage" name="passing_percentage" value="<?php echo htmlspecialchars($exam['passing_percentage']); ?>" min="0" max="100" required>
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="total_points">Points totaux</label>
-                                            <input type="number" class="form-control" id="total_points" name="total_points" value="<?php echo htmlspecialchars($exam['total_points']); ?>" min="1" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="status">Statut</label>
-                                            <select class="form-control" id="status" name="status" required>
-                                                <option value="0" <?php echo ($exam['status'] == 0) ? 'selected' : ''; ?>>Brouillon</option>
-                                                <option value="1" <?php echo ($exam['status'] == 1) ? 'selected' : ''; ?>>Publié</option>
-                                                <option value="2" <?php echo ($exam['status'] == 2) ? 'selected' : ''; ?>>Terminé</option>
-                                                <option value="3" <?php echo ($exam['status'] == 3) ? 'selected' : ''; ?>>Archivé</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                <div class="form-group col-md-6"  style="margin-left:9px;">
+                                    <label for="subject">Matière</label>
+                                    <input type="text" id="subject" name="subject" class="form-control" value="<?php echo htmlspecialchars($exam['subject']); ?>" required>
                                 </div>
                             </div>
-                            <div class="card-footer">
-                                <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-                                <a href="view-exam.php?id=<?php echo $exam_id; ?>" class="btn btn-default">Annuler</a>
+                            
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <textarea id="description" name="description" class="form-control" rows="3"><?php echo htmlspecialchars($exam['description']); ?></textarea>
+                            </div>
+                            
+                            <div class="form-row"  style="margin-left: 2px;">
+                                <div class="form-group col-md-4" >
+                                    <label for="duration">Durée (minutes)</label>
+                                    <input type="number" id="duration" name="duration" class="form-control" min="1" max="300" value="<?php echo $exam['duration']; ?>" required>
+                                </div>
+                                <div class="form-group col-md-4" style="margin-left: 9px;">
+                                    <label for="passing_score">Score de réussite (%)</label>
+                                    <input type="number" id="passing_score" name="passing_score" class="form-control" min="0" max="100" value="<?php echo $exam['passing_score']; ?>" required>
+                                </div>
+                                <div class="form-group col-md-4" style="margin-left: 9px;">
+                                    <label for="status">Statut</label>
+                                    <select id="status" name="status" class="form-control" required>
+                                        <option value="draft" <?php echo $exam['status'] === 'draft' ? 'selected' : ''; ?>>Brouillon</option>
+                                        <option value="published" <?php echo $exam['status'] === 'published' ? 'selected' : ''; ?>>Publié</option>
+                                        <option value="archived" <?php echo $exam['status'] === 'archived' ? 'selected' : ''; ?>>Archivé</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row"  style="margin-left: 3px;">
+                                <div class="form-group col-md-6">
+                                    <label for="start_date">Date de début</label>
+                                    <input type="datetime-local" id="start_date" name="start_date" class="form-control" value="<?php echo date('Y-m-d\TH:i', strtotime($exam['start_date'])); ?>" required>
+                                </div>
+                                <div class="form-group col-md-6"  style="margin-left: 9px;">
+                                    <label for="end_date">Date de fin</label>
+                                    <input type="datetime-local" id="end_date" name="end_date" class="form-control" value="<?php echo date('Y-m-d\TH:i', strtotime($exam['end_date'])); ?>" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Classes assignées</label>
+                                <div class="checkbox-group">
+                                    <?php while ($class = $classesQuery->fetch_assoc()): ?>
+                                        <label class="checkbox-container">
+                                            <input type="checkbox" name="classes[]" value="<?php echo $class['id']; ?>" <?php echo in_array($class['id'], $assignedClasses) ? 'checked' : ''; ?>>
+                                            <span class="checkmark"></span>
+                                            <?php echo htmlspecialchars($class['name']); ?>
+                                        </label>
+                                    <?php endwhile; ?>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Options avancées</label><br>
+                                <div class="checkbox-group" style="display: flex;flex-direction: column;">
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" name="proctoring" <?php echo $exam['proctoring_enabled'] ? 'checked' : ''; ?>>
+                                        <span class="checkmark"></span>
+                                        Activer la surveillance (proctoring)
+                                    </label>
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" name="randomize_questions" <?php echo $exam['randomize_questions'] ? 'checked' : ''; ?>>
+                                        <span class="checkmark"></span>
+                                        Randomiser l'ordre des questions
+                                    </label>
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" name="show_results" <?php echo $exam['show_results'] ? 'checked' : ''; ?>>
+                                        <span class="checkmark"></span>
+                                        Afficher les résultats immédiatement après l'examen
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-buttons">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Enregistrer les modifications
+                                </button>
+                                <a href="manage-exams.php" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Retour
+                                </a>
+                                <a href="add-questions.php?exam_id=<?php echo $examId; ?>" class="btn btn-success">
+                                    <i class="fas fa-question-circle"></i> Gérer les questions
+                                </a>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </main>
 </div>
 
 <script>
-    $(document).ready(function() {
-        // Validation des dates
-        $('form').on('submit', function(e) {
-            const startDate = new Date($('#start_date').val() + 'T' + $('#start_time').val());
-            const endDate = new Date($('#end_date').val() + 'T' + $('#end_time').val());
-
-            if (endDate <= startDate) {
-                e.preventDefault();
-                alert('La date de fin doit être postérieure à la date de début.');
-                return false;
-            }
-
-            return true;
+document.addEventListener('DOMContentLoaded', function() {
+    // Fermer les alertes
+    document.querySelectorAll('.close-alert').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            this.parentElement.style.display = 'none';
         });
     });
+    
+    // Validation du formulaire
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        const startDate = new Date(document.getElementById('start_date').value);
+        const endDate = new Date(document.getElementById('end_date').value);
+        
+        if (endDate <= startDate) {
+            event.preventDefault();
+            alert('La date de fin doit être postérieure à la date de début.');
+        }
+    });
+});
 </script>
-
-<?php
-include 'includes/footer.php';
-?>

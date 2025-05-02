@@ -80,29 +80,369 @@ $questionStatsQuery = $conn->query("
 $pageTitle = "Résultats de l'examen";
 include 'includes/header.php';
 ?>
+<style>
+    a{
+        text-decoration: none;
+    }
+    :root {
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #17a2b8;
+}
 
-<div class="app-container">
-    <?php include 'includes/sidebar.php'; ?>
-    
-    <main class="main-content">
-        <?php include 'includes/navbar.php'; ?>
+.content-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--text-color);
+}
+
+/* Cards */
+.card {
+  background: white;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  border: none;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  padding: 18px 25px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.card-body {
+  padding: 25px;
+}
+
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.stats-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid var(--primary-color);
+}
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: var(--secondary-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.user-name {
+  font-weight: 500;
+}
+
+.user-email {
+  font-size: 0.8rem;
+  color: var(--light-text);
+}
+
+/* Status badges */
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.status-badge.published {
+  background-color: #e6f7ee;
+  color: var(--success-color);
+}
+
+.status-badge.draft {
+  background-color: #fff8e6;
+  color: var(--warning-color);
+}
+
+.status-badge.in-progress {
+  background-color: #fee;
+  color: var(--danger-color);
+}
+
+/* Score badges */
+.score-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.score-badge.passed {
+  background-color: #e6f7ee;
+  color: var(--success-color);
+}
+
+.score-badge.failed {
+  background-color: #fee;
+  color: var(--danger-color);
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #3a5bef;
+  transform: translateY(-2px);
+}
+
+.btn-outline-secondary {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--secondary-color);
+}
+
+/* Action menu */
+.action-menu {
+  list-style: none;
+  padding: 10px 0;
+  margin: 0;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  min-width: 200px;
+}
+
+.action-menu li {
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-menu li:hover {
+  background-color: var(--secondary-color);
+}
+
+.action-menu li i {
+  margin-right: 10px;
+  width: 20px;
+  text-align: center;
+}
+
+/* Examens par mois */
+.monthly-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.monthly-stat {
+  flex: 1;
+  text-align: center;
+}
+
+.monthly-stat h4 {
+  margin: 0 0 5px 0;
+  font-size: 0.9rem;
+  color: var(--light-text);
+}
+
+.monthly-stat .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+/* Export section */
+.export-section {
+  margin-bottom: 30px;
+}
+
+.export-options {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.export-option i {
+  margin-right: 10px;
+  color: var(--primary-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+  }
+  
+  .stats-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .main-content {
+    padding: 15px;
+  }
+  
+  .card-body {
+    padding: 15px;
+  }
+}
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.stat-card h4 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  color: var(--light-text);
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: var(--text-color);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--light-text);
+}
+
+.stat-trend {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.trend-up {
+  color: var(--success-color);
+}
+
+.trend-down {
+  color: var(--danger-color);
+}
+
+.stat-subtext {
+  font-size: 0.85rem;
+  color: var(--light-text);
+  margin-top: 5px;
+}
+</style>
+<div class="app-container" >
+    <main class="main-content"  style="width: 100%;margin-left: 25px;;margin-right: 20px;" >
         
         <div class="content-wrapper">
-            <div class="content-header">
-                <h1 class="page-title">Résultats de l'examen</h1>
-                <nav class="breadcrumb">
-                    <ol>
-                        <li><a href="index.php">Tableau de bord</a></li>
-                        <li><a href="manage-exams.php">Gérer les examens</a></li>
-                        <li><a href="view-exam.php?id=<?php echo $examId; ?>">Détails de l'examen</a></li>
-                        <li class="active">Résultats</li>
-                    </ol>
-                </nav>
-            </div>
             
             <div class="content-body">
-                <div class="exam-header">
-                    <div class="exam-title">
+                <div class="exam-header" style="display: flex; justify-content: space-between; align-items: center;margin-top: 20px;">
+                    
+                    <div class="exam-title" style="display: flex; align-items: center;">
                         <h2><?php echo htmlspecialchars($exam['title']); ?></h2>
                         <span class="status-badge <?php echo $exam['status']; ?>">
                             <?php echo ucfirst($exam['status']); ?>
@@ -116,7 +456,7 @@ include 'includes/header.php';
                             <i class="fas fa-arrow-left"></i> Retour à l'examen
                         </a>
                     </div>
-                </div>
+                </div><br>
                 
                 <div class="row">
                     <div class="col-md-12">
@@ -161,7 +501,7 @@ include 'includes/header.php';
                                             <i class="fas fa-chart-line"></i>
                                         </div>
                                         <div class="stat-content">
-                                            <div class="stat-value"><?php echo round($stats['avg_score'], 1); ?>%</div>
+                                            <div class="stat-value"><?php echo safeRound($stats['avg_score'], 1); ?>%</div>
                                             <div class="stat-label">Score moyen</div>
                                         </div>
                                     </div>
@@ -171,7 +511,7 @@ include 'includes/header.php';
                                             <i class="fas fa-arrow-down"></i>
                                         </div>
                                         <div class="stat-content">
-                                            <div class="stat-value"><?php echo round($stats['min_score'], 1); ?>%</div>
+                                            <div class="stat-value"><?php echo safeRound($stats['min_score'], 1); ?>%</div>
                                             <div class="stat-label">Score minimum</div>
                                         </div>
                                     </div>
@@ -181,7 +521,7 @@ include 'includes/header.php';
                                             <i class="fas fa-arrow-up"></i>
                                         </div>
                                         <div class="stat-content">
-                                            <div class="stat-value"><?php echo round($stats['max_score'], 1); ?>%</div>
+                                            <div class="stat-value"><?php echo safeRound($stats['max_score'], 1); ?>%</div>
                                             <div class="stat-label">Score maximum</div>
                                         </div>
                                     </div>
@@ -533,5 +873,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
-<?php include 'includes/footer.php'; ?>

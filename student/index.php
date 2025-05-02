@@ -52,22 +52,22 @@ $current_exams = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 // Examens passés
-// $past_exams_query = "
-//     SELECT e.*, ea.score, ea.status as attempt_status
-//     FROM exams e
-//     JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
-//     LEFT JOIN exam_attempts ea ON ee.id = ea.enrollment_id
-//     WHERE (e.end_time < NOW() OR ee.status = 'completed')
-//     GROUP BY e.id
-//     ORDER BY e.end_time DESC
-//     LIMIT 5
-// ";
+$past_exams_query = "
+    SELECT e.*, ea.score, ea.status as attempt_status
+    FROM exams e
+    JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
+    LEFT JOIN exam_attempts ea ON ee.id = ea.enrollment_id
+    WHERE (e.end_time < NOW() OR ee.status = 'completed')
+    GROUP BY e.id
+    ORDER BY e.end_time DESC
+    LIMIT 5
+";
 
-// $stmt = $conn->prepare($past_exams_query);
-// $stmt->bind_param("i", $user_id);
-// $stmt->execute();
-// $past_exams = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-// $stmt->close();
+$stmt = $conn->prepare($past_exams_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$past_exams = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 // Récupérer les statistiques de l'étudiant
 $stats_query = "

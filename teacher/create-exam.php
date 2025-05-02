@@ -232,8 +232,104 @@ include 'includes/header.php';
                     </div>
 
                     <div class="tab-content" id="proctoring-tab">
+                        <style>
+                            /* Style de base pour l'alerte info */
+.alert-info {
+    position: relative;
+    padding: 16px 20px;
+    margin: 0 0 20px 0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    background-color: #f0f9ff;
+    color: #0369a1;
+    border-left: 4px solid #0ea5e9;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    animation: fadeInSlide 0.4s ease-out;
+    transition: all 0.3s ease;
+}
+
+/* Animation d'apparition */
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Icône Font Awesome */
+.alert-info i.fas {
+    margin-right: 12px;
+    font-size: 1.2rem;
+    color: #0ea5e9;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* Paragraphe à l'intérieur de l'alerte */
+.alert-info p {
+    margin: 0;
+    flex: 1;
+}
+
+/* Version sans Font Awesome (icône via pseudo-élément) */
+.alert-info:not(.no-icon)::before {
+    content: "\f05a"; /* Code Unicode de l'icône info-circle */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    margin-right: 12px;
+    font-size: 1.2rem;
+    color: #0ea5e9;
+    flex-shrink: 0;
+}
+
+/* Effet au survol */
+.alert-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    background-color: #e0f2fe;
+}
+
+/* Bouton de fermeture optionnel */
+.alert-info .close-alert {
+    margin-left: 15px;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #0369a1;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 0;
+}
+
+.alert-info .close-alert:hover {
+    opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .alert-info {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        align-items: center;
+    }
+    
+    .alert-info i.fas,
+    .alert-info:not(.no-icon)::before {
+        font-size: 1.1rem;
+        margin-right: 10px;
+    }
+}
+                        </style>
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
                             <p>La surveillance automatisée aide à maintenir l'intégrité de l'examen en détectant les comportements suspects.</p>
                         </div>
 

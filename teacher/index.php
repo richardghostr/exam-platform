@@ -233,7 +233,7 @@ include 'includes/header.php';
                                             <a href="edit-exam.php?id=<?php echo $exam['id']; ?>" class="btn btn-icon btn-sm" title="Modifier">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="view-results.php?id=<?php echo $exam['id']; ?>" class="btn btn-icon btn-sm" title="Résultats">
+                                            <a href="view-results.php?exam_id=<?php echo $exam['id']; ?>" class="btn btn-icon btn-sm" title="Résultats">
                                                 <i class="fas fa-chart-bar"></i>
                                             </a>
                                         </div>
