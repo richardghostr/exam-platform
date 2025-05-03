@@ -435,3 +435,18 @@ function getIncidentClass($incidentType) {
 function safeRound($value, $precision = 0) {
     return round($value ?? 0, $precision);
 }
+
+function isStudent() {
+   return isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'student';
+}
+
+
+function logActivity($userId, $action, $entity, $entityId, $description) {
+    global $conn;
+    $query = $conn->prepare("
+        INSERT INTO activity_logs (user_id, action, entity, entity_id, description, created_at) 
+        VALUES (?, ?, ?, ?, ?, NOW())
+    ");
+    $query->bind_param("issis", $userId, $action, $entity, $entityId, $description);
+    $query->execute();
+}

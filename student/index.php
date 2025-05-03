@@ -49,7 +49,7 @@ $current_exams_query = "
 FROM exams e
 JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
 LEFT JOIN exam_attempts ea ON ee.id = ea.enrollment_id
-WHERE (e.end_time < NOW() OR ee.status = 'completed')
+WHERE (e.end_date < NOW() OR ee.status = 'completed')
 GROUP BY 
     e.id,
     e.title,
@@ -59,7 +59,7 @@ GROUP BY
     e.duration,
     e.passing_score,
     e.status
-ORDER BY e.end_time DESC
+ORDER BY e.end_date DESC
 LIMIT 5
 ";
 
@@ -71,16 +71,33 @@ $stmt->close();
 
 // Examens passés
 $past_exams_query = "
-    SELECT e.*, ea.score, ea.status as attempt_status
+    SELECT 
+        e.id,
+        e.title,
+        e.description,
+        e.start_date,
+        e.end_date,
+        e.duration,
+        e.passing_score,
+        e.status,
+        MAX(ea.score) as score,
+        MAX(ea.status) as attempt_status
     FROM exams e
     JOIN exam_enrollments ee ON e.id = ee.exam_id AND ee.student_id = ?
     LEFT JOIN exam_attempts ea ON ee.id = ea.enrollment_id
     WHERE (e.end_date < NOW() OR ee.status = 'completed')
-    GROUP BY e.id
+    GROUP BY 
+        e.id,
+        e.title,
+        e.description,
+        e.start_date,
+        e.end_date,
+        e.duration,
+        e.passing_score,
+        e.status
     ORDER BY e.end_date DESC
     LIMIT 5
 ";
-
 $stmt = $conn->prepare($past_exams_query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
