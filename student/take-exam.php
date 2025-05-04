@@ -164,7 +164,7 @@ while ($answer = $answersResult->fetch_assoc()) {
 }
 
 // Déterminer si la surveillance est activée
-$proctoringEnabled = $exam['proctoring_enabled'] == 1;
+$proctoringEnabled = $exam['is_proctored'] == 1;
 
 $pageTitle = "Passer l'examen: " . $exam['title'];
 $hideNavigation = true; // Cacher la navigation pendant l'examen
@@ -835,3 +835,4 @@ function initProctoring() {
 }
 </script>
 <?php endif; ?>
+

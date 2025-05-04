@@ -107,7 +107,7 @@ $types .= "ii";
 
 // Exécuter la requête pour obtenir le nombre total d'incidents
 $countStmt = $conn->prepare($countQuery);
-$countStmt->bind_param($types, ...$params);
+$countStmt->bind_param($types , ...$params);
 $countStmt->execute();
 $countResult = $countStmt->get_result();
 $totalItems = $countResult->fetch_assoc()['total'];

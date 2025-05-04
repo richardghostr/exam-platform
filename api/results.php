@@ -2,7 +2,8 @@
 // Inclure les fichiers de configuration et fonctions
 include_once '../includes/config.php';
 include_once '../includes/functions.php';
-include_once '../includes/db.php';
+include '../includes/db.php';
+
 
 // Définir le type de contenu comme JSON
 header('Content-Type: application/json');

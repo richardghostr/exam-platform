@@ -1,68 +1,61 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/db.php';
-require_once '../includes/auth.php';
-require_once '../includes/functions.php';
-
-// Vérifier si la requête est en POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('HTTP/1.1 405 Method Not Allowed');
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-    exit();
-}
+require_once '../student/includes/auth.php';
 
 // Vérifier si l'utilisateur est connecté
-if (!isLoggedIn()) {
-    header('HTTP/1.1 403 Forbidden');
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Non autorisé']);
     exit();
 }
 
-// Récupérer les données
-$attemptId = isset($_POST['attempt_id']) ? intval($_POST['attempt_id']) : 0;
-$incidentType = isset($_POST['incident_type']) ? $_POST['incident_type'] : '';
-$description = isset($_POST['description']) ? $_POST['description'] : '';
-
-// Valider les données
-if ($attemptId === 0 || empty($incidentType) || empty($description)) {
-    header('HTTP/1.1 400 Bad Request');
-    echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+// Vérifier si la requête est en POST et contient des données JSON
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
     exit();
 }
 
-// Vérifier si la tentative existe
-$attemptQuery = $conn->prepare("SELECT * FROM exam_attempts WHERE id = ?");
-$attemptQuery->bind_param("i", $attemptId);
-$attemptQuery->execute();
-$attemptResult = $attemptQuery->get_result();
+// Récupérer les données JSON
+$json_data = file_get_contents('php://input');
+$data = json_decode($json_data, true);
 
-if ($attemptResult->num_rows === 0) {
-    header('HTTP/1.1 400 Bad Request');
-    echo json_encode(['success' => false, 'message' => 'Attempt not found']);
+if (!$data || !isset($data['session_id']) || !isset($data['incident_type']) || !isset($data['description'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Données invalides']);
     exit();
 }
 
-// Déterminer la sévérité de l'incident
-$severity = 'medium'; // Par défaut
-if (in_array($incidentType, ['face_not_detected', 'multiple_faces', 'webcam_access_denied'])) {
-    $severity = 'high';
-} elseif (in_array($incidentType, ['tab_switch', 'screen_activity'])) {
-    $severity = 'medium';
-} else {
-    $severity = 'low';
+$session_id = intval($data['session_id']);
+$incident_type = $data['incident_type'];
+$description = $data['description'];
+$timestamp = isset($data['timestamp']) ? $data['timestamp'] : date('Y-m-d H:i:s');
+
+// Vérifier que la session appartient à l'étudiant connecté
+$stmt = $conn->prepare("SELECT * FROM exam_sessions WHERE id = ? AND student_id = ?");
+$student_id = $_SESSION['user_id'];
+$stmt->bind_param("ii", $session_id, $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Session non valide']);
+    exit();
 }
 
 // Enregistrer l'incident
-$insertQuery = $conn->prepare("
-    INSERT INTO proctoring_incidents (attempt_id, incident_type, severity, description, timestamp, created_at) 
-    VALUES (?, ?, ?, ?, NOW(), NOW())
-");
-$insertQuery->bind_param("isss", $attemptId, $incidentType, $severity, $description);
-$success = $insertQuery->execute();
+$stmt = $conn->prepare("INSERT INTO proctoring_incidents (session_id, student_id, incident_type, description, timestamp) 
+                        VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("iisss", $session_id, $student_id, $incident_type, $description, $timestamp);
 
-if ($success) {
-    echo json_encode(['success' => true, 'message' => 'Incident reported successfully']);
-} else {
-    header('HTTP/1.1 500 Internal Server Error');
-    echo json_encode(['success' => false, 'message' => 'Failed to report incident: ' . $conn->error]);
+if (!$stmt->execute()) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Erreur lors de l\'enregistrement de l\'incident']);
+    exit();
 }
+
+// Renvoyer la réponse
+header('Content-Type: application/json');
+echo json_encode(['success' => true, 'incident_id' => $conn->insert_id]);

@@ -5,7 +5,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
 
-
+$up=$conn->prepare("UPATE `exams` SET `is_protected`=1 WHERE `proctored_enabled`=1");
+$up->execute();
 // Récupérer l'ID de l'étudiant
 $studentId = $_SESSION['user_id'];
 
