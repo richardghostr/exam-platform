@@ -296,7 +296,7 @@ include 'includes/header.php';
                                 </td>
                                 <td>
                                     <div class="d-flex gap-10">
-                                        <a href="edit-question.php?exam_id=<?php echo $question['id']; ?>" class="btn btn-info btn-sm">
+                                        <a href="edit-question.php?id=<?php echo $question['id']; ?>" class="btn btn-info btn-sm">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <a href="?exam_id=<?php echo $exam_id; ?>&delete_question=<?php echo $question['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette question ?');">
