@@ -34,12 +34,6 @@
                     <span>Noter les examens</span>
                 </a>
             </li>
-            <li class="nav-item">
-                    <a href="proctoring-incidents.php" class="nav-link <?php echo $activeMenu === 'proctoring' ? 'active' : ''; ?>">
-                        <i class="nav-icon fas fa-exclamation-triangle"></i>
-                        <p>Incidents de surveillance</p>
-                    </a>
-                </li>
             <li class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>">
                 <a href="reports.php" class="nav-link">
                     <i class="fas fa-chart-bar"></i>

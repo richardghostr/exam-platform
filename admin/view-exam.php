@@ -20,7 +20,7 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 $examId = intval($_GET['id']);
 
 // Vérifier si l'examen appartient à l'enseignant
-$examQuery = $conn->query("SELECT * FROM exams WHERE id = $examId");
+$examQuery = $conn->query(query: "SELECT * FROM exams WHERE id = $examId");
 if ($examQuery->num_rows === 0) {
     header('Location: manage-exams.php');
     exit();

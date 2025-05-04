@@ -4,11 +4,6 @@ require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-// Vérifier si l'utilisateur est connecté et est un étudiant
-if (!isLoggedIn() || !isStudent()) {
-    header('Location: ../login.php');
-    exit();
-}
 
 // Récupérer l'ID de l'étudiant
 $studentId = $_SESSION['user_id'];
@@ -290,4 +285,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include '../includes/footer.php'; ?>

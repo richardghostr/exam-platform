@@ -1,1183 +1,837 @@
 <?php
-// Inclure les fichiers de configuration et fonctions
-include_once '../includes/config.php';
-include_once '../includes/functions.php';
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 
-// Vérifier si l'utilisateur est connecté et a le rôle étudiant
-require_login('../login.php');
-require_role('student', '../index.php');
 
-// Vérifier si l'ID d'inscription est fourni
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header('Location: index.php');
-    exit;
+// Récupérer l'ID de l'étudiant
+$studentId = $_SESSION['user_id'];
+
+// Vérifier si l'ID de l'examen est fourni
+if (!isset($_GET['id']) || empty($_GET['id'])) {
+    header('Location: exams.php');
+    exit();
 }
 
-$enrollment_id = $_GET['id'];
-$user_id = $_SESSION['user_id'];
+$examId = intval($_GET['id']);
 
-// Connexion à la base de données
-include_once '../includes/db.php';
+// Vérifier si l'examen existe et est publié
+$examQuery = $conn->prepare("
+    SELECT e.*, s.name as subject_name 
+    FROM exams e 
+    JOIN subjects s ON e.subject = s.id 
+    WHERE e.id = ? AND e.status IN ('published', 'scheduled')
+");
+$examQuery->bind_param("i", $examId);
+$examQuery->execute();
+$examResult = $examQuery->get_result();
 
-// Vérifier si l'inscription existe et appartient à l'étudiant
-$enrollment_query = "
-    SELECT ee.*, e.title, e.description, e.duration, e.start_time, e.end_time, e.status as exam_status,
-           e.passing_score, e.proctoring_level, ps.*
-    FROM exam_enrollments ee
-    JOIN exams e ON ee.exam_id = e.id
-    LEFT JOIN proctoring_settings ps ON e.id = ps.exam_id
-    WHERE ee.id = ? AND ee.student_id = ?
-";
-
-$stmt = $conn->prepare($enrollment_query);
-$stmt->bind_param("ii", $enrollment_id, $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows === 0) {
-    // L'inscription n'existe pas ou n'appartient pas à l'étudiant
-    header('Location: index.php');
-    exit;
+if ($examResult->num_rows === 0) {
+    header('Location: exams.php?error=exam_not_found');
+    exit();
 }
 
-$enrollment = $result->fetch_assoc();
-$stmt->close();
+$exam = $examResult->fetch_assoc();
 
-// Vérifier si l'examen est en cours
-$now = new DateTime();
-$start_time = new DateTime($enrollment['start_time']);
-$end_time = new DateTime($enrollment['end_time']);
+// Vérifier si l'étudiant est autorisé à passer cet examen
+// Modification: Vérifier via exam_enrollments ou si l'examen est public
+$accessQuery = $conn->prepare("
+    SELECT 1 
+    FROM exams e
+    WHERE e.id = ? AND (
+        EXISTS (SELECT 1 FROM exam_enrollments ee WHERE ee.exam_id = e.id AND ee.student_id = ?)
+        OR (e.status = 'published' AND e.start_date <= NOW() AND e.end_date >= NOW())
+    )
+");
+$accessQuery->bind_param("ii", $examId, $studentId);
+$accessQuery->execute();
+$accessResult = $accessQuery->get_result();
 
-if ($now < $start_time) {
-    // L'examen n'a pas encore commencé
-    header('Location: exam-details.php?id=' . $enrollment['exam_id'] . '&error=not_started');
-    exit;
+if ($accessResult->num_rows === 0) {
+    header('Location: exams.php?error=not_authorized');
+    exit();
 }
 
-if ($now > $end_time) {
-    // L'examen est terminé
-    header('Location: exam-details.php?id=' . $enrollment['exam_id'] . '&error=expired');
-    exit;
+// Vérifier si l'examen est dans la période autorisée
+$now = date('Y-m-d H:i:s');
+if ($exam['start_date'] > $now) {
+    header('Location: exams.php?error=exam_not_started');
+    exit();
+}
+if ($exam['end_date'] < $now) {
+    header('Location: exams.php?error=exam_ended');
+    exit();
 }
 
-// Vérifier si une tentative existe déjà
-$attempt_query = "
-    SELECT id, status, start_time, end_time
-    FROM exam_attempts
-    WHERE enrollment_id = ?
-    ORDER BY id DESC
+// Vérifier si l'étudiant a déjà une tentative en cours ou a atteint le nombre maximum de tentatives
+$attemptQuery = $conn->prepare("
+    SELECT * 
+    FROM exam_attempts 
+    WHERE exam_id = ? AND user_id = ? 
+    ORDER BY id DESC 
     LIMIT 1
-";
+");
+$attemptQuery->bind_param("ii", $examId, $studentId);
+$attemptQuery->execute();
+$attemptResult = $attemptQuery->get_result();
+$hasAttempt = $attemptResult->num_rows > 0;
+$attempt = $hasAttempt ? $attemptResult->fetch_assoc() : null;
 
-$stmt = $conn->prepare($attempt_query);
-$stmt->bind_param("i", $enrollment_id);
-$stmt->execute();
-$attempt_result = $stmt->get_result();
-$stmt->close();
+// Vérifier le nombre de tentatives
+$attemptsCountQuery = $conn->prepare("
+    SELECT COUNT(*) as count 
+    FROM exam_attempts 
+    WHERE exam_id = ? AND user_id = ?
+");
+$attemptsCountQuery->bind_param("ii", $examId, $studentId);
+$attemptsCountQuery->execute();
+$attemptsCountResult = $attemptsCountQuery->get_result();
+$attemptsCount = $attemptsCountResult->fetch_assoc()['count'];
 
-$attempt_id = null;
-$remaining_time = $enrollment['duration'] * 60; // Durée en secondes
+// Récupérer le paramètre max_attempts depuis les settings
+$maxAttemptsQuery = $conn->query("SELECT value FROM settings WHERE setting_key = 'max_retakes'");
+$maxAttempts = $maxAttemptsQuery->fetch_assoc()['value'];
 
-if ($attempt_result->num_rows > 0) {
-    $attempt = $attempt_result->fetch_assoc();
-    
-    if ($attempt['status'] === 'completed') {
-        // L'étudiant a déjà terminé l'examen
-        header('Location: exam-results.php?id=' . $enrollment['exam_id']);
-        exit;
-    }
-    
-    $attempt_id = $attempt['id'];
-    
-    // Calculer le temps restant
-    $start_time = new DateTime($attempt['start_time']);
-    $elapsed_seconds = $now->getTimestamp() - $start_time->getTimestamp();
-    $remaining_time = max(0, ($enrollment['duration'] * 60) - $elapsed_seconds);
-    
-    if ($remaining_time <= 0 && $attempt['status'] === 'in_progress') {
-        // Le temps est écoulé, mettre à jour le statut de la tentative
-        $update_query = "UPDATE exam_attempts SET status = 'timed_out', end_time = NOW() WHERE id = ?";
-        $stmt = $conn->prepare($update_query);
-        $stmt->bind_param("i", $attempt_id);
-        $stmt->execute();
-        $stmt->close();
-        
-        header('Location: exam-results.php?id=' . $enrollment['exam_id'] . '&timeout=1');
-        exit;
-    }
+if ($attemptsCount >= $maxAttempts && $attempt['status'] !== 'in_progress') {
+    header('Location: exams.php?error=max_attempts_reached');
+    exit();
+}
+
+// Si l'étudiant a une tentative en cours, récupérer cette tentative
+// Sinon, créer une nouvelle tentative
+if ($hasAttempt && $attempt['status'] === 'in_progress') {
+    $attemptId = $attempt['id'];
+    $startTime = $attempt['start_time'];
 } else {
     // Créer une nouvelle tentative
-    $insert_query = "
-        INSERT INTO exam_attempts (enrollment_id, start_time, status, ip_address, browser_info)
-        VALUES (?, NOW(), 'in_progress', ?, ?)
-    ";
+    $startTime = date('Y-m-d H:i:s');
+    $insertAttemptQuery = $conn->prepare("
+        INSERT INTO exam_attempts (exam_id, user_id, start_time, status) 
+        VALUES (?, ?, ?, 'in_progress')
+    ");
+    $insertAttemptQuery->bind_param("iis", $examId, $studentId, $startTime);
+    $insertAttemptQuery->execute();
+    $attemptId = $conn->insert_id;
+}
+
+// Calculer le temps restant en secondes
+$endTime = strtotime($startTime) + ($exam['duration'] * 60);
+$remainingTime = $endTime - time();
+
+// Si le temps est écoulé, rediriger vers la page de résultats
+if ($remainingTime <= 0) {
+    // Mettre à jour le statut de la tentative
+    $updateAttemptQuery = $conn->prepare("
+        UPDATE exam_attempts 
+        SET status = 'completed', end_time = NOW() 
+        WHERE id = ?
+    ");
+    $updateAttemptQuery->bind_param("i", $attemptId);
+    $updateAttemptQuery->execute();
     
-    $ip_address = $_SERVER['REMOTE_ADDR'];
-    $browser_info = $_SERVER['HTTP_USER_AGENT'];
-    
-    $stmt = $conn->prepare($insert_query);
-    $stmt->bind_param("iss", $enrollment_id, $ip_address, $browser_info);
-    $stmt->execute();
-    $attempt_id = $stmt->insert_id;
-    $stmt->close();
+    header('Location: exam-result.php?attempt_id=' . $attemptId);
+    exit();
 }
 
 // Récupérer les questions de l'examen
-$questions_query = "
-    SELECT q.*, GROUP_CONCAT(ao.id, ':::', ao.option_text, ':::', ao.is_correct SEPARATOR '|||') as options
-    FROM questions q
-    LEFT JOIN answer_options ao ON q.id = ao.question_id
-    WHERE q.exam_id = ?
-    GROUP BY q.id
-    ORDER BY q.id
-";
-
-$stmt = $conn->prepare($questions_query);
-$stmt->bind_param("i", $enrollment['exam_id']);
-$stmt->execute();
-$questions_result = $stmt->get_result();
-$questions = $questions_result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
-
-// Récupérer les réponses déjà données
-$answers_query = "
-    SELECT sa.question_id, sa.answer_text, sa.selected_option_id
-    FROM student_answers sa
-    WHERE sa.attempt_id = ?
-";
-
-$stmt = $conn->prepare($answers_query);
-$stmt->bind_param("i", $attempt_id);
-$stmt->execute();
-$answers_result = $stmt->get_result();
-$answers = [];
-
-while ($row = $answers_result->fetch_assoc()) {
-    $answers[$row['question_id']] = [
-        'answer_text' => $row['answer_text'],
-        'selected_option_id' => $row['selected_option_id']
-    ];
+$questionsQuery = $conn->prepare("
+    SELECT q.* 
+    FROM questions q 
+    WHERE q.exam_id = ? 
+    ORDER BY " . ($exam['randomize_questions'] ? "RAND()" : "q.id ASC")
+);
+$questionsQuery->bind_param("i", $examId);
+$questionsQuery->execute();
+$questionsResult = $questionsQuery->get_result();
+$questions = [];
+while ($question = $questionsResult->fetch_assoc()) {
+    $questions[] = $question;
 }
 
-$stmt->close();
+// Récupérer les réponses déjà enregistrées pour cette tentative
+$answersQuery = $conn->prepare("
+    SELECT * 
+    FROM user_answers 
+    WHERE attempt_id = ?
+");
+$answersQuery->bind_param("i", $attemptId);
+$answersQuery->execute();
+$answersResult = $answersQuery->get_result();
+$answers = [];
+while ($answer = $answersResult->fetch_assoc()) {
+    $answers[$answer['question_id']] = $answer;
+}
 
-// Fermer la connexion à la base de données
-$conn->close();
+// Déterminer si la surveillance est activée
+$proctoringEnabled = $exam['proctoring_enabled'] == 1;
+
+$pageTitle = "Passer l'examen: " . $exam['title'];
+$hideNavigation = true; // Cacher la navigation pendant l'examen
+$extraCss = ['../assets/css/exam.css'];
+$extraJs = ['../assets/js/exam.js'];
+if ($proctoringEnabled) {
+    $extraJs[] = '../assets/js/proctoring.js';
+}
+
+include 'includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($enrollment['title']); ?> - ExamSafe</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/student.css">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    <style>
-        /* Styles spécifiques pour la page d'examen */
-        body {
-            overflow: hidden;
-        }
-        
-        .exam-container {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 70px);
-            padding-top: 70px;
-        }
-        
-        .exam-header {
-            background-color: var(--bg-color);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem;
-            position: fixed;
-            top: 70px;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .exam-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
-        
-        .exam-timer {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        
-        .exam-timer i {
-            margin-right: 0.5rem;
-        }
-        
-        .exam-timer.warning {
-            background-color: var(--warning-color);
-            color: var(--bg-dark);
-        }
-        
-        .exam-timer.danger {
-            background-color: var(--danger-color);
-            animation: pulse 1s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.7;
-            }
-            100% {
-                opacity: 1;
-            }
-        }
-        
-        .exam-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 2rem 1rem;
-            margin-top: 60px;
-        }
-        
-        .question-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: var(--bg-color);
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .question-text {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-        }
-        
-        .question-options {
-            display: grid;
-            gap: 1rem;
-        }
-        
-        .option-item {
-            display: flex;
-            align-items: flex-start;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        
-        .option-item:hover {
-            background-color: var(--bg-light);
-        }
-        
-        .option-item.selected {
-            border-color: var(--primary-color);
-            background-color: rgba(67, 97, 238, 0.1);
-        }
-        
-        .option-item input {
-            margin-right: 1rem;
-            margin-top: 0.3rem;
-        }
-        
-        .option-text {
-            flex: 1;
-        }
-        
-        .text-answer textarea {
-            width: 100%;
-            min-height: 150px;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            resize: vertical;
-        }
-        
-        .exam-navigation {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 2rem;
-        }
-        
-        .exam-footer {
-            background-color: var(--bg-color);
-            border-top: 1px solid var(--border-color);
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .question-progress {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .question-number {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background-color: var(--bg-light);
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        
-        .question-number:hover {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        
-        .question-number.active {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        
-        .question-number.answered {
-            background-color: var(--success-color);
-            color: white;
-            border-color: var(--success-color);
-        }
-        
-        .proctoring-status {
-            position: fixed;
-            top: 140px;
-            right: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .status-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: var(--success-color);
-        }
-        
-        .status-indicator.warning {
-            background-color: var(--warning-color);
-        }
-        
-        .status-indicator.error {
-            background-color: var(--danger-color);
-        }
-        
-        .webcam-preview {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 200px;
-            height: 150px;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            border: 2px solid var(--primary-color);
-            z-index: 1000;
-        }
-        
-        .webcam-preview video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            background-color: var(--bg-color);
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            max-width: 500px;
-            width: 90%;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        
-        .modal-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-light);
-        }
-        
-        .modal-body {
-            margin-bottom: 1.5rem;
-        }
-        
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-    </style>
-</head>
-<body>
-    <!-- En-tête simplifié -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <a href="#">
-                    <h1>ExamSafe</h1>
-                </a>
-            </div>
-            <div class="exam-info">
-                <span>Étudiant: <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+<div class="exam-container">
+    <div class="exam-header">
+        <div class="exam-info">
+            <h1><?php echo htmlspecialchars($exam['title']); ?></h1>
+            <div class="exam-meta">
+                <span class="subject"><?php echo htmlspecialchars($exam['subject_name']); ?></span>
+                <span class="separator">•</span>
+                <span class="questions-count"><?php echo count($questions); ?> questions</span>
+                <span class="separator">•</span>
+                <span class="duration"><?php echo $exam['duration']; ?> minutes</span>
             </div>
         </div>
-    </header>
-
-    <!-- Conteneur d'examen -->
-    <div class="exam-container">
-        <div class="exam-header">
-            <div class="exam-title"><?php echo htmlspecialchars($enrollment['title']); ?></div>
-            <div class="exam-timer" id="exam-timer">
+        
+        <div class="exam-timer" id="examTimer" data-remaining="<?php echo $remainingTime; ?>">
+            <div class="timer-icon">
                 <i class="fas fa-clock"></i>
-                <span id="timer-display">Chargement...</span>
+            </div>
+            <div class="timer-display">
+                <span id="hours">00</span>:<span id="minutes">00</span>:<span id="seconds">00</span>
+            </div>
+        </div>
+    </div>
+    
+    <?php if ($proctoringEnabled): ?>
+    <div class="proctoring-bar">
+        <div class="proctoring-status">
+            <i class="fas fa-video"></i> Surveillance active
+        </div>
+        <div class="proctoring-warnings" id="proctoringWarnings">
+            <span class="warning-count">0</span> incidents détectés
+        </div>
+    </div>
+    
+    <div class="webcam-container" id="webcamContainer">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+    <?php endif; ?>
+    
+    <div class="exam-body">
+        <div class="questions-navigation">
+            <div class="navigation-header">
+                <h3>Questions</h3>
+                <div class="progress-info">
+                    <span id="answeredCount">0</span> / <?php echo count($questions); ?> répondues
+                </div>
+            </div>
+            
+            <div class="questions-list" id="questionsList">
+                <?php foreach ($questions as $index => $question): ?>
+                    <button class="question-button <?php echo isset($answers[$question['id']]) ? 'answered' : ''; ?>" 
+                            data-question-id="<?php echo $question['id']; ?>"
+                            data-index="<?php echo $index; ?>">
+                        <?php echo $index + 1; ?>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="navigation-actions">
+                <button id="prevQuestion" class="nav-button" disabled>
+                    <i class="fas fa-chevron-left"></i> Précédent
+                </button>
+                <button id="nextQuestion" class="nav-button">
+                    Suivant <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="submit-section">
+                <button id="submitExam" class="btn btn-primary btn-block">
+                    <i class="fas fa-check-circle"></i> Terminer l'examen
+                </button>
             </div>
         </div>
         
-        <div class="exam-content">
-            <form id="exam-form" method="post" action="submit-exam.php">
-                <input type="hidden" name="attempt_id" value="<?php echo $attempt_id; ?>">
-                <input type="hidden" name="enrollment_id" value="<?php echo $enrollment_id; ?>">
-                
-                <?php foreach ($questions as $index => $question): ?>
-                    <div class="question-container" id="question-<?php echo $question['id']; ?>" style="display: <?php echo $index === 0 ? 'block' : 'none'; ?>">
-                        <div class="question-text">
-                            <span class="question-number-text"><?php echo $index + 1; ?>.</span>
-                            <?php echo htmlspecialchars($question['question_text']); ?>
-                        </div>
+        <div class="question-container" id="questionContainer" data-attempt-id="<?php echo $attemptId; ?>">
+            <?php foreach ($questions as $index => $question): ?>
+                <div class="question-slide" id="question-<?php echo $question['id']; ?>" data-index="<?php echo $index; ?>" style="display: <?php echo $index === 0 ? 'block' : 'none'; ?>">
+                    <div class="question-header">
+                        <div class="question-number">Question <?php echo $index + 1; ?> sur <?php echo count($questions); ?></div>
+                        <div class="question-points"><?php echo $question['points']; ?> points</div>
+                    </div>
+                    
+                    <div class="question-content">
+                        <div class="question-text"><?php echo $question['question_text']; ?></div>
                         
-                        <?php if ($question['question_type'] === 'multiple_choice' || $question['question_type'] === 'true_false'): ?>
-                            <div class="question-options">
+                        <div class="question-answer">
+                            <?php if ($question['question_type'] === 'multiple_choice'): ?>
                                 <?php 
-                                    $options = [];
-                                    if (!empty($question['options'])) {
-                                        $options_data = explode('|||', $question['options']);
-                                        foreach ($options_data as $option_data) {
-                                            $option_parts = explode(':::', $option_data);
-                                            if (count($option_parts) === 3) {
-                                                $options[] = [
-                                                    'id' => $option_parts[0],
-                                                    'text' => $option_parts[1],
-                                                    'is_correct' => $option_parts[2]
-                                                ];
-                                            }
-                                        }
-                                    }
-                                    
-                                    $selected_option = isset($answers[$question['id']]) ? $answers[$question['id']]['selected_option_id'] : null;
+                                    $optionsQuery = $conn->prepare("SELECT * FROM question_options WHERE question_id = ? ORDER BY id ASC");
+                                    $optionsQuery->bind_param("i", $question['id']);
+                                    $optionsQuery->execute();
+                                    $optionsResult = $optionsQuery->get_result();
+                                    $selectedOptions = isset($answers[$question['id']]) ? explode(',', $answers[$question['id']]['selected_options']) : [];
                                 ?>
+                                <div class="options-list multiple-choice">
+                                    <?php while ($option = $optionsResult->fetch_assoc()): ?>
+                                        <div class="option-item">
+                                            <label class="option-label">
+                                                <input type="checkbox" name="question_<?php echo $question['id']; ?>[]" 
+                                                       value="<?php echo $option['id']; ?>"
+                                                       class="option-input"
+                                                       data-question-id="<?php echo $question['id']; ?>"
+                                                       <?php echo in_array($option['id'], $selectedOptions) ? 'checked' : ''; ?>>
+                                                <span class="option-checkbox"></span>
+                                                <span class="option-text"><?php echo $option['option_text']; ?></span>
+                                            </label>
+                                        </div>
+                                    <?php endwhile; ?>
+                                </div>
+                            
+                            <?php elseif ($question['question_type'] === 'single_choice'): ?>
+                                <?php 
+                                    $optionsQuery = $conn->prepare("SELECT * FROM question_options WHERE question_id = ? ORDER BY id ASC");
+                                    $optionsQuery->bind_param("i", $question['id']);
+                                    $optionsQuery->execute();
+                                    $optionsResult = $optionsQuery->get_result();
+                                    $selectedOption = isset($answers[$question['id']]) ? $answers[$question['id']]['selected_options'] : '';
+                                ?>
+                                <div class="options-list single-choice">
+                                    <?php while ($option = $optionsResult->fetch_assoc()): ?>
+                                        <div class="option-item">
+                                            <label class="option-label">
+                                                <input type="radio" name="question_<?php echo $question['id']; ?>" 
+                                                       value="<?php echo $option['id']; ?>"
+                                                       class="option-input"
+                                                       data-question-id="<?php echo $question['id']; ?>"
+                                                       <?php echo $selectedOption == $option['id'] ? 'checked' : ''; ?>>
+                                                <span class="option-radio"></span>
+                                                <span class="option-text"><?php echo $option['option_text']; ?></span>
+                                            </label>
+                                        </div>
+                                    <?php endwhile; ?>
+                                </div>
                                 
-                                <?php foreach ($options as $option): ?>
-                                    <div class="option-item <?php echo $selected_option == $option['id'] ? 'selected' : ''; ?>" onclick="selectOption(this, <?php echo $question['id']; ?>, <?php echo $option['id']; ?>)">
-                                        <input type="radio" name="answer[<?php echo $question['id']; ?>]" value="<?php echo $option['id']; ?>" <?php echo $selected_option == $option['id'] ? 'checked' : ''; ?>>
-                                        <div class="option-text"><?php echo htmlspecialchars($option['text']); ?></div>
+                            <?php elseif ($question['question_type'] === 'true_false'): ?>
+                                <?php $selectedOption = isset($answers[$question['id']]) ? $answers[$question['id']]['selected_options'] : ''; ?>
+                                <div class="options-list true-false">
+                                    <div class="option-item">
+                                        <label class="option-label">
+                                            <input type="radio" name="question_<?php echo $question['id']; ?>" 
+                                                   value="true"
+                                                   class="option-input"
+                                                   data-question-id="<?php echo $question['id']; ?>"
+                                                   <?php echo $selectedOption === 'true' ? 'checked' : ''; ?>>
+                                            <span class="option-radio"></span>
+                                            <span class="option-text">Vrai</span>
+                                        </label>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php elseif ($question['question_type'] === 'short_answer' || $question['question_type'] === 'essay'): ?>
-                            <div class="text-answer">
-                                <textarea name="answer[<?php echo $question['id']; ?>]" placeholder="Votre réponse ici..."><?php echo isset($answers[$question['id']]) ? htmlspecialchars($answers[$question['id']]['answer_text']) : ''; ?></textarea>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <div class="exam-navigation">
+                                    <div class="option-item">
+                                        <label class="option-label">
+                                            <input type="radio" name="question_<?php echo $question['id']; ?>" 
+                                                   value="false"
+                                                   class="option-input"
+                                                   data-question-id="<?php echo $question['id']; ?>"
+                                                   <?php echo $selectedOption === 'false' ? 'checked' : ''; ?>>
+                                            <span class="option-radio"></span>
+                                            <span class="option-text">Faux</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                            <?php elseif ($question['question_type'] === 'essay' || $question['question_type'] === 'short_answer'): ?>
+                                <?php $answerText = isset($answers[$question['id']]) ? $answers[$question['id']]['answer_text'] : ''; ?>
+                                <div class="essay-answer">
+                                    <textarea name="question_<?php echo $question['id']; ?>" 
+                                              class="essay-input"
+                                              data-question-id="<?php echo $question['id']; ?>"
+                                              placeholder="Saisissez votre réponse ici..."
+                                              rows="8"><?php echo $answerText; ?></textarea>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <div class="question-footer">
+                        <div class="save-status" id="saveStatus-<?php echo $question['id']; ?>">
+                            <i class="fas fa-check-circle"></i> Réponse enregistrée
+                        </div>
+                        <div class="question-navigation">
                             <?php if ($index > 0): ?>
-                                <button type="button" class="btn btn-outline" onclick="showQuestion(<?php echo $index - 1; ?>)">Question précédente</button>
-                            <?php else: ?>
-                                <div></div>
+                                <button class="btn btn-outline-primary prev-btn" data-index="<?php echo $index - 1; ?>">
+                                    <i class="fas fa-chevron-left"></i> Question précédente
+                                </button>
                             <?php endif; ?>
                             
                             <?php if ($index < count($questions) - 1): ?>
-                                <button type="button" class="btn btn-primary" onclick="showQuestion(<?php echo $index + 1; ?>)">Question suivante</button>
+                                <button class="btn btn-primary next-btn" data-index="<?php echo $index + 1; ?>">
+                                    Question suivante <i class="fas fa-chevron-right"></i>
+                                </button>
                             <?php else: ?>
-                                <button type="button" class="btn btn-primary" onclick="showSubmitConfirmation()">Terminer l'examen</button>
+                                <button class="btn btn-success finish-btn" id="finishBtn">
+                                    Terminer l'examen <i class="fas fa-check-circle"></i>
+                                </button>
                             <?php endif; ?>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </form>
-        </div>
-        
-        <div class="exam-footer">
-            <div class="question-progress" id="question-progress">
-                <?php foreach ($questions as $index => $question): ?>
-                    <?php 
-                        $is_answered = isset($answers[$question['id']]);
-                        $class = $index === 0 ? 'active' : '';
-                        $class .= $is_answered ? ' answered' : '';
-                    ?>
-                    <div class="question-number <?php echo $class; ?>" onclick="showQuestion(<?php echo $index; ?>)" data-question-id="<?php echo $question['id']; ?>">
-                        <?php echo $index + 1; ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            
-            <button type="button" class="btn btn-primary" onclick="showSubmitConfirmation()">Terminer l'examen</button>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
-    
-    <!-- Statut de surveillance -->
-    <div class="proctoring-status" id="proctoring-status">
-        <div class="status-indicator" id="status-indicator"></div>
-        <span id="status-text">Initialisation de la surveillance...</span>
-    </div>
-    
-    <!-- Aperçu webcam -->
-    <div class="webcam-preview" id="webcam-preview">
-        <video id="webcam-video" autoplay muted></video>
-    </div>
-    
-    <!-- Modal de confirmation de soumission -->
-    <div class="modal" id="submit-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Terminer l'examen</h3>
-                <button type="button" class="modal-close" onclick="hideModal('submit-modal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Êtes-vous sûr de vouloir terminer l'examen ? Cette action est irréversible.</p>
-                <p id="unanswered-warning" class="text-warning" style="display: none;">Attention : Vous n'avez pas répondu à toutes les questions.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="hideModal('submit-modal')">Annuler</button>
-                <button type="button" class="btn btn-primary" onclick="submitExam()">Terminer l'examen</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal d'avertissement de surveillance -->
-    <div class="modal" id="warning-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Avertissement</h3>
-                <button type="button" class="modal-close" onclick="hideModal('warning-modal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p id="warning-message">Un problème a été détecté avec la surveillance.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="hideModal('warning-modal')">J'ai compris</button>
-            </div>
-        </div>
-    </div>
+</div>
 
-    <!-- Scripts JS -->
-    <script>
-        // Variables globales
-        let currentQuestion = 0;
-        const questions = <?php echo json_encode($questions); ?>;
-        const answers = <?php echo json_encode($answers); ?>;
-        let remainingTime = <?php echo $remaining_time; ?>;
-        let timerInterval;
-        proctoringStatus = 'initializing';
-        webcamStream = null;
-        let faceDetectionInterval;
-        let eyeTrackingInterval;
-        let audioMonitoringInterval;
-        let screenMonitoringInterval;
-        // Removed duplicate declaration of warningCount
+<!-- Modal de confirmation pour terminer l'examen -->
+<div class="modal" id="finishExamModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Terminer l'examen</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="exam-summary">
+                <p>Vous êtes sur le point de terminer l'examen. Veuillez vérifier votre progression :</p>
+                
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalQuestions"><?php echo count($questions); ?></div>
+                        <div class="stat-label">Questions totales</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="answeredQuestionsCount">0</div>
+                        <div class="stat-label">Questions répondues</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="unansweredQuestionsCount"><?php echo count($questions); ?></div>
+                        <div class="stat-label">Questions sans réponse</div>
+                    </div>
+                </div>
+                
+                <div class="warning-message" id="unansweredWarning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Attention : Vous avez des questions sans réponse. Êtes-vous sûr de vouloir terminer l'examen ?</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline-secondary close-modal">Retourner à l'examen</button>
+            <button class="btn btn-success" id="confirmFinish">Terminer l'examen</button>
+        </div>
+    </div>
+</div>
+
+<!-- Script pour gérer l'examen -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Variables globales
+    const attemptId = <?php echo $attemptId; ?>;
+    const examId = <?php echo $examId; ?>;
+    const questions = <?php echo json_encode($questions); ?>;
+    const answers = <?php echo json_encode($answers); ?>;
+    let currentQuestionIndex = 0;
+    let answeredQuestions = {};
+    
+    // Initialiser le compteur de questions répondues
+    function initAnsweredQuestions() {
+        let count = 0;
+        questions.forEach(question => {
+            if (answers[question.id]) {
+                answeredQuestions[question.id] = true;
+                count++;
+            }
+        });
+        document.getElementById('answeredCount').textContent = count;
+        updateFinishButtonState();
+    }
+    
+    // Mettre à jour l'état du bouton de fin d'examen
+    function updateFinishButtonState() {
+        const answeredCount = Object.keys(answeredQuestions).length;
+        document.getElementById('answeredQuestionsCount').textContent = answeredCount;
+        document.getElementById('unansweredQuestionsCount').textContent = questions.length - answeredCount;
         
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            // Démarrer le minuteur
-            startTimer();
+        if (answeredCount < questions.length) {
+            document.getElementById('unansweredWarning').style.display = 'flex';
+        } else {
+            document.getElementById('unansweredWarning').style.display = 'none';
+        }
+    }
+    
+    // Initialiser le minuteur
+    function initTimer() {
+        let remainingTime = parseInt(document.getElementById('examTimer').dataset.remaining);
+        
+        function updateTimer() {
+            const hours = Math.floor(remainingTime / 3600);
+            const minutes = Math.floor((remainingTime % 3600) / 60);
+            const seconds = remainingTime % 60;
             
-            // Initialiser la surveillance
-            initProctoring();
+            document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
             
-            // Empêcher la fermeture de la page
-            window.addEventListener('beforeunload', function(e) {
-                e.preventDefault();
-                e.returnValue = 'Êtes-vous sûr de vouloir quitter l\'examen ? Vos réponses pourraient être perdues.';
-                return e.returnValue;
+            if (remainingTime <= 300) { // 5 minutes remaining
+                document.getElementById('examTimer').classList.add('warning');
+            }
+            
+            if (remainingTime <= 60) { // 1 minute remaining
+                document.getElementById('examTimer').classList.add('danger');
+            }
+            
+            if (remainingTime <= 0) {
+                clearInterval(timerInterval);
+                finishExam();
+            }
+            
+            remainingTime--;
+        }
+        
+        updateTimer();
+        const timerInterval = setInterval(updateTimer, 1000);
+    }
+    
+    // Afficher une question
+    function showQuestion(index) {
+        // Cacher toutes les questions
+        document.querySelectorAll('.question-slide').forEach(slide => {
+            slide.style.display = 'none';
+        });
+        
+        // Afficher la question demandée
+        const questionElement = document.getElementById(`question-${questions[index].id}`);
+        questionElement.style.display = 'block';
+        
+        // Mettre à jour l'index courant
+        currentQuestionIndex = index;
+        
+        // Mettre à jour les boutons de navigation
+        document.getElementById('prevQuestion').disabled = index === 0;
+        document.getElementById('nextQuestion').disabled = index === questions.length - 1;
+        
+        // Mettre à jour la navigation des questions
+        document.querySelectorAll('.question-button').forEach(btn => {
+            btn.classList.remove('current');
+        });
+        document.querySelector(`.question-button[data-index="${index}"]`).classList.add('current');
+    }
+    
+    // Sauvegarder une réponse
+    function saveAnswer(questionId, answer, type) {
+        // Afficher l'indicateur de sauvegarde
+        const saveStatus = document.getElementById(`saveStatus-${questionId}`);
+        saveStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+        saveStatus.style.display = 'block';
+        
+        // Préparer les données
+        let formData = new FormData();
+        formData.append('attempt_id', attemptId);
+        formData.append('question_id', questionId);
+        formData.append('answer_type', type);
+        
+        if (type === 'multiple_choice') {
+            formData.append('selected_options', answer.join(','));
+        } else if (type === 'single_choice' || type === 'true_false') {
+            formData.append('selected_options', answer);
+        } else if (type === 'essay' || type === 'short_answer') {
+            formData.append('answer_text', answer);
+        }
+        
+        // Envoyer la réponse au serveur
+        fetch('../ajax/save-answer.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                saveStatus.innerHTML = '<i class="fas fa-check-circle"></i> Réponse enregistrée';
+                
+                // Marquer la question comme répondue
+                answeredQuestions[questionId] = true;
+                document.querySelector(`.question-button[data-question-id="${questionId}"]`).classList.add('answered');
+                
+                // Mettre à jour le compteur
+                document.getElementById('answeredCount').textContent = Object.keys(answeredQuestions).length;
+                updateFinishButtonState();
+            } else {
+                saveStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur d\'enregistrement';
+            }
+            
+            // Cacher le statut après 3 secondes
+            setTimeout(() => {
+                saveStatus.style.opacity = '0';
+                setTimeout(() => {
+                    saveStatus.style.display = 'none';
+                    saveStatus.style.opacity = '1';
+                }, 300);
+            }, 3000);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            saveStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur d\'enregistrement';
+        });
+    }
+    
+    // Terminer l'examen
+    function finishExam() {
+        // Envoyer la requête pour terminer l'examen
+        fetch('../ajax/finish-exam.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `attempt_id=${attemptId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = `exam-result.php?attempt_id=${attemptId}`;
+            } else {
+                alert('Une erreur est survenue lors de la finalisation de l\'examen. Veuillez réessayer.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Une erreur est survenue. Veuillez réessayer.');
+        });
+    }
+    
+    // Initialiser les événements
+    function initEvents() {
+        // Navigation entre les questions via les boutons numérotés
+        document.querySelectorAll('.question-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                showQuestion(index);
+            });
+        });
+        
+        // Boutons précédent/suivant
+        document.getElementById('prevQuestion').addEventListener('click', function() {
+            if (currentQuestionIndex > 0) {
+                showQuestion(currentQuestionIndex - 1);
+            }
+        });
+        
+        document.getElementById('nextQuestion').addEventListener('click', function() {
+            if (currentQuestionIndex < questions.length - 1) {
+                showQuestion(currentQuestionIndex + 1);
+            }
+        });
+        
+        // Boutons de navigation dans les questions
+        document.querySelectorAll('.prev-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                showQuestion(index);
+            });
+        });
+        
+        document.querySelectorAll('.next-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                showQuestion(index);
+            });
+        });
+        
+        // Enregistrement des réponses
+        document.querySelectorAll('input[type="checkbox"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const questionId = this.dataset.questionId;
+                const selectedOptions = [];
+                document.querySelectorAll(`input[name="question_${questionId}[]"]:checked`).forEach(checkbox => {
+                    selectedOptions.push(checkbox.value);
+                });
+                saveAnswer(questionId, selectedOptions, 'multiple_choice');
+            });
+        });
+        
+        document.querySelectorAll('input[type="radio"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const questionId = this.dataset.questionId;
+                const selectedOption = this.value;
+                saveAnswer(questionId, selectedOption, this.name.includes('true_false') ? 'true_false' : 'single_choice');
+            });
+        });
+        
+        document.querySelectorAll('.essay-input').forEach(textarea => {
+            let saveTimeout;
+            textarea.addEventListener('input', function() {
+                clearTimeout(saveTimeout);
+                const questionId = this.dataset.questionId;
+                saveTimeout = setTimeout(() => {
+                    saveAnswer(questionId, this.value, 'essay');
+                }, 1000);
+            });
+        });
+        
+        // Bouton pour terminer l'examen
+        document.getElementById('submitExam').addEventListener('click', function() {
+            document.getElementById('finishExamModal').style.display = 'block';
+            updateFinishButtonState();
+        });
+        
+        document.getElementById('finishBtn').addEventListener('click', function() {
+            document.getElementById('finishExamModal').style.display = 'block';
+            updateFinishButtonState();
+        });
+        
+        document.getElementById('confirmFinish').addEventListener('click', function() {
+            finishExam();
+        });
+        
+        document.querySelectorAll('.close-modal').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('finishExamModal').style.display = 'none';
+            });
+        });
+        
+        // Fermer le modal en cliquant à l'extérieur
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('finishExamModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Initialiser l'application
+    initAnsweredQuestions();
+    initTimer();
+    initEvents();
+    showQuestion(0);
+    
+    <?php if ($proctoringEnabled): ?>
+    // Initialiser la surveillance
+    initProctoring();
+    <?php endif; ?>
+});
+</script>
+
+<?php if ($proctoringEnabled): ?>
+<script>
+function initProctoring() {
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const warningsContainer = document.getElementById('proctoringWarnings');
+    let warningsCount = 0;
+    let stream = null;
+    let faceCheckInterval = null;
+    let lastCaptureTime = 0;
+    const captureInterval = 10000; // 10 secondes entre chaque capture
+    
+    // Demander l'accès à la webcam
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then(function(mediaStream) {
+            stream = mediaStream;
+            video.srcObject = mediaStream;
+            
+            // Configurer la taille du canvas
+            video.addEventListener('loadedmetadata', function() {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
             });
             
-            // Sauvegarder automatiquement les réponses
-            setInterval(saveAnswers, 30000); // Toutes les 30 secondes
-            
-            // Détecter les changements de focus de la fenêtre
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-            
-            // Détecter les tentatives de copier-coller
-            document.addEventListener('copy', handleCopyPaste);
-            document.addEventListener('paste', handleCopyPaste);
-            document.addEventListener('cut', handleCopyPaste);
-            
-            // Détecter le redimensionnement de la fenêtre
-            window.addEventListener('resize', handleResize);
+            // Démarrer la vérification du visage
+            faceCheckInterval = setInterval(checkFace, 2000);
+        })
+        .catch(function(err) {
+            console.error("Erreur d'accès à la webcam: ", err);
+            reportProctoringIncident('webcam_access_denied', 'L\'étudiant a refusé l\'accès à la webcam');
         });
+    
+    // Vérifier la présence du visage
+    function checkFace() {
+        if (!stream) return;
         
-        // Fonctions de navigation entre les questions
-        function showQuestion(index) {
-            if (index < 0 || index >= questions.length) {
-                return;
-            }
-            
-                // Masquer la question actuelle
-                document.getElementById('question-' + questions[currentQuestion].id).style.display = 'none';
-                
-            }
-
-
-file="assets/js/proctoring.js"
-/**
- * Module de surveillance automatisée pour ExamSafe
- * Ce script gère la reconnaissance faciale, le suivi du regard, la surveillance audio et le verrouillage du navigateur
- */
-
-// Configuration
-const proctoringConfig = {
-    faceDetection: {
-        enabled: true,
-        checkInterval: 2000, // ms
-        confidenceThreshold: 0.8,
-        warningThreshold: 3
-    },
-    eyeTracking: {
-        enabled: true,
-        checkInterval: 1000, // ms
-        lookAwayThreshold: 2000, // ms
-        warningThreshold: 3
-    },
-    audioMonitoring: {
-        enabled: true,
-        checkInterval: 1000, // ms
-        volumeThreshold: 0.2,
-        warningThreshold: 3
-    },
-    screenMonitoring: {
-        enabled: true,
-        checkInterval: 1000, // ms
-        warningThreshold: 2
-    }
-};
-
-// Variables globales
-let webcamStream = null;
-let audioStream = null;
-let faceDetectionModel = null;
-let eyeTrackingModel = null;
-let proctoringStatus = 'initializing';
-let lastFaceDetection = null;
-let lookAwayStartTime = null;
-let warningCount = {
-    face: 0,
-    eyes: 0,
-    audio: 0,
-    screen: 0
-};
-let incidentLog = [];
-
-// Initialisation de la surveillance
-async function initProctoring() {
-    try {
-        updateStatus('initializing', 'Initialisation de la surveillance...');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
         
-        // Charger les modèles d'IA
-        await loadModels();
-        
-        // Initialiser la webcam
-        await initWebcam();
-        
-        // Initialiser la surveillance audio
-        if (proctoringConfig.audioMonitoring.enabled) {
-            await initAudioMonitoring();
+        // Envoyer l'image pour analyse faciale (simulation)
+        const now = Date.now();
+        if (now - lastCaptureTime > captureInterval) {
+            lastCaptureTime = now;
+            sendImageForAnalysis(imageData);
         }
         
-        // Démarrer les différentes surveillances
-        startFaceDetection();
-        startEyeTracking();
-        startScreenMonitoring();
-        
-        updateStatus('active', 'Surveillance active');
-    } catch (error) {
-        console.error('Erreur d\'initialisation de la surveillance:', error);
-        updateStatus('error', 'Erreur d\'initialisation de la surveillance');
-        logIncident('initialization_error', 'high', error.message);
+        // Simulation de détection (à remplacer par une vraie API de détection faciale)
+        const randomValue = Math.random();
+        if (randomValue > 0.95) { // 5% de chance de détecter un problème (pour la démonstration)
+            reportProctoringIncident('face_not_detected', 'Visage non détecté dans le champ de la caméra');
+        } else if (randomValue > 0.90) {
+            reportProctoringIncident('multiple_faces', 'Plusieurs visages détectés');
+        }
     }
-}
-
-// Chargement des modèles d'IA
-async function loadModels() {
-    return new Promise((resolve) => {
-        // Simulation du chargement des modèles
+    
+    // Envoyer l'image pour analyse
+    function sendImageForAnalysis(imageData) {
+        // Cette fonction simule l'envoi de l'image à un service d'analyse
+        // Dans une implémentation réelle, vous enverriez l'image à une API
+        console.log('Image capturée pour analyse');
+    }
+    
+    // Signaler un incident de surveillance
+    function reportProctoringIncident(type, description) {
+        warningsCount++;
+        warningsContainer.querySelector('.warning-count').textContent = warningsCount;
+        
+        // Afficher une notification
+        const notification = document.createElement('div');
+        notification.className = 'proctoring-notification';
+        notification.innerHTML = `
+            <div class="notification-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Alerte de surveillance</div>
+                <div class="notification-message">${description}</div>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Animer la notification
         setTimeout(() => {
-            faceDetectionModel = {
-                detect: simulateFaceDetection
-            };
-            
-            eyeTrackingModel = {
-                track: simulateEyeTracking
-            };
-            
-            resolve();
-        }, 2000);
-    });
-}
-
-// Initialisation de la webcam
-async function initWebcam() {
-    try {
-        webcamStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: 'user'
-            }
-        });
+            notification.classList.add('show');
+        }, 10);
         
-        const videoElement = document.getElementById('webcam-video');
-        videoElement.srcObject = webcamStream;
+        // Cacher la notification après 5 secondes
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 5000);
         
-        return new Promise((resolve) => {
-            videoElement.onloadedmetadata = () => {
-                resolve();
-            };
-        });
-    } catch (error) {
-        updateStatus('error', 'Impossible d\'accéder à la webcam');
-        logIncident('webcam_access_denied', 'high', error.message);
-        throw error;
-    }
-}
-
-// Initialisation de la surveillance audio
-async function initAudioMonitoring() {
-    try {
-        audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: true
-        });
+        // Enregistrer l'incident dans la base de données
+        const formData = new FormData();
+        formData.append('attempt_id', <?php echo $attemptId; ?>);
+        formData.append('incident_type', type);
+        formData.append('description', description);
         
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const analyser = audioContext.createAnalyser();
-        const microphone = audioContext.createMediaStreamSource(audioStream);
-        microphone.connect(analyser);
-        
-        analyser.fftSize = 256;
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        
-        // Démarrer la surveillance audio
-        audioMonitoringInterval = setInterval(() => {
-            analyser.getByteFrequencyData(dataArray);
-            
-            // Calculer le volume moyen
-            let sum = 0;
-            for (let i = 0; i< bufferLength; i++) {
-                sum += dataArray[i];
-            }
-            const average = sum / bufferLength / 255; // Normaliser entre 0 et 1
-            
-            // Détecter les sons suspects
-            if (average > proctoringConfig.audioMonitoring.volumeThreshold) {
-                handleAudioDetection(average);
-            }
-        }, proctoringConfig.audioMonitoring.checkInterval);
-        
-    } catch (error) {
-        console.error('Erreur d\'initialisation de la surveillance audio:', error);
-        logIncident('audio_access_denied', 'medium', error.message);
-    }
-}
-
-// Démarrer la détection faciale
-function startFaceDetection() {
-    if (!proctoringConfig.faceDetection.enabled) return;
-    
-    faceDetectionInterval = setInterval(async () => {
-        if (!webcamStream || !faceDetectionModel) return;
-        
-        try {
-            const videoElement = document.getElementById('webcam-video');
-            const result = await faceDetectionModel.detect(videoElement);
-            
-            if (result.length === 0) {
-                // Aucun visage détecté
-                handleNoFaceDetected();
-            } else if (result.length > 1) {
-                // Plusieurs visages détectés
-                handleMultipleFacesDetected(result.length);
-            } else {
-                // Un visage détecté
-                lastFaceDetection = Date.now();
-                warningCount.face = Math.max(0, warningCount.face - 1);
-                
-                // Vérifier la confiance de la détection
-                if (result[0].confidence < proctoringConfig.faceDetection.confidenceThreshold) {
-                    handleLowConfidenceFaceDetection(result[0].confidence);
-                }
-            }
-        } catch (error) {
-            console.error('Erreur de détection faciale:', error);
-        }
-    }, proctoringConfig.faceDetection.checkInterval);
-}
-
-// Démarrer le suivi du regard
-function startEyeTracking() {
-    if (!proctoringConfig.eyeTracking.enabled) return;
-    
-    eyeTrackingInterval = setInterval(async () => {
-        if (!webcamStream || !eyeTrackingModel) return;
-        
-        try {
-            const videoElement = document.getElementById('webcam-video');
-            const result = await eyeTrackingModel.track(videoElement);
-            
-            if (result.lookingAway) {
-                // L'étudiant regarde ailleurs
-                handleLookingAway(result);
-            } else {
-                // L'étudiant regarde l'écran
-                lookAwayStartTime = null;
-                warningCount.eyes = Math.max(0, warningCount.eyes - 1);
-            }
-        } catch (error) {
-            console.error('Erreur de suivi du regard:', error);
-        }
-    }, proctoringConfig.eyeTracking.checkInterval);
-}
-
-// Démarrer la surveillance de l'écran
-function startScreenMonitoring() {
-    if (!proctoringConfig.screenMonitoring.enabled) return;
-    
-    // Surveiller les changements d'onglet
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            handleTabSwitch();
-        }
-    });
-    
-    // Surveiller les tentatives de copier-coller
-    document.addEventListener('copy', handleCopyPaste);
-    document.addEventListener('paste', handleCopyPaste);
-    document.addEventListener('cut', handleCopyPaste);
-    
-    // Surveiller le redimensionnement de la fenêtre
-    let originalWidth = window.innerWidth;
-    let originalHeight = window.innerHeight;
-    
-    window.addEventListener('resize', () => {
-        const widthDiff = Math.abs(window.innerWidth - originalWidth);
-        const heightDiff = Math.abs(window.innerHeight - originalHeight);
-        
-        if (widthDiff > 100 || heightDiff > 100) {
-            handleWindowResize(widthDiff, heightDiff);
-            originalWidth = window.innerWidth;
-            originalHeight = window.innerHeight;
-        }
-    });
-}
-
-// Gestionnaires d'incidents
-function handleNoFaceDetected() {
-    const now = Date.now();
-    
-    if (lastFaceDetection && (now - lastFaceDetection) > 3000) {
-        warningCount.face++;
-        
-        if (warningCount.face >= proctoringConfig.faceDetection.warningThreshold) {
-            updateStatus('warning', 'Visage non détecté');
-            logIncident('face_not_detected', 'high', 'Visage non détecté pendant plus de 3 secondes');
-            showWarning('Votre visage n\'est pas visible. Veuillez vous assurer que vous êtes bien cadré dans la webcam.');
-            warningCount.face = 0;
-        }
-    }
-}
-
-function handleMultipleFacesDetected(count) {
-    warningCount.face++;
-    
-    if (warningCount.face >= proctoringConfig.faceDetection.warningThreshold) {
-        updateStatus('warning', 'Plusieurs visages détectés');
-        logIncident('multiple_faces', 'high', `${count} visages détectés`);
-        showWarning('Plusieurs personnes ont été détectées dans le champ de la caméra. Veuillez vous assurer d\'être seul pendant l\'examen.');
-        warningCount.face = 0;
-    }
-}
-
-function handleLowConfidenceFaceDetection(confidence) {
-    warningCount.face++;
-    
-    if (warningCount.face >= proctoringConfig.faceDetection.warningThreshold) {
-        updateStatus('warning', 'Visage partiellement visible');
-        logIncident('low_confidence_face', 'medium', `Confiance de détection: ${confidence.toFixed(2)}`);
-        showWarning('Votre visage n\'est que partiellement visible. Veuillez ajuster votre position face à la caméra.');
-        warningCount.face = 0;
-    }
-}
-
-function handleLookingAway(result) {
-    const now = Date.now();
-    
-    if (!lookAwayStartTime) {
-        lookAwayStartTime = now;
-    } else if ((now - lookAwayStartTime) > proctoringConfig.eyeTracking.lookAwayThreshold) {
-        warningCount.eyes++;
-        
-        if (warningCount.eyes >= proctoringConfig.eyeTracking.warningThreshold) {
-            updateStatus('warning', 'Regard détourné');
-            logIncident('looking_away', 'medium', `Direction du regard: ${result.direction}, durée: ${(now - lookAwayStartTime) / 1000}s`);
-            showWarning('Vous semblez regarder ailleurs que votre écran. Veuillez vous concentrer sur votre examen.');
-            warningCount.eyes = 0;
-        }
-    }
-}
-
-function handleAudioDetection(volume) {
-    warningCount.audio++;
-    
-    if (warningCount.audio >= proctoringConfig.audioMonitoring.warningThreshold) {
-        updateStatus('warning', 'Son détecté');
-        logIncident('audio_detected', 'medium', `Volume: ${volume.toFixed(2)}`);
-        showWarning('Des sons ont été détectés dans votre environnement. Veuillez vous assurer d\'être dans un endroit calme.');
-        warningCount.audio = 0;
-    }
-}
-
-function handleTabSwitch() {
-    warningCount.screen++;
-    
-    updateStatus('warning', 'Changement d\'onglet');
-    logIncident('tab_switch', 'high', 'L\'étudiant a changé d\'onglet ou de fenêtre');
-    showWarning('Vous avez quitté l\'onglet de l\'examen. Cette action est enregistrée et peut être considérée comme une tentative de triche.');
-}
-
-function handleCopyPaste(event) {
-    event.preventDefault();
-    
-    warningCount.screen++;
-    
-    updateStatus('warning', 'Copier-coller détecté');
-    logIncident('copy_paste', 'medium', `Action: ${event.type}`);
-    showWarning('Les actions de copier-coller sont désactivées pendant l\'examen.');
-}
-
-function handleWindowResize(widthDiff, heightDiff) {
-    warningCount.screen++;
-    
-    if (warningCount.screen >= proctoringConfig.screenMonitoring.warningThreshold) {
-        updateStatus('warning', 'Redimensionnement de fenêtre');
-        logIncident('window_resize', 'medium', `Différence de taille: ${widthDiff}x${heightDiff}px`);
-        showWarning('Vous avez redimensionné la fenêtre de l\'examen. Cette action est enregistrée.');
-        warningCount.screen = 0;
-    }
-}
-
-// Fonctions utilitaires
-function updateStatus(status, message) {
-    proctoringStatus = status;
-    
-    const statusIndicator = document.getElementById('status-indicator');
-    const statusText = document.getElementById('status-text');
-    
-    if (statusIndicator && statusText) {
-        statusText.textContent = message;
-        
-        statusIndicator.className = 'status-indicator';
-        if (status === 'warning') {
-            statusIndicator.classList.add('warning');
-        } else if (status === 'error') {
-            statusIndicator.classList.add('error');
-        }
-    }
-}
-
-function showWarning(message) {
-    const warningMessage = document.getElementById('warning-message');
-    if (warningMessage) {
-        warningMessage.textContent = message;
-    }
-    
-    showModal('warning-modal');
-    
-    // Envoyer l'avertissement au serveur
-    sendWarningToServer(message);
-}
-
-function logIncident(type, severity, details) {
-    const incident = {
-        type,
-        severity,
-        details,
-        timestamp: new Date().toISOString()
-    };
-    
-    incidentLog.push(incident);
-    
-    // Envoyer l'incident au serveur
-    sendIncidentToServer(incident);
-}
-
-function sendWarningToServer(message) {
-    const attemptId = document.querySelector('input[name="attempt_id"]').value;
-    
-    fetch('../api/proctoring.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            action: 'warning',
-            attempt_id: attemptId,
-            message: message
+        fetch('../ajax/report-incident.php', {
+            method: 'POST',
+            body: formData
         })
-    }).catch(error => {
-        console.error('Erreur d\'envoi d\'avertissement:', error);
-    });
-}
-
-function sendIncidentToServer(incident) {
-    const attemptId = document.querySelector('input[name="attempt_id"]').value;
-    
-    fetch('../api/proctoring.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            action: 'incident',
-            attempt_id: attemptId,
-            incident: incident
+        .then(response => response.json())
+        .then(data => {
+            console.log('Incident reported:', data);
         })
-    }).catch(error => {
-        console.error('Erreur d\'envoi d\'incident:', error);
-    });
-}
-
-// Fonctions de simulation pour les démonstrations
-function simulateFaceDetection() {
-    return new Promise(resolve => {
-        // Simuler différents scénarios de détection faciale
-        const scenarios = [
-            // Visage détecté avec haute confiance (90% du temps)
-            { result: [{ confidence: 0.95 }], probability: 0.9 },
-            // Visage détecté avec faible confiance (5% du temps)
-            { result: [{ confidence: 0.6 }], probability: 0.05 },
-            // Aucun visage détecté (3% du temps)
-            { result: [], probability: 0.03 },
-            // Plusieurs visages détectés (2% du temps)
-            { result: [{ confidence: 0.9 }, { confidence: 0.85 }], probability: 0.02 }
-        ];
-        
-        const random = Math.random();
-        let cumulativeProbability = 0;
-        
-        for (const scenario of scenarios) {
-            cumulativeProbability += scenario.probability;
-            if (random <= cumulativeProbability) {
-                resolve(scenario.result);
-                return;
-            }
-        }
-        
-        // Par défaut, retourner un visage détecté
-        resolve([{ confidence: 0.95 }]);
-    });
-}
-
-function simulateEyeTracking() {
-    return new Promise(resolve => {
-        // Simuler différents scénarios de suivi du regard
-        const scenarios = [
-            // Regarde l'écran (95% du temps)
-            { result: { lookingAway: false }, probability: 0.95 },
-            // Regarde ailleurs (5% du temps)
-            { result: { lookingAway: true, direction: 'right' }, probability: 0.05 }
-        ];
-        
-        const random = Math.random();
-        let cumulativeProbability = 0;
-        
-        for (const scenario of scenarios) {
-            cumulativeProbability += scenario.probability;
-            if (random <= cumulativeProbability) {
-                resolve(scenario.result);
-                return;
-            }
-        }
-        
-        // Par défaut, retourner que l'étudiant regarde l'écran
-        resolve({ lookingAway: false });
-    });
-}
-
-// Nettoyage des ressources
-function cleanupProctoring() {
-    // Arrêter les intervalles
-    if (faceDetectionInterval) clearInterval(faceDetectionInterval);
-    if (eyeTrackingInterval) clearInterval(eyeTrackingInterval);
-    if (audioMonitoringInterval) clearInterval(audioMonitoringInterval);
-    
-    // Arrêter les flux
-    if (webcamStream) {
-        webcamStream.getTracks().forEach(track => track.stop());
+        .catch(error => {
+            console.error('Error reporting incident:', error);
+        });
     }
     
-    if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop());
-    }
+    // Nettoyer les ressources lors de la fermeture de la page
+    window.addEventListener('beforeunload', function() {
+        if (faceCheckInterval) {
+            clearInterval(faceCheckInterval);
+        }
+        
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+    });
 }
-
-// Fonctions d'interface utilisateur
-function showModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-}
-
-function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
+</script>
+<?php endif; ?>
