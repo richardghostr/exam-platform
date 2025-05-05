@@ -1,291 +1,666 @@
 /**
- * Script pour la gestion des examens
- * Ce script gère le minuteur, la navigation entre les questions, la sauvegarde des réponses et la soumission de l'examen
+ * Script principal pour la page d'examen
+ * Gère le minuteur, la navigation entre les questions, la sauvegarde des réponses et la surveillance
  */
-
-// Variables globales
-let currentQuestion = 0;
-let remainingTime = 0;
-let timerInterval;
-let autoSaveInterval;
-let questions = [];
-let answers = {};
-let attemptId = 0;
-let enrollmentId = 0;
-
-// Initialisation
-document.addEventListener('DOMContentLoaded', function() {
-    // Récupérer les données de l'examen
-    attemptId = document.querySelector('input[name="attempt_id"]').value;
-    enrollmentId = document.querySelector('input[name="enrollment_id"]').value;
-    
-    // Initialiser les questions
-    const questionContainers = document.querySelectorAll('.question-container');
-    questionContainers.forEach((container, index) => {
-        questions.push({
-            id: container.id.replace('question-', ''),
-            element: container
-        });
-    });
-    
-    // Initialiser le temps restant
-    const timerElement = document.getElementById('timer-display');
-    if (timerElement) {
-        const timeString = timerElement.getAttribute('data-remaining-time');
-        remainingTime = parseInt(timeString) || 0;
-        startTimer();
+document.addEventListener("DOMContentLoaded", () => {
+    // Initialisation des variables
+    const questionContainer = document.querySelector(".question-container")
+    const timerElement = document.getElementById("exam-timer")
+    const progressBar = document.querySelector(".progress-bar")
+    const questionNavigation = document.querySelector(".question-navigation")
+    const submitExamBtn = document.getElementById("submit-exam")
+    const saveStatusIndicator = document.getElementById("save-status")
+  
+    // Récupération des données d'examen
+    const examId = questionContainer ? questionContainer.dataset.examId : null
+    const attemptId = questionContainer ? questionContainer.dataset.attemptId : null
+    const totalTime = questionContainer ? Number.parseInt(questionContainer.dataset.totalTime) : 0
+    const totalQuestions = document.querySelectorAll(".question-item").length
+  
+    let currentQuestionIndex = 0
+    let timeRemaining = totalTime * 60 // Conversion en secondes
+    let autoSaveInterval
+    const answers = {}
+    let timerInterval
+    let isSubmitting = false
+  
+    // Initialisation de l'examen
+    initExam()
+  
+    /**
+     * Initialise l'examen et tous les composants nécessaires
+     */
+    function initExam() {
+      if (!examId || !attemptId) return
+  
+      // Initialiser le minuteur
+      startTimer()
+  
+      // Initialiser la navigation entre les questions
+      initQuestionNavigation()
+  
+      // Initialiser la sauvegarde automatique
+      initAutoSave()
+  
+      // Initialiser les gestionnaires d'événements
+      initEventListeners()
+  
+      // Empêcher la navigation arrière pendant l'examen
+      preventBackNavigation()
+  
+      // Empêcher le clic droit
+      preventRightClick()
+  
+      // Détecter quand l'utilisateur quitte la page
+      detectPageLeave()
+  
+      // Détecter les tentatives de copier-coller
+      preventCopyPaste()
+  
+      // Afficher la première question
+      showQuestion(0)
+  
+      console.log("Examen initialisé avec succès")
     }
-    
-    // Configurer la sauvegarde automatique
-    autoSaveInterval = setInterval(saveAnswers, 30000); // Toutes les 30 secondes
-    
-    // Configurer les événements pour les options de réponse
-    setupAnswerEvents();
-    
-    // Empêcher la fermeture accidentelle de la page
-    window.addEventListener('beforeunload', function(e) {
-        if (document.getElementById('exam-form')) {
-            e.preventDefault();
-            e.returnValue = 'Êtes-vous sûr de vouloir quitter l\'examen ? Vos réponses pourraient être perdues.';
-            return e.returnValue;
+  
+    /**
+     * Démarre le minuteur de l'examen
+     */
+    function startTimer() {
+      updateTimerDisplay()
+  
+      timerInterval = setInterval(() => {
+        timeRemaining--
+  
+        // Mettre à jour l'affichage du minuteur
+        updateTimerDisplay()
+  
+        // Mettre à jour la barre de progression
+        updateProgressBar()
+  
+        // Si le temps est écoulé, soumettre automatiquement l'examen
+        if (timeRemaining <= 0) {
+          clearInterval(timerInterval)
+          finishExam(true)
         }
-    });
-});
-
-// Démarrer le minuteur
-function startTimer() {
-    updateTimerDisplay();
-    
-    timerInterval = setInterval(function() {
-        remainingTime--;
-        updateTimerDisplay();
-        
-        if (remainingTime <= 0) {
-            clearInterval(timerInterval);
-            submitExam(true); // Soumettre automatiquement l'examen
+  
+        // Avertissement lorsqu'il reste 5 minutes
+        if (timeRemaining === 300) {
+          showNotification("Attention", "Il vous reste 5 minutes pour terminer l'examen.", "warning")
         }
-    }, 1000);
-}
-
-// Mettre à jour l'affichage du minuteur
-function updateTimerDisplay() {
-    const timerDisplay = document.getElementById('timer-display');
-    if (!timerDisplay) return;
-    
-    const hours = Math.floor(remainingTime / 3600);
-    const minutes = Math.floor((remainingTime % 3600) / 60);
-    const seconds = remainingTime % 60;
-    
-    timerDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    
-    // Ajouter des classes d'alerte lorsque le temps est presque écoulé
-    if (remainingTime <= 300) { // 5 minutes
-        document.getElementById('exam-timer').classList.add('danger');
-    } else if (remainingTime <= 600) { // 10 minutes
-        document.getElementById('exam-timer').classList.add('warning');
-    }
-}
-
-// Configurer les événements pour les options de réponse
-function setupAnswerEvents() {
-    // Pour les options à choix multiples
-    const optionItems = document.querySelectorAll('.option-item');
-    optionItems.forEach(item => {
-        item.addEventListener('click', function() {
-            const questionId = this.closest('.question-container').id.replace('question-', '');
-            const radio = this.querySelector('input[type="radio"]');
-            
-            // Désélectionner toutes les options de cette question
-            const allOptions = document.querySelectorAll(`#question-${questionId} .option-item`);
-            allOptions.forEach(opt => opt.classList.remove('selected'));
-            
-            // Sélectionner cette option
-            this.classList.add('selected');
-            radio.checked = true;
-            
-            // Mettre à jour la navigation
-            updateQuestionNavigation(questionId, true);
-            
-            // Sauvegarder la réponse
-            saveAnswers();
-        });
-    });
-    
-    // Pour les réponses textuelles
-    const textareas = document.querySelectorAll('.text-answer textarea');
-    textareas.forEach(textarea => {
-        textarea.addEventListener('input', function() {
-            const questionId = this.closest('.question-container').id.replace('question-', '');
-            
-            // Mettre à jour la navigation si la réponse n'est pas vide
-            updateQuestionNavigation(questionId, this.value.trim() !== '');
-        });
-        
-        textarea.addEventListener('blur', function() {
-            // Sauvegarder la réponse lorsque l'utilisateur quitte le champ
-            saveAnswers();
-        });
-    });
-}
-
-// Mettre à jour la navigation des questions
-function updateQuestionNavigation(questionId, isAnswered) {
-    const questionNumber = document.querySelector(`.question-number[data-question-id="${questionId}"]`);
-    if (questionNumber) {
-        if (isAnswered) {
-            questionNumber.classList.add('answered');
-        } else {
-            questionNumber.classList.remove('answered');
+  
+        // Avertissement lorsqu'il reste 1 minute
+        if (timeRemaining === 60) {
+          showNotification("Attention", "Il vous reste 1 minute pour terminer l'examen.", "danger")
         }
+      }, 1000)
     }
-}
-
-// Afficher une question spécifique
-function showQuestion(index) {
-    if (index < 0 || index >= questions.length) {
-        return;
+  
+    /**
+     * Met à jour l'affichage du minuteur
+     */
+    function updateTimerDisplay() {
+      const hours = Math.floor(timeRemaining / 3600)
+      const minutes = Math.floor((timeRemaining % 3600) / 60)
+      const seconds = timeRemaining % 60
+  
+      timerElement.textContent = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+  
+      // Changer la couleur du minuteur en fonction du temps restant
+      if (timeRemaining <= 300) {
+        // 5 minutes
+        timerElement.classList.add("text-warning")
+      }
+  
+      if (timeRemaining <= 60) {
+        // 1 minute
+        timerElement.classList.remove("text-warning")
+        timerElement.classList.add("text-danger")
+      }
     }
-    
-    // Masquer toutes les questions
-    questions.forEach(q => {
-        q.element.style.display = 'none';
-    });
-    
-    // Afficher la question sélectionnée
-    questions[index].element.style.display = 'block';
-    
-    // Mettre à jour la navigation
-    const questionNumbers = document.querySelectorAll('.question-number');
-    questionNumbers.forEach((num, i) => {
-        if (i === index) {
-            num.classList.add('active');
-        } else {
-            num.classList.remove('active');
-        }
-    });
-    
-    // Mettre à jour la question courante
-    currentQuestion = index;
-    
-    // Faire défiler vers le haut
-    window.scrollTo(0, 0);
-}
-
-// Sauvegarder les réponses
-function saveAnswers() {
-    const form = document.getElementById('exam-form');
-    if (!form) return;
-    
-    const formData = new FormData(form);
-    
-    // Envoyer les données au serveur
-    fetch('../api/save-answers.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Réponses sauvegardées avec succès');
-        } else {
-            console.error('Erreur lors de la sauvegarde des réponses:', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Erreur lors de la sauvegarde des réponses:', error);
-    });
-}
-
-// Afficher la confirmation de soumission
-function showSubmitConfirmation() {
-    // Vérifier s'il y a des questions sans réponse
-    const unansweredCount = document.querySelectorAll('.question-number:not(.answered)').length;
-    const unansweredWarning = document.getElementById('unanswered-warning');
-    
-    if (unansweredWarning) {
-        if (unansweredCount > 0) {
-            unansweredWarning.textContent = `Attention : Vous n'avez pas répondu à ${unansweredCount} question(s).`;
-            unansweredWarning.style.display = 'block';
-        } else {
-            unansweredWarning.style.display = 'none';
-        }
+  
+    /**
+     * Met à jour la barre de progression
+     */
+    function updateProgressBar() {
+      if (!progressBar) return
+  
+      const totalSeconds = totalTime * 60
+      const percentageUsed = ((totalSeconds - timeRemaining) / totalSeconds) * 100
+      progressBar.style.width = `${percentageUsed}%`
+  
+      // Changer la couleur de la barre de progression en fonction du temps écoulé
+      if (percentageUsed >= 75) {
+        progressBar.classList.remove("bg-success", "bg-warning")
+        progressBar.classList.add("bg-danger")
+      } else if (percentageUsed >= 50) {
+        progressBar.classList.remove("bg-success", "bg-danger")
+        progressBar.classList.add("bg-warning")
+      }
     }
-    
-    showModal('submit-modal');
-}
-
-// Soumettre l'examen
-function submitExam(isTimeout = false) {
-    // Arrêter les intervalles
-    clearInterval(timerInterval);
-    clearInterval(autoSaveInterval);
-    
-    // Si c'est un timeout, afficher un message
-    if (isTimeout) {
-        alert('Le temps est écoulé. Votre examen va être soumis automatiquement.');
-    }
-    
-    // Soumettre le formulaire
-    const form = document.getElementById('exam-form');
-    if (form) {
-        form.submit();
-    }
-}
-
-// Gérer les changements de visibilité de la page
-function handleVisibilityChange() {
-    if (document.hidden) {
-        // L'utilisateur a quitté la page
-        logProctoringEvent('tab_switch', 'L\'utilisateur a changé d\'onglet ou de fenêtre');
-    }
-}
-
-// Gérer les tentatives de copier-coller
-function handleCopyPaste(event) {
-    event.preventDefault();
-    logProctoringEvent('copy_paste', `Tentative de ${event.type}`);
-    alert('Les actions de copier-coller sont désactivées pendant l\'examen.');
-}
-
-// Gérer le redimensionnement de la fenêtre
-function handleResize() {
-    logProctoringEvent('window_resize', `Fenêtre redimensionnée à ${window.innerWidth}x${window.innerHeight}`);
-}
-
-// Enregistrer un événement de surveillance
-function logProctoringEvent(type, details) {
-    fetch('../api/proctoring.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            action: 'incident',
-            attempt_id: attemptId,
-            incident: {
-                type: type,
-                severity: 'medium',
-                details: details,
-                timestamp: new Date().toISOString()
-            }
+  
+    /**
+     * Initialise la navigation entre les questions
+     */
+    function initQuestionNavigation() {
+      if (!questionNavigation) return
+  
+      // Créer les boutons de navigation pour chaque question
+      for (let i = 0; i < totalQuestions; i++) {
+        const navButton = document.createElement("button")
+        navButton.className = "question-nav-btn"
+        navButton.textContent = i + 1
+        navButton.dataset.index = i
+  
+        navButton.addEventListener("click", () => {
+          saveCurrentAnswer()
+          showQuestion(i)
         })
-    })
-    .catch(error => {
-        console.error('Erreur lors de l\'enregistrement de l\'événement:', error);
-    });
-}
-
-// Fonctions d'interface utilisateur
-function showModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex';
+  
+        questionNavigation.appendChild(navButton)
+      }
+  
+      // Ajouter les boutons précédent et suivant
+      const prevBtn = document.getElementById("prev-question")
+      const nextBtn = document.getElementById("next-question")
+  
+      if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+          if (currentQuestionIndex > 0) {
+            saveCurrentAnswer()
+            showQuestion(currentQuestionIndex - 1)
+          }
+        })
+      }
+  
+      if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+          if (currentQuestionIndex < totalQuestions - 1) {
+            saveCurrentAnswer()
+            showQuestion(currentQuestionIndex + 1)
+          }
+        })
+      }
     }
-}
-
-function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
+  
+    /**
+     * Affiche une question spécifique
+     * @param {number} index - L'index de la question à afficher
+     */
+    function showQuestion(index) {
+      // Masquer toutes les questions
+      const questions = document.querySelectorAll(".question-item")
+      questions.forEach((q) => q.classList.add("d-none"))
+  
+      // Afficher la question sélectionnée
+      const selectedQuestion = questions[index]
+      if (selectedQuestion) {
+        selectedQuestion.classList.remove("d-none")
+        currentQuestionIndex = index
+  
+        // Mettre à jour les boutons de navigation
+        updateNavigationButtons()
+  
+        // Mettre à jour l'indicateur de question actuelle
+        updateQuestionIndicator()
+  
+        // Charger la réponse précédemment enregistrée (si disponible)
+        loadSavedAnswer()
+      }
     }
-}
+  
+    /**
+     * Met à jour les boutons de navigation (précédent/suivant)
+     */
+    function updateNavigationButtons() {
+      const prevBtn = document.getElementById("prev-question")
+      const nextBtn = document.getElementById("next-question")
+  
+      if (prevBtn) {
+        prevBtn.disabled = currentQuestionIndex === 0
+      }
+  
+      if (nextBtn) {
+        nextBtn.disabled = currentQuestionIndex === totalQuestions - 1
+      }
+  
+      // Mettre à jour les boutons de navigation des questions
+      const navButtons = document.querySelectorAll(".question-nav-btn")
+      navButtons.forEach((btn, index) => {
+        btn.classList.remove("active")
+        if (index === currentQuestionIndex) {
+          btn.classList.add("active")
+        }
+      })
+    }
+  
+    /**
+     * Met à jour l'indicateur de question actuelle
+     */
+    function updateQuestionIndicator() {
+      const questionIndicator = document.getElementById("question-indicator")
+      if (questionIndicator) {
+        questionIndicator.textContent = `Question ${currentQuestionIndex + 1} sur ${totalQuestions}`
+      }
+    }
+  
+    /**
+     * Initialise la sauvegarde automatique des réponses
+     */
+    function initAutoSave() {
+      // Sauvegarder toutes les 30 secondes
+      autoSaveInterval = setInterval(() => {
+        saveCurrentAnswer()
+      }, 30000)
+    }
+  
+    /**
+     * Sauvegarde la réponse à la question actuelle
+     */
+    function saveCurrentAnswer() {
+      const currentQuestion = document.querySelectorAll(".question-item")[currentQuestionIndex]
+      if (!currentQuestion) return
+  
+      const questionId = currentQuestion.dataset.questionId
+      let answer = null
+  
+      // Déterminer le type de question et récupérer la réponse
+      if (currentQuestion.querySelector('input[type="radio"]:checked')) {
+        // Question à choix unique
+        answer = currentQuestion.querySelector('input[type="radio"]:checked').value
+      } else if (currentQuestion.querySelectorAll('input[type="checkbox"]:checked').length > 0) {
+        // Question à choix multiples
+        answer = Array.from(currentQuestion.querySelectorAll('input[type="checkbox"]:checked'))
+          .map((checkbox) => checkbox.value)
+          .join(",")
+      } else if (currentQuestion.querySelector("textarea")) {
+        // Question à réponse libre
+        answer = currentQuestion.querySelector("textarea").value
+      }
+  
+      // Si une réponse est fournie, la sauvegarder
+      if (answer !== null) {
+        answers[questionId] = answer
+  
+        // Marquer la question comme répondue dans la navigation
+        const navButton = document.querySelector(`.question-nav-btn[data-index="${currentQuestionIndex}"]`)
+        if (navButton) {
+          navButton.classList.add("answered")
+        }
+  
+        // Envoyer la réponse au serveur
+        saveAnswerToServer(questionId, answer)
+      }
+    }
+  
+    /**
+     * Charge la réponse précédemment enregistrée pour la question actuelle
+     */
+    function loadSavedAnswer() {
+      const currentQuestion = document.querySelectorAll(".question-item")[currentQuestionIndex]
+      if (!currentQuestion) return
+  
+      const questionId = currentQuestion.dataset.questionId
+      const savedAnswer = answers[questionId]
+  
+      if (savedAnswer !== undefined) {
+        // Restaurer la réponse en fonction du type de question
+        if (currentQuestion.querySelector('input[type="radio"]')) {
+          // Question à choix unique
+          const radioButton = currentQuestion.querySelector(`input[type="radio"][value="${savedAnswer}"]`)
+          if (radioButton) {
+            radioButton.checked = true
+          }
+        } else if (currentQuestion.querySelector('input[type="checkbox"]')) {
+          // Question à choix multiples
+          const savedValues = savedAnswer.split(",")
+          savedValues.forEach((value) => {
+            const checkbox = currentQuestion.querySelector(`input[type="checkbox"][value="${value}"]`)
+            if (checkbox) {
+              checkbox.checked = true
+            }
+          })
+        } else if (currentQuestion.querySelector("textarea")) {
+          // Question à réponse libre
+          currentQuestion.querySelector("textarea").value = savedAnswer
+        }
+      }
+    }
+  
+    /**
+     * Envoie la réponse au serveur
+     * @param {string} questionId - L'ID de la question
+     * @param {string} answer - La réponse de l'étudiant
+     */
+    function saveAnswerToServer(questionId, answer) {
+      if (!examId || !attemptId) return
+  
+      // Mettre à jour l'indicateur de sauvegarde
+      if (saveStatusIndicator) {
+        saveStatusIndicator.textContent = "Sauvegarde en cours..."
+        saveStatusIndicator.className = "save-status saving"
+      }
+  
+      fetch("../ajax/save-answer.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `attempt_id=${attemptId}&question_id=${questionId}&answer=${encodeURIComponent(answer)}`,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Mettre à jour l'indicateur de sauvegarde
+            if (saveStatusIndicator) {
+              saveStatusIndicator.textContent = "Réponse sauvegardée"
+              saveStatusIndicator.className = "save-status saved"
+  
+              // Réinitialiser après 3 secondes
+              setTimeout(() => {
+                saveStatusIndicator.textContent = ""
+                saveStatusIndicator.className = "save-status"
+              }, 3000)
+            }
+          } else {
+            console.error("Erreur lors de la sauvegarde de la réponse:", data.message)
+  
+            // Mettre à jour l'indicateur de sauvegarde
+            if (saveStatusIndicator) {
+              saveStatusIndicator.textContent = "Erreur de sauvegarde"
+              saveStatusIndicator.className = "save-status error"
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la sauvegarde de la réponse:", error)
+  
+          // Mettre à jour l'indicateur de sauvegarde
+          if (saveStatusIndicator) {
+            saveStatusIndicator.textContent = "Erreur de sauvegarde"
+            saveStatusIndicator.className = "save-status error"
+          }
+        })
+    }
+  
+    /**
+     * Initialise les gestionnaires d'événements
+     */
+    function initEventListeners() {
+      // Gestionnaire pour le bouton de soumission de l'examen
+      if (submitExamBtn) {
+        submitExamBtn.addEventListener("click", (e) => {
+          e.preventDefault()
+  
+          // Demander confirmation avant de soumettre
+          const confirmation = confirm("Êtes-vous sûr de vouloir terminer l'examen ? Cette action est irréversible.")
+          if (confirmation) {
+            saveCurrentAnswer() // Sauvegarder la dernière réponse
+            finishExam(false)
+          }
+        })
+      }
+  
+      // Gestionnaires pour les réponses aux questions
+      document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach((input) => {
+        input.addEventListener("change", () => {
+          saveCurrentAnswer()
+        })
+      })
+  
+      document.querySelectorAll("textarea").forEach((textarea) => {
+        textarea.addEventListener("blur", () => {
+          saveCurrentAnswer()
+        })
+  
+        // Sauvegarde automatique lors de la frappe (avec debounce)
+        let typingTimer
+        textarea.addEventListener("input", () => {
+          clearTimeout(typingTimer)
+          typingTimer = setTimeout(() => {
+            saveCurrentAnswer()
+          }, 1000)
+        })
+      })
+    }
+  
+    /**
+     * Termine l'examen et envoie toutes les réponses au serveur
+     * @param {boolean} timeExpired - Indique si le temps est écoulé
+     */
+    function finishExam(timeExpired = false) {
+      if (isSubmitting) return
+      isSubmitting = true
+  
+      // Désactiver le bouton de soumission
+      if (submitExamBtn) {
+        submitExamBtn.disabled = true
+        submitExamBtn.textContent = "Finalisation en cours..."
+      }
+  
+      // Arrêter le minuteur et la sauvegarde automatique
+      clearInterval(timerInterval)
+      clearInterval(autoSaveInterval)
+  
+      // Afficher un message de chargement
+      const loadingMessage = document.createElement("div")
+      loadingMessage.className = "exam-submission-overlay"
+      loadingMessage.innerHTML = `
+        <div class="submission-content">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+          </div>
+          <h3>${timeExpired ? "Temps écoulé!" : "Finalisation de l'examen"}</h3>
+          <p>Veuillez patienter pendant que nous finalisons votre examen...</p>
+        </div>
+      `
+      document.body.appendChild(loadingMessage)
+  
+      // Envoyer la demande de finalisation au serveur
+      fetch("../ajax/finish-exam.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `attempt_id=${attemptId}&time_expired=${timeExpired ? 1 : 0}`,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Rediriger vers la page de résultats
+            window.location.href = data.redirect_url || "exam-result.php?attempt_id=" + attemptId
+          } else {
+            console.error("Erreur lors de la finalisation de l'examen:", data.message)
+            alert("Une erreur est survenue lors de la finalisation de l'examen. Veuillez contacter l'administrateur.")
+  
+            // Réactiver le bouton de soumission
+            if (submitExamBtn) {
+              submitExamBtn.disabled = false
+              submitExamBtn.textContent = "Terminer l'examen"
+            }
+  
+            isSubmitting = false
+            document.body.removeChild(loadingMessage)
+          }
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la finalisation de l'examen:", error)
+          alert("Une erreur est survenue lors de la finalisation de l'examen. Veuillez contacter l'administrateur.")
+  
+          // Réactiver le bouton de soumission
+          if (submitExamBtn) {
+            submitExamBtn.disabled = false
+            submitExamBtn.textContent = "Terminer l'examen"
+          }
+  
+          isSubmitting = false
+          document.body.removeChild(loadingMessage)
+        })
+    }
+  
+    /**
+     * Empêche la navigation arrière pendant l'examen
+     */
+    function preventBackNavigation() {
+      history.pushState(null, null, location.href)
+      window.onpopstate = () => {
+        history.go(1)
+      }
+    }
+  
+    /**
+     * Empêche le clic droit
+     */
+    function preventRightClick() {
+      document.addEventListener("contextmenu", (e) => {
+        e.preventDefault()
+        showWarning("Le clic droit n'est pas autorisé pendant l'examen.")
+      })
+    }
+  
+    /**
+     * Détecte quand l'utilisateur quitte la page
+     */
+    function detectPageLeave() {
+      window.addEventListener("beforeunload", (e) => {
+        // Annuler l'événement
+        e.preventDefault()
+        // Chrome requiert returnValue pour être défini
+        e.returnValue = ""
+      })
+  
+      // Détecter quand l'utilisateur change d'onglet ou minimise la fenêtre
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          // L'utilisateur a changé d'onglet ou minimisé la fenêtre
+          reportVisibilityChange()
+        }
+      })
+    }
+  
+    /**
+     * Empêche les tentatives de copier-coller
+     */
+    function preventCopyPaste() {
+      document.addEventListener("copy", (e) => {
+        e.preventDefault()
+        showWarning("La copie de texte n'est pas autorisée pendant l'examen.")
+      })
+  
+      document.addEventListener("paste", (e) => {
+        e.preventDefault()
+        showWarning("Le collage de texte n'est pas autorisé pendant l'examen.")
+      })
+  
+      document.addEventListener("cut", (e) => {
+        e.preventDefault()
+        showWarning("Le coupage de texte n'est pas autorisé pendant l'examen.")
+      })
+    }
+  
+    /**
+     * Signale un changement de visibilité
+     */
+    function reportVisibilityChange() {
+      if (!attemptId) return
+  
+      fetch("../ajax/report-incident.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `attempt_id=${attemptId}&incident_type=tab_switch&description=L'étudiant a changé d'onglet ou minimisé la fenêtre`,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("Visibility change reported:", data)
+        })
+        .catch((error) => {
+          console.error("Error reporting visibility change:", error)
+        })
+    }
+  
+    /**
+     * Affiche un avertissement
+     * @param {string} message - Le message d'avertissement
+     */
+    function showWarning(message) {
+      const warning = document.createElement("div")
+      warning.className = "proctoring-notification"
+      warning.innerHTML = `
+        <div class="notification-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="notification-content">
+          <div class="notification-title">Action non autorisée</div>
+          <div class="notification-message">${message}</div>
+        </div>
+      `
+      document.body.appendChild(warning)
+  
+      // Animer la notification
+      setTimeout(() => {
+        warning.classList.add("show")
+      }, 10)
+  
+      // Cacher la notification après 3 secondes
+      setTimeout(() => {
+        warning.classList.remove("show")
+        setTimeout(() => {
+          document.body.removeChild(warning)
+        }, 300)
+      }, 3000)
+    }
+  
+    /**
+     * Affiche une notification
+     * @param {string} title - Le titre de la notification
+     * @param {string} message - Le message de la notification
+     * @param {string} type - Le type de notification (info, success, warning, danger)
+     */
+    function showNotification(title, message, type = "info") {
+      const notification = document.createElement("div")
+      notification.className = `notification notification-${type}`
+      notification.innerHTML = `
+        <div class="notification-header">
+          <h4>${title}</h4>
+          <button class="close-notification">&times;</button>
+        </div>
+        <div class="notification-body">
+          <p>${message}</p>
+        </div>
+      `
+  
+      // Ajouter la notification au conteneur
+      const notificationContainer = document.querySelector(".notification-container")
+      if (notificationContainer) {
+        notificationContainer.appendChild(notification)
+      } else {
+        // Créer un conteneur si nécessaire
+        const container = document.createElement("div")
+        container.className = "notification-container"
+        container.appendChild(notification)
+        document.body.appendChild(container)
+      }
+  
+      // Gérer la fermeture de la notification
+      const closeBtn = notification.querySelector(".close-notification")
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+          notification.classList.add("closing")
+          setTimeout(() => {
+            notification.remove()
+          }, 300)
+        })
+      }
+  
+      // Fermer automatiquement après 5 secondes
+      setTimeout(() => {
+        notification.classList.add("closing")
+        setTimeout(() => {
+          notification.remove()
+        }, 300)
+      }, 5000)
+    }
+  })
+  

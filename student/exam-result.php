@@ -68,8 +68,8 @@ $examId = $attempt['exam_id'];
 $statsQuery = $conn->prepare("
     SELECT 
         COUNT(*) as total_attempts,
-        AVG(score) as avg_score,
-        MAX(score) as max_score
+        IFNULL(AVG(score), 0) as avg_score,
+        IFNULL(MAX(score), 0) as max_score
     FROM exam_attempts 
     WHERE exam_id = ? AND status IN ('completed', 'graded')
 ");
@@ -118,13 +118,14 @@ include 'includes/header.php';
                     <div class="summary-title">
                         <h3>Résultat final</h3>
                         <span class="result-badge <?php echo $attempt['score'] >= $attempt['passing_score'] ? 'passed' : 'failed'; ?>">
-                            <?php echo $attempt['score'] >= $attempt['passing_score'] ? 'Réussi' : 'Échoué'; ?>
+                        <?php echo (isset($attempt['score']) && $attempt['score'] >= $attempt['passing_score']) ? 'Réussi' : 'Échoué'; ?>
                         </span>
                     </div>
                     <div class="summary-score">
-                        <div class="score-circle">
-                            <span class="score-value"><?php echo round($attempt['score']); ?>%</span>
-                        </div>
+                    <div class="score-circle">
+    <span class="score-value"><?php echo isset($attempt['score']) ? round($attempt['score']) : 0; ?>%</span>
+</div>
+
                     </div>
                 </div>
                 
@@ -169,24 +170,24 @@ include 'includes/header.php';
                 </div>
                 
                 <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value"><?php echo round($stats['avg_score'], 1); ?>%</div>
-                        <div class="stat-label">Moyenne</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value"><?php echo round($stats['max_score'], 1); ?>%</div>
-                        <div class="stat-label">Meilleur score</div>
-                    </div>
-                </div>
+    <div class="stat-icon">
+        <i class="fas fa-chart-line"></i>
+    </div>
+    <div class="stat-info">
+        <div class="stat-value"><?php echo isset($stats['avg_score']) ? round($stats['avg_score'], 1) : 0; ?>%</div>
+        <div class="stat-label">Moyenne</div>
+    </div>
+</div>
+
+<div class="stat-card">
+    <div class="stat-icon">
+        <i class="fas fa-trophy"></i>
+    </div>
+    <div class="stat-info">
+        <div class="stat-value"><?php echo isset($stats['max_score']) ? round($stats['max_score'], 1) : 0; ?>%</div>
+        <div class="stat-label">Meilleur score</div>
+    </div>
+</div>
             </div>
         </div>
         
