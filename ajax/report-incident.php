@@ -1,7 +1,7 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/db.php';
-require_once '../student/includes/auth.php';
+require_once '../includes/auth.php';
 
 // Vérifier si l'utilisateur est connecté
 if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
@@ -10,7 +10,7 @@ if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
     exit();
 }
 
-// Vérifier si la requête est en POST et contient des données JSON
+// Vérifier si la requête est en POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
@@ -21,41 +21,62 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $json_data = file_get_contents('php://input');
 $data = json_decode($json_data, true);
 
-if (!$data || !isset($data['session_id']) || !isset($data['incident_type']) || !isset($data['description'])) {
+if (!$data || !isset($data['attempt_id']) || !isset($data['incident_type'])) {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Données invalides']);
     exit();
 }
 
-$session_id = intval($data['session_id']);
+$attempt_id = intval($data['attempt_id']);
 $incident_type = $data['incident_type'];
-$description = $data['description'];
+$description = isset($data['description']) ? $data['description'] : '';
+$severity = isset($data['severity']) ? $data['severity'] : 'medium';
 $timestamp = isset($data['timestamp']) ? $data['timestamp'] : date('Y-m-d H:i:s');
-
-// Vérifier que la session appartient à l'étudiant connecté
-$stmt = $conn->prepare("SELECT * FROM exam_sessions WHERE id = ? AND student_id = ?");
 $student_id = $_SESSION['user_id'];
-$stmt->bind_param("ii", $session_id, $student_id);
+
+// Vérifier que la tentative appartient à l'étudiant connecté
+$stmt = $conn->prepare("SELECT * FROM exam_attempts WHERE id = ? AND user_id = ? AND status = 'in_progress'");
+$stmt->bind_param("ii", $attempt_id, $student_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Session non valide']);
+    echo json_encode(['success' => false, 'message' => 'Tentative non valide ou terminée']);
     exit();
 }
 
-// Enregistrer l'incident
-$stmt = $conn->prepare("INSERT INTO proctoring_incidents (session_id, student_id, incident_type, description, timestamp) 
-                        VALUES (?, ?, ?, ?, ?)");
-$stmt->bind_param("iisss", $session_id, $student_id, $incident_type, $description, $timestamp);
+// Commencer une transaction
+$conn->begin_transaction();
 
-if (!$stmt->execute()) {
+try {
+    // Enregistrer l'incident
+    $stmt = $conn->prepare("INSERT INTO proctoring_incidents 
+                            (attempt_id, student_id, incident_type, description, severity, timestamp, created_at) 
+                            VALUES (?, ?, ?, ?, ?, ?, NOW())");
+    $stmt->bind_param("iissss", $attempt_id, $student_id, $incident_type, $description, $severity, $timestamp);
+    
+    if (!$stmt->execute()) {
+        throw new Exception("Erreur lors de l'enregistrement de l'incident: " . $stmt->error);
+    }
+    
+    $incident_id = $conn->insert_id;
+    
+    // Valider la transaction
+    $conn->commit();
+    
+    // Renvoyer la réponse
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Erreur lors de l\'enregistrement de l\'incident']);
-    exit();
+    echo json_encode([
+        'success' => true, 
+        'incident_id' => $incident_id,
+        'message' => 'Incident signalé avec succès'
+    ]);
+    
+} catch (Exception $e) {
+    // Annuler la transaction en cas d'erreur
+    $conn->rollback();
+    
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-
-// Renvoyer la réponse
-header('Content-Type: application/json');
-echo json_encode(['success' => true, 'incident_id' => $conn->insert_id]);
