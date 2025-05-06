@@ -43,7 +43,7 @@ if (!$preferences) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $insertQuery->bind_param(
-        "isiiissisiii", 
+        "isiiissisiiii", // Changé de "isiiissisiii" à "isiiissisiiii"
         $studentId, 
         $defaultPreferences['theme'], 
         $defaultPreferences['notifications_enabled'], 

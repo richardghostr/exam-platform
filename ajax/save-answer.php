@@ -1,11 +1,10 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/db.php';
-require_once '../includes/auth.php';
-require_once '../includes/functions.php';
+require_once '../student/includes/auth.php';
 
 // // Vérifier si l'utilisateur est connecté
-// if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
+// if (!isLoggedIn() || $_SESSION['role'] !== 'student') {
 //     header('Content-Type: application/json');
 //     echo json_encode(['success' => false, 'message' => 'Non autorisé']);
 //     exit();
@@ -22,28 +21,47 @@ require_once '../includes/functions.php';
 $json_data = file_get_contents('php://input');
 $data = json_decode($json_data, true);
 
-// if (!$data || !isset($data['session_id']) || !isset($data['question_id']) || !isset($data['answer'])) {
+// if (!$data || !isset($data['attempt_id']) || !isset($data['question_id'])) {
 //     header('Content-Type: application/json');
 //     echo json_encode(['success' => false, 'message' => 'Données invalides']);
 //     exit();
 // }
 
-$session_id = intval($data['session_id']);
+$attempt_id = intval($data['attempt_id']);
 $question_id = intval($data['question_id']);
-$answer = $data['answer'];
-$student_id = $_SESSION['user_id'];
+$selected_options = isset($data['selected_options']) ? $data['selected_options'] : null;
+$answer_text = isset($data['answer_text']) ? $data['answer_text'] : null;
+$user_id = $_SESSION['user_id'];
 
-// Vérifier que la session appartient à l'étudiant connecté et est en cours
-$stmt = $conn->prepare("SELECT * FROM exam_sessions WHERE id = ? AND user_id = ? AND status = 'in_progress'");
-$stmt->bind_param("ii", $session_id, $student_id);
+// Vérifier que la tentative appartient à l'étudiant connecté et est en cours
+$stmt = $conn->prepare("SELECT * FROM exam_attempts WHERE id = ? AND user_id = ? AND status = 'in_progress'");
+$stmt->bind_param("ii", $attempt_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Session non valide ou terminée']);
+    echo json_encode(['success' => false, 'message' => 'Tentative non valide ou terminée']);
     exit();
 }
+
+// Vérifier que la question appartient à l'examen
+$attempt = $result->fetch_assoc();
+$exam_id = $attempt['exam_id'];
+
+$stmt = $conn->prepare("SELECT * FROM questions WHERE id = ? AND exam_id = ?");
+$stmt->bind_param("ii", $question_id, $exam_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Question non valide pour cet examen']);
+    exit();
+}
+
+$question = $result->fetch_assoc();
+$question_type = $question['question_type'];
 
 // Commencer une transaction
 $conn->begin_transaction();
@@ -51,32 +69,34 @@ $conn->begin_transaction();
 try {
     // Vérifier si une réponse existe déjà pour cette question
     $stmt = $conn->prepare("SELECT id FROM user_answers WHERE attempt_id = ? AND question_id = ?");
-    $stmt->bind_param("ii", $session_id, $question_id);
+    $stmt->bind_param("ii", $attempt_id, $question_id);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
         // Mettre à jour la réponse existante
         $answer_id = $result->fetch_assoc()['id'];
-        $stmt = $conn->prepare("UPDATE user_answers SET answer_text = ?, updated_at = NOW() WHERE id = ?");
-        $stmt->bind_param("si", $answer, $answer_id);
+        
+        if ($question_type === 'multiple_choice' || $question_type === 'single_choice' || $question_type === 'true_false') {
+            $stmt = $conn->prepare("UPDATE user_answers SET selected_options = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->bind_param("si", $selected_options, $answer_id);
+        } else {
+            $stmt = $conn->prepare("UPDATE user_answers SET answer_text = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->bind_param("si", $answer_text, $answer_id);
+        }
     } else {
         // Insérer une nouvelle réponse
-        $stmt = $conn->prepare("INSERT INTO user_answers (attempt_id , question_id, user_id, answer_text, created_at) 
-                                VALUES (?, ?, ?, ?, NOW())");
-        $stmt->bind_param("iiis", $session_id, $question_id, $student_id, $answer);
+        if ($question_type === 'multiple_choice' || $question_type === 'single_choice' || $question_type === 'true_false') {
+            $stmt = $conn->prepare("INSERT INTO user_answers (attempt_id, question_id, selected_options, user_id, created_at) VALUES (?, ?, ?, ?, NOW())");
+            $stmt->bind_param("iisi", $attempt_id, $question_id, $selected_options, $user_id);
+        } else {
+            $stmt = $conn->prepare("INSERT INTO user_answers (attempt_id, question_id, answer_text, user_id, created_at) VALUES (?, ?, ?, ?, NOW())");
+            $stmt->bind_param("iisi", $attempt_id, $question_id, $answer_text, $user_id);
+        }
     }
     
     if (!$stmt->execute()) {
         throw new Exception("Erreur lors de l'enregistrement de la réponse: " . $stmt->error);
-    }
-    
-    // Mettre à jour la date de dernière activité de la session
-    $stmt = $conn->prepare("UPDATE exam_sessions SET last_activity = NOW() WHERE id = ?");
-    $stmt->bind_param("i", $session_id);
-    
-    if (!$stmt->execute()) {
-        throw new Exception("Erreur lors de la mise à jour de l'activité de la session: " . $stmt->error);
     }
     
     // Valider la transaction
@@ -85,7 +105,7 @@ try {
     // Renvoyer la réponse
     header('Content-Type: application/json');
     echo json_encode([
-        'success' => true,
+        'success' => true, 
         'message' => 'Réponse enregistrée avec succès'
     ]);
     

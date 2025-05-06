@@ -1,10 +1,10 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/db.php';
-require_once '../includes/auth.php';
+require_once '../student/includes/auth.php';
 
 // Vérifier si l'utilisateur est connecté
-if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
+if (!isLoggedIn() || $_SESSION['role'] !== 'student') {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Non autorisé']);
     exit();
@@ -32,11 +32,11 @@ $incident_type = $data['incident_type'];
 $description = isset($data['description']) ? $data['description'] : '';
 $image_data = $data['image_data'];
 $timestamp = isset($data['timestamp']) ? $data['timestamp'] : date('Y-m-d H:i:s');
-$student_id = $_SESSION['user_id'];
+$user_id = $_SESSION['user_id'];
 
 // Vérifier que la tentative appartient à l'étudiant connecté
-$stmt = $conn->prepare("SELECT * FROM exam_attempts WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $attempt_id, $student_id);
+$stmt = $conn->prepare("SELECT ea.*, e.id as exam_id FROM exam_attempts ea JOIN exams e ON ea.exam_id = e.id WHERE ea.id = ? AND ea.user_id = ?");
+$stmt->bind_param("ii", $attempt_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -46,8 +46,11 @@ if ($result->num_rows === 0) {
     exit();
 }
 
+$attempt_data = $result->fetch_assoc();
+$exam_id = $attempt_data['exam_id'];
+
 // Créer le répertoire de stockage s'il n'existe pas
-$upload_dir = '../uploads/incident_images/';
+$upload_dir = '../uploads/proctoring/';
 if (!file_exists($upload_dir)) {
     mkdir($upload_dir, 0777, true);
 }
@@ -69,23 +72,49 @@ if (file_put_contents($file_path, $image_decoded)) {
     try {
         // Enregistrer l'incident s'il n'existe pas déjà
         $incident_id = 0;
-        $stmt = $conn->prepare("SELECT id FROM proctoring_incidents WHERE attempt_id = ? AND student_id = ? AND incident_type = ? AND timestamp = ?");
-        $stmt->bind_param("iiss", $attempt_id, $student_id, $incident_type, $timestamp);
+        $stmt = $conn->prepare("SELECT id FROM proctoring_incidents WHERE attempt_id = ? AND user_id = ? AND incident_type = ? AND timestamp = ?");
+        $stmt->bind_param("iiss", $attempt_id, $user_id, $incident_type, $timestamp);
         $stmt->execute();
         $result = $stmt->get_result();
         
         if ($result->num_rows > 0) {
             $incident_id = $result->fetch_assoc()['id'];
+            
+            // Mettre à jour l'image de l'incident existant
+            $stmt = $conn->prepare("UPDATE proctoring_incidents SET image_path = ? WHERE id = ?");
+            $stmt->bind_param("si", $filename, $incident_id);
+            $stmt->execute();
         } else {
-            $stmt = $conn->prepare("INSERT INTO proctoring_incidents (attempt_id, student_id, incident_type, description, timestamp, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
-            $stmt->bind_param("iisss", $attempt_id, $student_id, $incident_type, $description, $timestamp);
+            // Créer un nouvel incident avec l'image
+            $stmt = $conn->prepare("INSERT INTO proctoring_incidents 
+                                    (attempt_id, incident_type, severity, description, status, timestamp, created_at, exam_id, user_id, image_path) 
+                                    VALUES (?, ?, 'medium', ?, 'pending', ?, NOW(), ?, ?, ?)");
+            $stmt->bind_param("issssis", $attempt_id, $incident_type, $description, $timestamp, $exam_id, $user_id, $filename);
             $stmt->execute();
             $incident_id = $conn->insert_id;
         }
         
-        // Enregistrer l'image de l'incident
-        $stmt = $conn->prepare("INSERT INTO proctoring_incident_images (incident_id, image_path, created_at) VALUES (?, ?, NOW())");
-        $stmt->bind_param("is", $incident_id, $filename);
+        // Enregistrer également dans la table proctoring_images
+        $stmt = $conn->prepare("INSERT INTO proctoring_images (session_id, student_id, incident_type, description, image_path, timestamp) VALUES (?, ?, ?, ?, ?, ?)");
+        // Utiliser l'ID de session d'examen si disponible, sinon utiliser l'ID de tentative
+        $session_id = $attempt_id; // Fallback à l'ID de tentative
+        
+        // Vérifier s'il existe une session pour cet examen et cet utilisateur
+        $stmt_session = $conn->prepare("SELECT id FROM exam_sessions WHERE exam_id = ? AND user_id = ? AND status = 'in_progress'");
+        $stmt_session->bind_param("ii", $exam_id, $user_id);
+        $stmt_session->execute();
+        $session_result = $stmt_session->get_result();
+        
+        if ($session_result->num_rows > 0) {
+            $session_id = $session_result->fetch_assoc()['id'];
+        }
+        
+        $stmt->bind_param("iissss", $session_id, $user_id, $incident_type, $description, $filename, $timestamp);
+        $stmt->execute();
+        
+        // Mettre à jour le compteur d'incidents dans la session d'examen
+        $stmt = $conn->prepare("UPDATE exam_sessions SET incident_count = incident_count + 1 WHERE id = ? AND status = 'in_progress'");
+        $stmt->bind_param("i", $session_id);
         $stmt->execute();
         
         // Valider la transaction

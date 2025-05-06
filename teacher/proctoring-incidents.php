@@ -42,17 +42,15 @@ $countQuery = "
     FROM proctoring_incidents pi
     JOIN exam_attempts ea ON pi.attempt_id = ea.id
     JOIN exams e ON ea.exam_id = e.id
-    JOIN users u ON ea.user_id = u.id
     WHERE e.teacher_id = ?
 ";
 
 $params = [$teacherId];
 $types = "i";
 
-// Ajouter les filtres à la requête
+// Ajouter les filtres
 if ($examId > 0) {
     $baseQuery .= " AND ea.exam_id = ?";
-    $countQuery .= " AND ea.exam_id = ?";
     $params[] = $examId;
     $types .= "i";
 }
@@ -107,7 +105,7 @@ $types .= "ii";
 
 // Exécuter la requête pour obtenir le nombre total d'incidents
 $countStmt = $conn->prepare($countQuery);
-$countStmt->bind_param($types , ...$params);
+$countStmt->bind_param("i", $teacherId);
 $countStmt->execute();
 $countResult = $countStmt->get_result();
 $totalItems = $countResult->fetch_assoc()['total'];
@@ -115,7 +113,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
 
 // Exécuter la requête principale
 $stmt = $conn->prepare($baseQuery);
-$stmt->bind_param($types . "ii", ...$params);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -168,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $incidentId = isset($_POST['incident_id']) ? intval($_POST['incident_id']) : 0;
         $newStatus = isset($_POST['status']) ? $_POST['status'] : '';
         $notes = isset($_POST['notes']) ? $_POST['notes'] : '';
-        
+
         if ($incidentId > 0 && !empty($newStatus)) {
             $updateQuery = $conn->prepare("
                 UPDATE proctoring_incidents 
@@ -176,13 +174,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE id = ?
             ");
             $updateQuery->bind_param("ssi", $newStatus, $notes, $incidentId);
-            
+
             if ($updateQuery->execute()) {
                 setFlashMessage('success', 'Le statut de l\'incident a été mis à jour avec succès.');
             } else {
                 setFlashMessage('danger', 'Une erreur est survenue lors de la mise à jour du statut.');
             }
-            
+
             // Rediriger pour éviter la soumission multiple du formulaire
             header('Location: ' . $_SERVER['PHP_SELF'] . '?' . http_build_query($_GET));
             exit();
@@ -194,12 +192,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $statsQuery = $conn->prepare("
     SELECT 
         COUNT(*) as total_incidents,
-        SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high_severity,
-        SUM(CASE WHEN severity = 'medium' THEN 1 ELSE 0 END) as medium_severity,
-        SUM(CASE WHEN severity = 'low' THEN 1 ELSE 0 END) as low_severity,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_incidents,
-        SUM(CASE WHEN status = 'reviewed' THEN 1 ELSE 0 END) as reviewed_incidents,
-        SUM(CASE WHEN status = 'dismissed' THEN 1 ELSE 0 END) as dismissed_incidents
+        SUM(CASE WHEN pi.severity = 'high' THEN 1 ELSE 0 END) as high_severity,
+        SUM(CASE WHEN pi.severity = 'medium' THEN 1 ELSE 0 END) as medium_severity,
+        SUM(CASE WHEN pi.severity = 'low' THEN 1 ELSE 0 END) as low_severity,
+        SUM(CASE WHEN pi.status = 'pending' THEN 1 ELSE 0 END) as pending_incidents,
+        SUM(CASE WHEN pi.status = 'reviewed' THEN 1 ELSE 0 END) as reviewed_incidents,
+        SUM(CASE WHEN pi.status = 'dismissed' THEN 1 ELSE 0 END) as dismissed_incidents
     FROM proctoring_incidents pi
     JOIN exam_attempts ea ON pi.attempt_id = ea.id
     JOIN exams e ON ea.exam_id = e.id
@@ -214,31 +212,142 @@ $activeMenu = "proctoring";
 include 'includes/header.php';
 ?>
 
-<div class="content-wrapper">
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0"><?php echo $pageTitle; ?></h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="index.php">Accueil</a></li>
-                        <li class="breadcrumb-item active">Incidents de surveillance</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <section class="content">
+<div class="content-wrapper">
+    <style>
+        a{
+            text-decoration: none;
+        }
+        /* Container principal */
+        .container-fluid {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        /* Cartes de statistiques */
+        .small-box {
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            border-top: 4px solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .small-box .inner {
+            padding: 15px;
+            text-align: center;
+        }
+
+        .small-box h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .small-box p {
+            font-size: 1rem;
+            color: #7f8c8d;
+            margin: 0;
+        }
+
+        /* Couleurs spécifiques */
+        .small-box.bg-info {
+            border-top-color: #17a2b8;
+            background-color: #fff !important;
+            color: #17a2b8;
+        }
+
+        .small-box.bg-danger {
+            border-top-color: #dc3545;
+            background-color: #fff !important;
+            color: #dc3545;
+        }
+
+        .small-box.bg-warning {
+            border-top-color: #ffc107;
+            background-color: #fff !important;
+            color: #ffc107;
+        }
+
+        .small-box.bg-success {
+            border-top-color: #28a745;
+            background-color: #fff !important;
+            color: #28a745;
+        }
+
+        /* Icônes */
+        .small-box .icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 70px;
+            opacity: 0.2;
+            transition: all 0.3s linear;
+        }
+
+        /* Section de recherche */
+        .card {
+            margin-top: 20px;
+            border-radius: 20px;
+            background-color:white ;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* Barre de recherche */
+        .form-control {
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            font-size: 1rem;
+        }
+
+        /* Séparateur */
+        .row.mb-2 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 20px !important;
+        }
+
+        /* Adaptation responsive */
+        @media (max-width: 768px) {
+            .small-box {
+                margin-bottom: 15px;
+            }
+
+            .small-box h3 {
+                font-size: 2rem;
+            }
+
+            .small-box .icon {
+                font-size: 50px;
+            }
+        }
+    </style>
+    
+
+    <section class="content" style="margin-top: 0;">
         <div class="container-fluid">
             <?php displayFlashMessages(); ?>
-            
+
             <!-- Statistiques des incidents -->
-            <div class="row">
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-info">
+            <div class="row" style="display: flex;justify-content: space-between;">
+                <div class="col-lg-3 col-6"style="width: 23%;">
+                    <div class="small-box bg-info" >
                         <div class="inner">
                             <h3><?php echo $stats['total_incidents']; ?></h3>
                             <p>Total des incidents</p>
@@ -248,11 +357,13 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </div>
-                
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-danger">
+
+                <div class="col-lg-3 col-6"style="width: 23%;">
+                    <div class="small-box bg-danger" >
                         <div class="inner">
-                            <h3><?php echo $stats['high_severity']; ?></h3>
+                            <h3>
+                                <?php echo isset($stats['high_severity']) ? round($stats['high_severity'], 1) : 0; ?>
+                            </h3>
                             <p>Incidents critiques</p>
                         </div>
                         <div class="icon">
@@ -260,11 +371,12 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </div>
-                
-                <div class="col-lg-3 col-6">
+
+                <div class="col-lg-3 col-6"style="width: 23%;">
                     <div class="small-box bg-warning">
                         <div class="inner">
-                            <h3><?php echo $stats['pending_incidents']; ?></h3>
+                            <h3>
+                                <?php echo isset($stats['pending_incidents']) ? round($stats['pending_incidents'], 1) : 0; ?></h3>
                             <p>Incidents en attente</p>
                         </div>
                         <div class="icon">
@@ -272,11 +384,12 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </div>
-                
-                <div class="col-lg-3 col-6">
+
+                <div class="col-lg-3 col-6"style="width: 23%;">
                     <div class="small-box bg-success">
                         <div class="inner">
-                            <h3><?php echo $stats['reviewed_incidents']; ?></h3>
+                            <h3>
+                                <?php echo isset($stats['reviewed_incidents']) ? round($stats['reviewed_incidents'], 1) : 0; ?></h3>
                             <p>Incidents traités</p>
                         </div>
                         <div class="icon">
@@ -285,7 +398,7 @@ include 'includes/header.php';
                     </div>
                 </div>
             </div>
-            
+
             <!-- Filtres -->
             <div class="card">
                 <div class="card-header">
@@ -312,7 +425,7 @@ include 'includes/header.php';
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="student_id">Étudiant</label>
@@ -326,7 +439,7 @@ include 'includes/header.php';
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="severity">Sévérité</label>
@@ -338,7 +451,7 @@ include 'includes/header.php';
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="incident_type">Type d'incident</label>
@@ -353,7 +466,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-3">
                                 <div class="form-group">
@@ -361,14 +474,14 @@ include 'includes/header.php';
                                     <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo $startDate; ?>">
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="end_date">Date de fin</label>
                                     <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $endDate; ?>">
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="status">Statut</label>
@@ -380,7 +493,7 @@ include 'includes/header.php';
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-3">
                                 <div class="form-group" style="margin-top: 32px;">
                                     <button type="submit" class="btn btn-primary">
@@ -395,7 +508,7 @@ include 'includes/header.php';
                     </form>
                 </div>
             </div>
-            
+
             <!-- Liste des incidents -->
             <div class="card">
                 <div class="card-header">
@@ -443,7 +556,7 @@ include 'includes/header.php';
                                                 </button>
                                             </td>
                                         </tr>
-                                        
+
                                         <!-- Modal de détails et de mise à jour -->
                                         <div class="modal fade" id="incidentModal<?php echo $incident['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="incidentModalLabel<?php echo $incident['id']; ?>" aria-hidden="true">
                                             <div class="modal-dialog modal-lg" role="document">
@@ -513,13 +626,13 @@ include 'includes/header.php';
                                                                 </table>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <hr>
-                                                        
+
                                                         <form method="POST" action="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query($_GET); ?>">
                                                             <input type="hidden" name="action" value="update_status">
                                                             <input type="hidden" name="incident_id" value="<?php echo $incident['id']; ?>">
-                                                            
+
                                                             <div class="form-group">
                                                                 <label for="status<?php echo $incident['id']; ?>">Mettre à jour le statut</label>
                                                                 <select class="form-control" id="status<?php echo $incident['id']; ?>" name="status">
@@ -528,12 +641,12 @@ include 'includes/header.php';
                                                                     <option value="dismissed" <?php echo $incident['status'] === 'dismissed' ? 'selected' : ''; ?>>Ignoré</option>
                                                                 </select>
                                                             </div>
-                                                            
+
                                                             <div class="form-group">
                                                                 <label for="notes<?php echo $incident['id']; ?>">Notes</label>
                                                                 <textarea class="form-control" id="notes<?php echo $incident['id']; ?>" name="notes" rows="3"><?php echo htmlspecialchars($incident['notes']); ?></textarea>
                                                             </div>
-                                                            
+
                                                             <button type="submit" class="btn btn-primary">
                                                                 <i class="fas fa-save"></i> Enregistrer les modifications
                                                             </button>
@@ -546,7 +659,7 @@ include 'includes/header.php';
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <!-- Pagination -->
                         <?php if ($totalPages > 1): ?>
                             <div class="pagination-container">
@@ -558,7 +671,7 @@ include 'includes/header.php';
                                             </a>
                                         </li>
                                     <?php endif; ?>
-                                    
+
                                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                         <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
                                             <a class="page-link" href="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, ['page' => $i])); ?>">
@@ -566,7 +679,7 @@ include 'includes/header.php';
                                             </a>
                                         </li>
                                     <?php endfor; ?>
-                                    
+
                                     <?php if ($page < $totalPages): ?>
                                         <li class="page-item">
                                             <a class="page-link" href="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
@@ -589,28 +702,27 @@ include 'includes/header.php';
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser les sélecteurs avec recherche
-    $('.form-control').select2({
-        width: '100%',
-        placeholder: 'Sélectionner une option'
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les sélecteurs avec recherche
+        $('.form-control').select2({
+            width: '100%',
+            placeholder: 'Sélectionner une option'
+        });
+
+        // Validation des dates
+        document.getElementById('filter-form').addEventListener('submit', function(e) {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+
+            if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+                e.preventDefault();
+                alert('La date de début doit être antérieure à la date de fin.');
+            }
+        });
     });
-    
-    // Validation des dates
-    document.getElementById('filter-form').addEventListener('submit', function(e) {
-        const startDate = document.getElementById('start_date').value;
-        const endDate = document.getElementById('end_date').value;
-        
-        if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-            e.preventDefault();
-            alert('La date de début doit être antérieure à la date de fin.');
-        }
-    });
-});
 </script>
 
 <?php
-include 'includes/footer.php';
 
 /**
  * Retourne une étiquette lisible pour un type d'incident
@@ -618,7 +730,8 @@ include 'includes/footer.php';
  * @param string $type Type d'incident
  * @return string Étiquette lisible
  */
-function getIncidentTypeLabel($type) {
+function getIncidentTypeLabel($type)
+{
     switch ($type) {
         case 'face_not_detected':
             return 'Visage non détecté';
@@ -645,7 +758,8 @@ function getIncidentTypeLabel($type) {
  * @param string $severity Sévérité de l'incident
  * @return string Classe CSS
  */
-function getSeverityClass($severity) {
+function getSeverityClass($severity)
+{
     switch ($severity) {
         case 'high':
             return 'danger';
@@ -664,7 +778,8 @@ function getSeverityClass($severity) {
  * @param string $severity Sévérité de l'incident
  * @return string Étiquette lisible
  */
-function getSeverityLabel($severity) {
+function getSeverityLabel($severity)
+{
     switch ($severity) {
         case 'high':
             return 'Critique';
@@ -683,7 +798,8 @@ function getSeverityLabel($severity) {
  * @param string $status Statut de l'incident
  * @return string Classe CSS
  */
-function getStatusClass($status) {
+function getStatusClass($status)
+{
     switch ($status) {
         case 'pending':
             return 'warning';
@@ -702,7 +818,8 @@ function getStatusClass($status) {
  * @param string $status Statut de l'incident
  * @return string Étiquette lisible
  */
-function getStatusLabel($status) {
+function getStatusLabel($status)
+{
     switch ($status) {
         case 'pending':
             return 'En attente';
@@ -721,7 +838,8 @@ function getStatusLabel($status) {
  * @param string $datetime Date et heure au format MySQL
  * @return string Date et heure formatées
  */
-function formatDateTime($datetime) {
+function formatDateTime($datetime)
+{
     $date = new DateTime($datetime);
     return $date->format('d/m/Y H:i:s');
 }
