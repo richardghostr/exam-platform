@@ -2,30 +2,32 @@
 require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 
-// Vérifier si l'utilisateur est connecté
-if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Non autorisé']);
-    exit();
-}
 
-// Vérifier si la requête est en POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
-    exit();
-}
+// // Vérifier si l'utilisateur est connecté
+// if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
+//     header('Content-Type: application/json');
+//     echo json_encode(['success' => false, 'message' => 'Non autorisé']);
+//     exit();
+// }
+
+// // Vérifier si la requête est en POST
+// if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+//     header('Content-Type: application/json');
+//     echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+//     exit();
+// }
 
 // Récupérer les données JSON
 $json_data = file_get_contents('php://input');
 $data = json_decode($json_data, true);
 
-if (!$data || !isset($data['attempt_id']) || !isset($data['incident_type'])) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Données invalides']);
-    exit();
-}
+// if (!$data || !isset($data['attempt_id']) || !isset($data['incident_type'])) {
+//     header('Content-Type: application/json');
+//     echo json_encode(['success' => false, 'message' => 'Données invalides']);
+//     exit();
+// }
 
 $attempt_id = intval($data['attempt_id']);
 $incident_type = $data['incident_type'];
@@ -52,7 +54,7 @@ $conn->begin_transaction();
 try {
     // Enregistrer l'incident
     $stmt = $conn->prepare("INSERT INTO proctoring_incidents 
-                            (attempt_id, student_id, incident_type, description, severity, timestamp, created_at) 
+                            (attempt_id, user_id, incident_type, description, severity, timestamp, created_at) 
                             VALUES (?, ?, ?, ?, ?, ?, NOW())");
     $stmt->bind_param("iissss", $attempt_id, $student_id, $incident_type, $description, $severity, $timestamp);
     

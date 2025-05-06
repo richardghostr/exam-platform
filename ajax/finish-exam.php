@@ -4,28 +4,28 @@ require_once '../includes/db.php';
 require_once '../student/includes/auth.php';
 
 // Vérifier si l'utilisateur est connecté
-if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Non autorisé']);
-    exit();
-}
+// if (!isLoggedIn() || $_SESSION['user_type'] !== 'student') {
+//     header('Content-Type: application/json');
+//     echo json_encode(['success' => false, 'message' => 'Non autorisé']);
+//     exit();
+// }
 
-// Vérifier si la requête est en POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
-    exit();
-}
+// // Vérifier si la requête est en POST
+// if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+//     header('Content-Type: application/json');
+//     echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+//     exit();
+// }
 
 // Récupérer les données JSON
 $json_data = file_get_contents('php://input');
 $data = json_decode($json_data, true);
 
-if (!$data || !isset($data['session_id'])) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Données invalides']);
-    exit();
-}
+// if (!$data || !isset($data['session_id'])) {
+//     header('Content-Type: application/json');
+//     echo json_encode(['success' => false, 'message' => 'Données invalides']);
+//     exit();
+// }
 
 $session_id = intval($data['session_id']);
 $student_id = $_SESSION['user_id'];
@@ -102,7 +102,7 @@ try {
     }
     
     // Enregistrer les incidents de surveillance non résolus
-    $stmt = $conn->prepare("UPDATE proctoring_incidents SET resolved = 0, reviewed = 0 WHERE session_id = ? AND resolved IS NULL");
+    $stmt = $conn->prepare("UPDATE proctoring_incidents SET resolved = 0, reviewed = 0 WHERE attempt_id = ? AND resolved IS NULL");
     $stmt->bind_param("i", $session_id);
     $stmt->execute();
     

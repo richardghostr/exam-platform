@@ -4,7 +4,6 @@ require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-// Vérifier si l'utilisateur est connecté et est un étudiant
 
 // Récupérer l'ID de l'étudiant
 $studentId = $_SESSION['user_id'];
@@ -130,14 +129,13 @@ if ($remainingTime <= 0) {
     ");
     $updateAttemptQuery->bind_param("i", $attemptId);
     $updateAttemptQuery->execute();
-
+    
     header('Location: exam-result.php?attempt_id=' . $attemptId);
     exit();
 }
 
 // Récupérer les questions de l'examen
-$questionsQuery = $conn->prepare(
-    "
+$questionsQuery = $conn->prepare("
     SELECT q.* 
     FROM questions q 
     WHERE q.exam_id = ? 
@@ -174,7 +172,6 @@ $optionsQuery = $conn->prepare("
     FROM question_options qo
     JOIN questions q ON qo.question_id = q.id
     WHERE q.exam_id = ?
-    
 ");
 $optionsQuery->bind_param("i", $examId);
 $optionsQuery->execute();
@@ -203,20 +200,18 @@ $pageTitle = "Passer l'examen: " . $exam['title'];
 $hideNavigation = true; // Cacher la navigation pendant l'examen
 $extraCss = ['../assets/css/exam.css'];
 $extraJs = ['../assets/js/exam.js'];
+
+// Ajouter les fichiers CSS et JS pour la surveillance
 if ($proctoringEnabled) {
+    $extraCss[] = '../assets/css/proctoring.css';
     $extraJs[] = '../assets/js/face-api.min.js';
     $extraJs[] = '../assets/js/webgazer.js';
-    $extraJs[] = '../assets/js/proctoring.js';
+    $extraJs[] = '../assets/js/proctoring-system.js';
 }
 
 include 'includes/header.php';
 ?>
-<!-- Face-API.js -->
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
-<!-- WebGazer.js -->
-<script src="https://cdn.jsdelivr.net/npm/webgazer@2.1.0/dist/webgazer.min.js"></script>
+
 <div class="exam-container">
     <!-- Barre d'en-tête de l'examen -->
     <div class="exam-header">
@@ -230,7 +225,7 @@ include 'includes/header.php';
                 <span class="duration"><?php echo $exam['duration']; ?> minutes</span>
             </div>
         </div>
-
+        
         <div class="exam-timer" id="examTimer" data-remaining="<?php echo $remainingTime; ?>">
             <div class="timer-icon">
                 <i class="fas fa-clock"></i>
@@ -240,38 +235,60 @@ include 'includes/header.php';
             </div>
         </div>
     </div>
-
+    
     <?php if ($proctoringEnabled): ?>
-        <!-- Barre de surveillance -->
-        <div class="proctoring-bar">
-            <div class="proctoring-status">
-                <i class="fas fa-shield-alt"></i> Surveillance active
+    <!-- Barre de surveillance -->
+    <div class="proctoring-bar">
+        <div class="proctoring-status">
+            <i class="fas fa-shield-alt"></i> Surveillance active
+        </div>
+        <div class="proctoring-warnings" id="proctoringWarnings">
+            <span class="warning-count"><?php echo count($incidents); ?></span> incidents détectés
+        </div>
+        <div class="proctoring-toggle">
+            <button id="toggleProctoring" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Conteneur de surveillance -->
+    <div class="proctoring-container" id="proctoringContainer">
+        <div class="proctoring-grid">
+            <div class="webcam-container">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="canvas" class="overlay"></canvas>
+                <canvas id="gaze-canvas" class="overlay"></canvas>
             </div>
-            <div class="proctoring-warnings" id="proctoringWarnings">
-                <span class="warning-count"><?php echo count($incidents); ?></span> incidents détectés
-            </div>
-            <div class="proctoring-toggle">
-                <button id="toggleProctoring" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-chevron-down"></i>
-                </button>
+            
+            <div class="proctoring-status-container">
+                <div id="proctoring-status">
+                    <div class="status-item" id="face-status">
+                        <i class="fas fa-spinner fa-spin"></i> Reconnaissance faciale: Initialisation...
+                    </div>
+                    <div class="status-item" id="gaze-status">
+                        <i class="fas fa-spinner fa-spin"></i> Suivi oculaire: Initialisation...
+                    </div>
+                    <div class="status-item" id="audio-status">
+                        <i class="fas fa-spinner fa-spin"></i> Surveillance audio: Initialisation...
+                    </div>
+                    <div class="status-item" id="screen-status">
+                        <i class="fas fa-spinner fa-spin"></i> Surveillance d'écran: Initialisation...
+                    </div>
+                </div>
+                
+                <!-- Indicateur de volume audio -->
+                <div class="audio-volume">
+                    <div class="volume-label">Niveau audio:</div>
+                    <div class="volume-bar">
+                        <div id="audio-volume-indicator"></div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- Conteneur de surveillance -->
-        <div class="proctoring-container" id="proctoringContainer">
-            <div class="proctoring-grid">
-                <div class="webcam-container">
-                    <video id="webcam" autoplay playsinline muted></video>
-                    <canvas id="canvas" class="overlay"></canvas>
-                    <canvas id="gaze-canvas" class="overlay"></canvas>
-                </div>
-
-                <div class="proctoring-status-container">
-                </div>
-            </div>
-        </div>
+    </div>
     <?php endif; ?>
-
+    
     <div class="exam-body">
         <div class="questions-navigation">
             <div class="navigation-header">
@@ -280,17 +297,17 @@ include 'includes/header.php';
                     <span id="answeredCount"><?php echo count($answers); ?></span> / <?php echo count($questions); ?> répondues
                 </div>
             </div>
-
+            
             <div class="questions-list" id="questionsList">
                 <?php foreach ($questions as $index => $question): ?>
-                    <button class="question-button <?php echo isset($answers[$question['id']]) ? 'answered' : ''; ?>"
-                        data-question-id="<?php echo $question['id']; ?>"
-                        data-index="<?php echo $index; ?>">
+                    <button class="question-button <?php echo isset($answers[$question['id']]) ? 'answered' : ''; ?>" 
+                            data-question-id="<?php echo $question['id']; ?>"
+                            data-index="<?php echo $index; ?>">
                         <?php echo $index + 1; ?>
                     </button>
                 <?php endforeach; ?>
             </div>
-
+            
             <div class="navigation-actions">
                 <button id="prevQuestion" class="nav-button" disabled>
                     <i class="fas fa-chevron-left"></i> Précédent
@@ -299,14 +316,14 @@ include 'includes/header.php';
                     Suivant <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
-
+            
             <div class="submit-section">
                 <button id="submitExam" class="btn btn-primary btn-block">
                     <i class="fas fa-check-circle"></i> Terminer l'examen
                 </button>
             </div>
         </div>
-
+        
         <div class="question-container" id="questionContainer" data-attempt-id="<?php echo $attemptId; ?>">
             <?php foreach ($questions as $index => $question): ?>
                 <div class="question-slide" id="question-<?php echo $question['id']; ?>" data-index="<?php echo $index; ?>" style="display: <?php echo $index === 0 ? 'block' : 'none'; ?>;">
@@ -314,105 +331,105 @@ include 'includes/header.php';
                         <div class="question-number">Question <?php echo $index + 1; ?> sur <?php echo count($questions); ?></div>
                         <div class="question-points"><?php echo isset($question['points']) ? $question['points'] : 1; ?> points</div>
                     </div>
-
+                    
                     <div class="question-content">
                         <div class="question-text"><?php echo nl2br(htmlspecialchars($question['question_text'])); ?></div>
-
+                        
                         <?php if (!empty($question['question_image'])): ?>
-                            <div class="question-image">
-                                <img src="../uploads/questions/<?php echo htmlspecialchars($question['question_image']); ?>" alt="Image de la question">
-                            </div>
+                        <div class="question-image">
+                            <img src="../uploads/questions/<?php echo htmlspecialchars($question['question_image']); ?>" alt="Image de la question">
+                        </div>
                         <?php endif; ?>
-
+                        
                         <div class="question-answer">
                             <?php if ($question['question_type'] === 'multiple_choice'): ?>
                                 <?php if (isset($options[$question['id']])): ?>
-                                    <div class="options-list multiple-choice">
-                                        <?php foreach ($options[$question['id']] as $option): ?>
-                                            <?php
-                                            $selectedOptions = isset($answers[$question['id']]) ? explode(',', $answers[$question['id']]['selected_options']) : [];
-                                            ?>
-                                            <div class="option-item">
-                                                <label class="option-label">
-                                                    <input type="checkbox" name="question_<?php echo $question['id']; ?>[]"
-                                                        value="<?php echo $option['id']; ?>"
-                                                        class="option-input"
-                                                        data-question-id="<?php echo $question['id']; ?>"
-                                                        <?php echo in_array($option['id'], $selectedOptions) ? 'checked' : ''; ?>>
-                                                    <span class="option-checkbox"></span>
-                                                    <span class="option-text"><?php echo htmlspecialchars($option['option_text']); ?></span>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
+                                <div class="options-list multiple-choice">
+                                    <?php foreach ($options[$question['id']] as $option): ?>
+                                        <?php 
+                                        $selectedOptions = isset($answers[$question['id']]) ? explode(',', $answers[$question['id']]['selected_options']) : [];
+                                        ?>
+                                        <div class="option-item">
+                                            <label class="option-label">
+                                                <input type="checkbox" name="question_<?php echo $question['id']; ?>[]" 
+                                                       value="<?php echo $option['id']; ?>"
+                                                       class="option-input"
+                                                       data-question-id="<?php echo $question['id']; ?>"
+                                                       <?php echo in_array($option['id'], $selectedOptions) ? 'checked' : ''; ?>>
+                                                <span class="option-checkbox"></span>
+                                                <span class="option-text"><?php echo htmlspecialchars($option['option_text']); ?></span>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
                                 <?php endif; ?>
-
+                            
                             <?php elseif ($question['question_type'] === 'single_choice'): ?>
                                 <?php if (isset($options[$question['id']])): ?>
-                                    <?php
-                                    $selectedOption = isset($answers[$question['id']]) ? $answers[$question['id']]['selected_options'] : '';
-                                    ?>
-                                    <div class="options-list single-choice">
-                                        <?php foreach ($options[$question['id']] as $option): ?>
-                                            <div class="option-item">
-                                                <label class="option-label">
-                                                    <input type="radio" name="question_<?php echo $question['id']; ?>"
-                                                        value="<?php echo $option['id']; ?>"
-                                                        class="option-input"
-                                                        data-question-id="<?php echo $question['id']; ?>"
-                                                        <?php echo $selectedOption == $option['id'] ? 'checked' : ''; ?>>
-                                                    <span class="option-radio"></span>
-                                                    <span class="option-text"><?php echo htmlspecialchars($option['option_text']); ?></span>
-                                                </label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
+                                <?php 
+                                $selectedOption = isset($answers[$question['id']]) ? $answers[$question['id']]['selected_options'] : '';
+                                ?>
+                                <div class="options-list single-choice">
+                                    <?php foreach ($options[$question['id']] as $option): ?>
+                                        <div class="option-item">
+                                            <label class="option-label">
+                                                <input type="radio" name="question_<?php echo $question['id']; ?>" 
+                                                       value="<?php echo $option['id']; ?>"
+                                                       class="option-input"
+                                                       data-question-id="<?php echo $question['id']; ?>"
+                                                       <?php echo $selectedOption == $option['id'] ? 'checked' : ''; ?>>
+                                                <span class="option-radio"></span>
+                                                <span class="option-text"><?php echo htmlspecialchars($option['option_text']); ?></span>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
                                 <?php endif; ?>
-
+                                
                             <?php elseif ($question['question_type'] === 'true_false'): ?>
                                 <?php $selectedOption = isset($answers[$question['id']]) ? $answers[$question['id']]['selected_options'] : ''; ?>
                                 <div class="options-list true-false">
                                     <div class="option-item">
                                         <label class="option-label">
-                                            <input type="radio" name="question_<?php echo $question['id']; ?>"
-                                                value="true"
-                                                class="option-input"
-                                                data-question-id="<?php echo $question['id']; ?>"
-                                                <?php echo $selectedOption === 'true' ? 'checked' : ''; ?>>
+                                            <input type="radio" name="question_<?php echo $question['id']; ?>" 
+                                                   value="true"
+                                                   class="option-input"
+                                                   data-question-id="<?php echo $question['id']; ?>"
+                                                   <?php echo $selectedOption === 'true' ? 'checked' : ''; ?>>
                                             <span class="option-radio"></span>
                                             <span class="option-text">Vrai</span>
                                         </label>
                                     </div>
                                     <div class="option-item">
                                         <label class="option-label">
-                                            <input type="radio" name="question_<?php echo $question['id']; ?>"
-                                                value="false"
-                                                class="option-input"
-                                                data-question-id="<?php echo $question['id']; ?>"
-                                                <?php echo $selectedOption === 'false' ? 'checked' : ''; ?>>
+                                            <input type="radio" name="question_<?php echo $question['id']; ?>" 
+                                                   value="false"
+                                                   class="option-input"
+                                                   data-question-id="<?php echo $question['id']; ?>"
+                                                   <?php echo $selectedOption === 'false' ? 'checked' : ''; ?>>
                                             <span class="option-radio"></span>
                                             <span class="option-text">Faux</span>
                                         </label>
                                     </div>
                                 </div>
-
+                                
                             <?php elseif ($question['question_type'] === 'essay' || $question['question_type'] === 'short_answer'): ?>
                                 <?php $answerText = isset($answers[$question['id']]) ? $answers[$question['id']]['answer_text'] : ''; ?>
                                 <div class="essay-answer">
-                                    <textarea name="question_<?php echo $question['id']; ?>"
-                                        class="essay-input"
-                                        data-question-id="<?php echo $question['id']; ?>"
-                                        placeholder="Saisissez votre réponse ici..."
-                                        rows="<?php echo $question['question_type'] === 'essay' ? '8' : '3'; ?>"><?php echo htmlspecialchars($answerText); ?></textarea>
+                                    <textarea name="question_<?php echo $question['id']; ?>" 
+                                              class="essay-input"
+                                              data-question-id="<?php echo $question['id']; ?>"
+                                              placeholder="Saisissez votre réponse ici..."
+                                              rows="<?php echo $question['question_type'] === 'essay' ? '8' : '3'; ?>"><?php echo htmlspecialchars($answerText); ?></textarea>
                                 </div>
                             <?php endif; ?>
                         </div>
                     </div>
-
+                    
                     <div class="question-footer">
                         <div class="save-status" id="saveStatus-<?php echo $question['id']; ?>">
                             <?php if (isset($answers[$question['id']])): ?>
-                                <i class="fas fa-check-circle"></i> Réponse enregistrée
+                            <i class="fas fa-check-circle"></i> Réponse enregistrée
                             <?php endif; ?>
                         </div>
                         <div class="question-navigation">
@@ -421,7 +438,7 @@ include 'includes/header.php';
                                     <i class="fas fa-chevron-left"></i> Question précédente
                                 </button>
                             <?php endif; ?>
-
+                            
                             <?php if ($index < count($questions) - 1): ?>
                                 <button class="btn btn-primary next-btn" data-index="<?php echo $index + 1; ?>">
                                     Question suivante <i class="fas fa-chevron-right"></i>
@@ -449,7 +466,7 @@ include 'includes/header.php';
         <div class="modal-body">
             <div class="exam-summary">
                 <p>Vous êtes sur le point de terminer l'examen. Veuillez vérifier votre progression :</p>
-
+                
                 <div class="summary-stats">
                     <div class="stat-item">
                         <div class="stat-value" id="totalQuestions"><?php echo count($questions); ?></div>
@@ -464,7 +481,7 @@ include 'includes/header.php';
                         <div class="stat-label">Questions sans réponse</div>
                     </div>
                 </div>
-
+                
                 <div class="warning-message" id="unansweredWarning" <?php echo count($questions) - count($answers) > 0 ? '' : 'style="display: none;"'; ?>>
                     <i class="fas fa-exclamation-triangle"></i>
                     <span>Attention : Vous avez des questions sans réponse. Êtes-vous sûr de vouloir terminer l'examen ?</span>
@@ -479,1248 +496,768 @@ include 'includes/header.php';
 </div>
 
 <?php if ($proctoringEnabled): ?>
-    <!-- Modal de calibration du suivi oculaire -->
-    <div class="proctoring-modal" id="calibration-modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Calibration du suivi oculaire</h2>
-            </div>
-            <div class="modal-body">
-                <p>Pour une surveillance précise, veuillez suivre le point qui apparaîtra à l'écran.</p>
-                <p>Regardez fixement chaque point jusqu'à ce qu'il disparaisse.</p>
-                <div id="calibration-points"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" id="start-calibration">Commencer la calibration</button>
-            </div>
+<!-- Modal de calibration du suivi oculaire -->
+<div class="proctoring-modal" id="calibration-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Calibration du suivi oculaire</h2>
+        </div>
+        <div class="modal-body">
+            <p>Pour une surveillance précise, veuillez suivre le point qui apparaîtra à l'écran.</p>
+            <p>Regardez fixement chaque point jusqu'à ce qu'il disparaisse.</p>
+            <div id="calibration-points"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="start-calibration">Commencer la calibration</button>
         </div>
     </div>
+</div>
 
-    <!-- Indicateur de chargement des modèles -->
-    <div class="proctoring-loading" id="proctoring-loading" style="display: none;">
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <p>Chargement des systèmes de surveillance...</p>
-        </div>
+<!-- Indicateur de chargement des modèles -->
+<div class="proctoring-loading" id="proctoring-loading" style="display: none;">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <p>Chargement des systèmes de surveillance...</p>
     </div>
+</div>
 
-    <!-- Point de calibration pour le suivi oculaire -->
-    <div id="calibration-point" class="calibration-point" style="display: none;"></div>
+<!-- Point de calibration pour le suivi oculaire -->
+<div id="calibration-point" class="calibration-point" style="display: none;"></div>
 
-    <!-- Notifications de surveillance -->
-    <div id="proctoring-notifications" class="proctoring-notifications"></div>
+<!-- Notifications de surveillance -->
+<div id="proctoring-notifications" class="proctoring-notifications"></div>
 <?php endif; ?>
 
 <!-- Script pour gérer l'examen -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Variables globales
-        const attemptId = <?php echo $attemptId; ?>;
-        const examId = <?php echo $examId; ?>;
-        const questions = <?php echo json_encode(array_column($questions, 'id')); ?>;
-        const proctoringEnabled = <?php echo $proctoringEnabled ? 'true' : 'false'; ?>;
-        let currentQuestionIndex = 0;
-        let answeredQuestions = {};
-        let saveTimeout;
-        let isSubmitting = false;
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        const warningsContainer = document.getElementById('proctoringWarnings');
-        let warningsCount = 0;
-        let stream = null;
-        let faceCheckInterval = null;
-        let lastCaptureTime = 0;
-        const captureInterval = 10000;
-        // Configuration globale
-        const FACE_MODELS_PATH = "../assets/models"; // Chemin vers les modèles Face-API.js
-        const FACE_MATCH_THRESHOLD = 0.6; // Seuil de correspondance faciale (0.6 est un bon compromis)
-        const FACE_CHECK_INTERVAL = 3000; // Vérification du visage toutes les 3 secondes
-        const GAZE_OUT_OF_BOUNDS_THRESHOLD = 3000; // 3 secondes de regard hors zone
-        const AUDIO_CHECK_INTERVAL = 1000; // Vérification audio toutes les secondes
-        const AUDIO_THRESHOLD = 0.2; // Seuil de volume audio (0-1)
-        const CONSECUTIVE_AUDIO_VIOLATIONS_THRESHOLD = 3; // Nombre de violations audio consécutives avant signalement
-        const INACTIVITY_THRESHOLD = 30000; // 30 secondes d'inactivité avant signalement
-        const FACE_DETECTION_CONFIDENCE = 0.5; // Seuil de confiance pour la détection faciale
-
-        // Variables globales
-        let faceDetectionInterval;
-        let gazeCheckInterval;
-        let audioCheckInterval;
-        let screenCheckInterval;
-        let referenceDescriptor = null;
-        let lastGazeCheck = Date.now();
-        let gazeOutOfBoundsTime = 0;
-        let consecutiveAudioViolations = 0;
-        let visibilityChangeCount = 0;
-        let lastActiveTime = Date.now();
-        let incidentCount = 0;
-        let calibrationComplete = false;
-        let proctoringActive = false;
-        let audioContext = null;
-        let audioAnalyser = null;
-        let audioDataArray = null;
-        let audioStream = null;
-        let webgazerInitialized = false; // 10 secondes entre chaque capture
-
-        // Demander l'accès à la webcam
-        navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false
-            })
-            .then(function(mediaStream) {
-                stream = mediaStream;
-                video.srcObject = mediaStream;
-
-                // Configurer la taille du canvas
-                video.addEventListener('loadedmetadata', function() {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                });
-
-                // Démarrer la vérification du visage
-                faceCheckInterval = setInterval(checkFace, 2000);
-            })
-            .catch(function(err) {
-                console.error("Erreur d'accès à la webcam: ", err);
-                reportProctoringIncident('webcam_access_denied', 'L\'étudiant a refusé l\'accès à la webcam');
+document.addEventListener('DOMContentLoaded', function() {
+    // Variables globales
+    const attemptId = <?php echo $attemptId; ?>;
+    const examId = <?php echo $examId; ?>;
+    const questions = <?php echo json_encode(array_column($questions, 'id')); ?>;
+    const proctoringEnabled = <?php echo $proctoringEnabled ? 'true' : 'false'; ?>;
+    let currentQuestionIndex = 0;
+    let answeredQuestions = {};
+    let saveTimeout;
+    let isSubmitting = false;
+    
+    // Initialiser le compteur de questions répondues
+    function initAnsweredQuestions() {
+        let count = 0;
+        <?php foreach ($answers as $questionId => $answer): ?>
+        answeredQuestions[<?php echo $questionId; ?>] = true;
+        count++;
+        <?php endforeach; ?>
+        
+        document.getElementById('answeredCount').textContent = count;
+        updateFinishButtonState();
+    }
+    
+    // Mettre à jour l'état du bouton de fin d'examen
+    function updateFinishButtonState() {
+        const answeredCount = Object.keys(answeredQuestions).length;
+        
+        if (document.getElementById('answeredQuestionsCount')) {
+            document.getElementById('answeredQuestionsCount').textContent = answeredCount;
+        }
+        
+        if (document.getElementById('unansweredQuestionsCount')) {
+            document.getElementById('unansweredQuestionsCount').textContent = questions.length - answeredCount;
+        }
+        
+        if (document.getElementById('unansweredWarning')) {
+            if (answeredCount < questions.length) {
+                document.getElementById('unansweredWarning').style.display = 'flex';
+            } else {
+                document.getElementById('unansweredWarning').style.display = 'none';
+            }
+        }
+    }
+    
+    // Initialiser le minuteur
+    function initTimer() {
+        let remainingTime = parseInt(document.getElementById('examTimer').dataset.remaining);
+        
+        function updateTimer() {
+            const hours = Math.floor(remainingTime / 3600);
+            const minutes = Math.floor((remainingTime % 3600) / 60);
+            const seconds = remainingTime % 60;
+            
+            document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+            
+            if (remainingTime <= 300) { // 5 minutes remaining
+                document.getElementById('examTimer').classList.add('warning');
+            }
+            
+            if (remainingTime <= 60) { // 1 minute remaining
+                document.getElementById('examTimer').classList.add('danger');
+            }
+            
+            if (remainingTime <= 0) {
+                clearInterval(timerInterval);
+                finishExam(true);
+            }
+            
+            remainingTime--;
+        }
+        
+        updateTimer();
+        const timerInterval = setInterval(updateTimer, 1000);
+    }
+    
+    // Afficher une question
+    function showQuestion(index) {
+        // Cacher toutes les questions
+        document.querySelectorAll('.question-slide').forEach(slide => {
+            slide.style.display = 'none';
+        });
+        
+        // Afficher la question demandée
+        const questionElement = document.getElementById(`question-${questions[index]}`);
+        if (questionElement) {
+            questionElement.style.display = 'block';
+            
+            // Mettre à jour l'index courant
+            currentQuestionIndex = index;
+            
+            // Mettre à jour les boutons de navigation
+            document.getElementById('prevQuestion').disabled = index === 0;
+            document.getElementById('nextQuestion').disabled = index === questions.length - 1;
+            
+            // Mettre à jour la navigation des questions
+            document.querySelectorAll('.question-button').forEach(btn => {
+                btn.classList.remove('current');
             });
-
-        // Vérifier la présence du visage
-        function checkFace() {
-            if (!stream) return;
-
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
-            // Envoyer l'image pour analyse faciale (simulation)
-            const now = Date.now();
-            if (now - lastCaptureTime > captureInterval) {
-                lastCaptureTime = now;
-                sendImageForAnalysis(imageData);
-            }
-
-            // Simulation de détection (à remplacer par une vraie API de détection faciale)
-            const randomValue = Math.random();
-            if (randomValue > 0.95) { // 5% de chance de détecter un problème (pour la démonstration)
-                reportProctoringIncident('face_not_detected', 'Visage non détecté dans le champ de la caméra');
-            } else if (randomValue > 0.90) {
-                reportProctoringIncident('multiple_faces', 'Plusieurs visages détectés');
+            
+            const currentButton = document.querySelector(`.question-button[data-index="${index}"]`);
+            if (currentButton) {
+                currentButton.classList.add('current');
+                
+                // Faire défiler la liste des questions si nécessaire
+                currentButton.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
-
-        // Initialiser le compteur de questions répondues
-        function initAnsweredQuestions() {
-            let count = 0;
-            <?php foreach ($answers as $questionId => $answer): ?>
-                answeredQuestions[<?php echo $questionId; ?>] = true;
-                count++;
-            <?php endforeach; ?>
-
-            document.getElementById('answeredCount').textContent = count;
-            updateFinishButtonState();
+    }
+    
+    // Sauvegarder une réponse
+    function saveAnswer(questionId, answer, type) {
+        // Afficher l'indicateur de sauvegarde
+        const saveStatus = document.getElementById(`saveStatus-${questionId}`);
+        if (saveStatus) {
+            saveStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+            saveStatus.style.display = 'block';
         }
-
-        // Mettre à jour l'état du bouton de fin d'examen
-        function updateFinishButtonState() {
-            const answeredCount = Object.keys(answeredQuestions).length;
-
-            if (document.getElementById('answeredQuestionsCount')) {
-                document.getElementById('answeredQuestionsCount').textContent = answeredCount;
-            }
-
-            if (document.getElementById('unansweredQuestionsCount')) {
-                document.getElementById('unansweredQuestionsCount').textContent = questions.length - answeredCount;
-            }
-
-            if (document.getElementById('unansweredWarning')) {
-                if (answeredCount < questions.length) {
-                    document.getElementById('unansweredWarning').style.display = 'flex';
-                } else {
-                    document.getElementById('unansweredWarning').style.display = 'none';
-                }
-            }
+        
+        // Préparer les données
+        const formData = new FormData();
+        formData.append('attempt_id', attemptId);
+        formData.append('question_id', questionId);
+        
+        if (type === 'multiple_choice') {
+            formData.append('selected_options', Array.isArray(answer) ? answer.join(',') : answer);
+        } else if (type === 'single_choice' || type === 'true_false') {
+            formData.append('selected_options', answer);
+        } else if (type === 'essay' || type === 'short_answer') {
+            formData.append('answer_text', answer);
         }
-
-        // Initialiser le minuteur
-        function initTimer() {
-            let remainingTime = parseInt(document.getElementById('examTimer').dataset.remaining);
-
-            function updateTimer() {
-                const hours = Math.floor(remainingTime / 3600);
-                const minutes = Math.floor((remainingTime % 3600) / 60);
-                const seconds = remainingTime % 60;
-
-                document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
-                document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
-                document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
-
-                if (remainingTime <= 300) { // 5 minutes remaining
-                    document.getElementById('examTimer').classList.add('warning');
+        
+        // Envoyer la réponse au serveur
+        fetch('../ajax/save-answer.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (saveStatus) {
+                    saveStatus.innerHTML = '<i class="fas fa-check-circle"></i> Réponse enregistrée';
                 }
-
-                if (remainingTime <= 60) { // 1 minute remaining
-                    document.getElementById('examTimer').classList.add('danger');
+                
+                // Marquer la question comme répondue
+                answeredQuestions[questionId] = true;
+                const questionButton = document.querySelector(`.question-button[data-question-id="${questionId}"]`);
+                if (questionButton) {
+                    questionButton.classList.add('answered');
                 }
-
-                if (remainingTime <= 0) {
-                    clearInterval(timerInterval);
-                    finishExam(true);
+                
+                // Mettre à jour le compteur
+                document.getElementById('answeredCount').textContent = Object.keys(answeredQuestions).length;
+                updateFinishButtonState();
+            } else {
+                if (saveStatus) {
+                    saveStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur d\'enregistrement';
                 }
-
-                remainingTime--;
+                console.error('Erreur lors de l\'enregistrement de la réponse:', data.message);
             }
-
-            updateTimer();
-            const timerInterval = setInterval(updateTimer, 1000);
-        }
-
-        // Afficher une question
-        function showQuestion(index) {
-            // Cacher toutes les questions
-            document.querySelectorAll('.question-slide').forEach(slide => {
-                slide.style.display = 'none';
-            });
-
-            // Afficher la question demandée
-            const questionElement = document.getElementById(`question-${questions[index]}`);
-            if (questionElement) {
-                questionElement.style.display = 'block';
-
-                // Mettre à jour l'index courant
-                currentQuestionIndex = index;
-
-                // Mettre à jour les boutons de navigation
-                document.getElementById('prevQuestion').disabled = index === 0;
-                document.getElementById('nextQuestion').disabled = index === questions.length - 1;
-
-                // Mettre à jour la navigation des questions
-                document.querySelectorAll('.question-button').forEach(btn => {
-                    btn.classList.remove('current');
-                });
-
-                const currentButton = document.querySelector(`.question-button[data-index="${index}"]`);
-                if (currentButton) {
-                    currentButton.classList.add('current');
-
-                    // Faire défiler la liste des questions si nécessaire
-                    currentButton.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest'
-                    });
-                }
-            }
-        }
-
-        // Sauvegarder une réponse
-        function saveAnswer(questionId, answer, type) {
-            // Afficher l'indicateur de sauvegarde
-            const saveStatus = document.getElementById(`saveStatus-${questionId}`);
+            
+            // Cacher le statut après 3 secondes
             if (saveStatus) {
-                saveStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
-                saveStatus.style.display = 'block';
+                setTimeout(() => {
+                    saveStatus.style.opacity = '0';
+                    setTimeout(() => {
+                        saveStatus.style.display = 'none';
+                        saveStatus.style.opacity = '1';
+                    }, 300);
+                }, 3000);
             }
-
-            // Préparer les données
-            const formData = new FormData();
-            formData.append('attempt_id', attemptId);
-            formData.append('question_id', questionId);
-
-            if (type === 'multiple_choice') {
-                formData.append('selected_options', Array.isArray(answer) ? answer.join(',') : answer);
-            } else if (type === 'single_choice' || type === 'true_false') {
-                formData.append('selected_options', answer);
-            } else if (type === 'essay' || type === 'short_answer') {
-                formData.append('answer_text', answer);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (saveStatus) {
+                saveStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur d\'enregistrement';
             }
-
-            // Envoyer la réponse au serveur
-            fetch('../ajax/save-answer.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        if (saveStatus) {
-                            saveStatus.innerHTML = '<i class="fas fa-check-circle"></i> Réponse enregistrée';
-                        }
-
-                        // Marquer la question comme répondue
-                        answeredQuestions[questionId] = true;
-                        const questionButton = document.querySelector(`.question-button[data-question-id="${questionId}"]`);
-                        if (questionButton) {
-                            questionButton.classList.add('answered');
-                        }
-
-                        // Mettre à jour le compteur
-                        document.getElementById('answeredCount').textContent = Object.keys(answeredQuestions).length;
-                        updateFinishButtonState();
-                    } else {
-                        if (saveStatus) {
-                            saveStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur d\'enregistrement';
-                        }
-                        console.error('Erreur lors de l\'enregistrement de la réponse:', data.message);
-                    }
-
-                    // Cacher le statut après 3 secondes
-                    if (saveStatus) {
-                        setTimeout(() => {
-                            saveStatus.style.opacity = '0';
-                            setTimeout(() => {
-                                saveStatus.style.display = 'none';
-                                saveStatus.style.opacity = '1';
-                            }, 300);
-                        }, 3000);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    if (saveStatus) {
-                        saveStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur d\'enregistrement';
-                    }
-                });
-        }
-
-        // Terminer l'examen
-        function finishExam(timeExpired = false) {
-            if (isSubmitting) return;
-            isSubmitting = true;
-
-            // Sauvegarder la dernière réponse
-            clearTimeout(saveTimeout);
-
-            // Afficher un indicateur de chargement
-            const loadingOverlay = document.createElement('div');
-            loadingOverlay.className = 'loading-overlay';
-            loadingOverlay.innerHTML = `
+        });
+    }
+    
+    // Terminer l'examen
+    function finishExam(timeExpired = false) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        
+        // Sauvegarder la dernière réponse
+        clearTimeout(saveTimeout);
+        
+        // Afficher un indicateur de chargement
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = `
             <div class="loading-spinner"></div>
             <div class="loading-message">${timeExpired ? 'Temps écoulé! Finalisation de l\'examen...' : 'Finalisation de l\'examen...'}</div>
         `;
-            document.body.appendChild(loadingOverlay);
-
-            // Envoyer la requête pour terminer l'examen
-            fetch('../ajax/finish-exam.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `attempt_id=${attemptId}&time_expired=${timeExpired ? 1 : 0}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        if (proctoringEnabled && typeof stopProctoring === 'function') {
-                            stopProctoring();
-                        }
-
-                        window.location.href = `exam-result.php?attempt_id=${attemptId}`;
-                    } else {
-                        document.body.removeChild(loadingOverlay);
-                        isSubmitting = false;
-                        alert('Une erreur est survenue lors de la finalisation de l\'examen. Veuillez réessayer.');
-                        console.error('Erreur lors de la finalisation de l\'examen:', data.message);
-                    }
-                })
-                .catch(error => {
-                    document.body.removeChild(loadingOverlay);
-                    isSubmitting = false;
-                    alert('Une erreur est survenue. Veuillez réessayer.');
-                    console.error('Error:', error);
-                });
-        }
-
-        // Initialiser les événements
-        function initEvents() {
-            // Navigation entre les questions via les boutons numérotés
-            document.querySelectorAll('.question-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    const index = parseInt(this.dataset.index);
-                    showQuestion(index);
-                });
-            });
-
-            // Boutons précédent/suivant
-            document.getElementById('prevQuestion').addEventListener('click', function() {
-                if (currentQuestionIndex > 0) {
-                    showQuestion(currentQuestionIndex - 1);
+        document.body.appendChild(loadingOverlay);
+        
+        // Envoyer la requête pour terminer l'examen
+        fetch('../ajax/finish-exam.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `attempt_id=${attemptId}&time_expired=${timeExpired ? 1 : 0}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (proctoringEnabled && typeof stopProctoring === 'function') {
+                    stopProctoring();
                 }
-            });
-
-            document.getElementById('nextQuestion').addEventListener('click', function() {
-                if (currentQuestionIndex < questions.length - 1) {
-                    showQuestion(currentQuestionIndex + 1);
-                }
-            });
-
-            // Boutons de navigation dans les questions
-            document.querySelectorAll('.prev-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const index = parseInt(this.dataset.index);
-                    showQuestion(index);
-                });
-            });
-
-            document.querySelectorAll('.next-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const index = parseInt(this.dataset.index);
-                    showQuestion(index);
-                });
-            });
-
-            // Enregistrement des réponses
-            document.querySelectorAll('input[type="checkbox"]').forEach(input => {
-                input.addEventListener('change', function() {
-                    const questionId = this.dataset.questionId;
-                    const selectedOptions = [];
-                    document.querySelectorAll(`input[name="question_${questionId}[]"]:checked`).forEach(checkbox => {
-                        selectedOptions.push(checkbox.value);
-                    });
-
-                    clearTimeout(saveTimeout);
-                    saveTimeout = setTimeout(() => {
-                        saveAnswer(questionId, selectedOptions, 'multiple_choice');
-                    }, 500);
-                });
-            });
-
-            document.querySelectorAll('input[type="radio"]').forEach(input => {
-                input.addEventListener('change', function() {
-                    const questionId = this.dataset.questionId;
-                    const selectedOption = this.value;
-
-                    clearTimeout(saveTimeout);
-                    saveTimeout = setTimeout(() => {
-                        saveAnswer(questionId, selectedOption, this.name.includes('true_false') ? 'true_false' : 'single_choice');
-                    }, 500);
-                });
-            });
-
-            document.querySelectorAll('.essay-input').forEach(textarea => {
-                textarea.addEventListener('input', function() {
-                    const questionId = this.dataset.questionId;
-
-                    clearTimeout(saveTimeout);
-                    saveTimeout = setTimeout(() => {
-                        saveAnswer(questionId, this.value, 'essay');
-                    }, 1000);
-                });
-            });
-
-            // Bouton pour terminer l'examen
-            document.getElementById('submitExam').addEventListener('click', function() {
-                document.getElementById('finishExamModal').style.display = 'block';
-                updateFinishButtonState();
-            });
-
-            document.getElementById('finishBtn').addEventListener('click', function() {
-                document.getElementById('finishExamModal').style.display = 'block';
-                updateFinishButtonState();
-            });
-
-            document.getElementById('confirmFinish').addEventListener('click', function() {
-                finishExam();
-            });
-
-            document.querySelectorAll('.close-modal').forEach(button => {
-                button.addEventListener('click', function() {
-                    document.getElementById('finishExamModal').style.display = 'none';
-                });
-            });
-
-            // Fermer le modal en cliquant à l'extérieur
-            window.addEventListener('click', function(event) {
-                const modal = document.getElementById('finishExamModal');
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-
-            // Toggle de la surveillance
-            if (proctoringEnabled) {
-                document.getElementById('toggleProctoring').addEventListener('click', function() {
-                    const container = document.getElementById('proctoringContainer');
-                    const icon = this.querySelector('i');
-
-                    if (container.classList.contains('collapsed')) {
-                        container.classList.remove('collapsed');
-                        icon.className = 'fas fa-chevron-down';
-                    } else {
-                        container.classList.add('collapsed');
-                        icon.className = 'fas fa-chevron-up';
-                    }
-                });
+                
+                window.location.href = `exam-result.php?attempt_id=${attemptId}`;
+            } else {
+                document.body.removeChild(loadingOverlay);
+                isSubmitting = false;
+                alert('Une erreur est survenue lors de la finalisation de l\'examen. Veuillez réessayer.');
+                console.error('Erreur lors de la finalisation de l\'examen:', data.message);
             }
-        }
-
-        // Empêcher la navigation arrière pendant l'examen
-        function preventBackNavigation() {
-            history.pushState(null, null, location.href);
-            window.onpopstate = () => {
-                history.go(1);
-            };
-        }
-
-        // Empêcher le clic droit
-        function preventRightClick() {
-            document.addEventListener("contextmenu", (e) => {
-                e.preventDefault();
-                if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
-                    reportProctoringIncident('screen', 'Tentative d\'ouverture du menu contextuel');
-                }
+        })
+        .catch(error => {
+            document.body.removeChild(loadingOverlay);
+            isSubmitting = false;
+            alert('Une erreur est survenue. Veuillez réessayer.');
+            console.error('Error:', error);
+        });
+    }
+    
+    // Initialiser les événements
+    function initEvents() {
+        // Navigation entre les questions via les boutons numérotés
+        document.querySelectorAll('.question-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                showQuestion(index);
             });
-        }
-
-        // Détecter quand l'utilisateur quitte la page
-        function detectPageLeave() {
-            window.addEventListener("beforeunload", (e) => {
-                // Annuler l'événement
-                e.preventDefault();
-                // Chrome requiert returnValue pour être défini
-                e.returnValue = "";
+        });
+        
+        // Boutons précédent/suivant
+        document.getElementById('prevQuestion').addEventListener('click', function() {
+            if (currentQuestionIndex > 0) {
+                showQuestion(currentQuestionIndex - 1);
+            }
+        });
+        
+        document.getElementById('nextQuestion').addEventListener('click', function() {
+            if (currentQuestionIndex < questions.length - 1) {
+                showQuestion(currentQuestionIndex + 1);
+            }
+        });
+        
+        // Boutons de navigation dans les questions
+        document.querySelectorAll('.prev-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                showQuestion(index);
             });
-
-            // Détecter quand l'utilisateur change d'onglet ou minimise la fenêtre
-            document.addEventListener("visibilitychange", () => {
-                if (document.visibilityState === "hidden") {
-                    // L'utilisateur a changé d'onglet ou minimisé la fenêtre
-                    if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
-                        reportProctoringIncident('screen', 'L\'étudiant a changé d\'onglet ou minimisé la fenêtre');
-                    }
-                }
+        });
+        
+        document.querySelectorAll('.next-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                showQuestion(index);
             });
-        }
-
-        // Empêcher les tentatives de copier-coller
-        function preventCopyPaste() {
-            document.addEventListener("copy", (e) => {
-                e.preventDefault();
-                if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
-                    reportProctoringIncident('screen', 'Tentative de copie de texte');
-                }
+        });
+        
+        // Enregistrement des réponses
+        document.querySelectorAll('input[type="checkbox"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const questionId = this.dataset.questionId;
+                const selectedOptions = [];
+                document.querySelectorAll(`input[name="question_${questionId}[]"]:checked`).forEach(checkbox => {
+                    selectedOptions.push(checkbox.value);
+                });
+                
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveAnswer(questionId, selectedOptions, 'multiple_choice');
+                }, 500);
             });
-
-            document.addEventListener("paste", (e) => {
-                e.preventDefault();
-                if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
-                    reportProctoringIncident('screen', 'Tentative de collage de texte');
-                }
+        });
+        
+        document.querySelectorAll('input[type="radio"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const questionId = this.dataset.questionId;
+                const selectedOption = this.value;
+                
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveAnswer(questionId, selectedOption, this.name.includes('true_false') ? 'true_false' : 'single_choice');
+                }, 500);
             });
-
-            document.addEventListener("cut", (e) => {
-                e.preventDefault();
-                if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
-                    reportProctoringIncident('screen', 'Tentative de coupage de texte');
-                }
+        });
+        
+        document.querySelectorAll('.essay-input').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                const questionId = this.dataset.questionId;
+                
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveAnswer(questionId, this.value, 'essay');
+                }, 1000);
             });
-        }
-
-        // Initialiser l'application
-        initAnsweredQuestions();
-        initTimer();
-        initEvents();
-        preventBackNavigation();
-        preventRightClick();
-        detectPageLeave();
-        preventCopyPaste();
-        showQuestion(0);
-
-        // Initialiser la surveillance si activée
+        });
+        
+        // Bouton pour terminer l'examen
+        document.getElementById('submitExam').addEventListener('click', function() {
+            document.getElementById('finishExamModal').style.display = 'block';
+            updateFinishButtonState();
+        });
+        
+        document.getElementById('finishBtn').addEventListener('click', function() {
+            document.getElementById('finishExamModal').style.display = 'block';
+            updateFinishButtonState();
+        });
+        
+        document.getElementById('confirmFinish').addEventListener('click', function() {
+            finishExam();
+        });
+        
+        document.querySelectorAll('.close-modal').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('finishExamModal').style.display = 'none';
+            });
+        });
+        
+        // Fermer le modal en cliquant à l'extérieur
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('finishExamModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Toggle de la surveillance
         if (proctoringEnabled) {
+            document.getElementById('toggleProctoring').addEventListener('click', function() {
+                const container = document.getElementById('proctoringContainer');
+                const icon = this.querySelector('i');
+                
+                if (container.classList.contains('collapsed')) {
+                    container.classList.remove('collapsed');
+                    icon.className = 'fas fa-chevron-down';
+                } else {
+                    container.classList.add('collapsed');
+                    icon.className = 'fas fa-chevron-up';
+                }
+            });
+        }
+    }
+    
+    // Empêcher la navigation arrière pendant l'examen
+    function preventBackNavigation() {
+        history.pushState(null, null, location.href);
+        window.onpopstate = () => {
+            history.go(1);
+        };
+    }
+    
+    // Empêcher le clic droit
+    function preventRightClick() {
+        document.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
+                reportProctoringIncident('screen', 'Tentative d\'ouverture du menu contextuel');
+            }
+        });
+    }
+    
+    // Détecter quand l'utilisateur quitte la page
+    function detectPageLeave() {
+        window.addEventListener("beforeunload", (e) => {
+            // Annuler l'événement
+            e.preventDefault();
+            // Chrome requiert returnValue pour être défini
+            e.returnValue = "";
+        });
+        
+        // Détecter quand l'utilisateur change d'onglet ou minimise la fenêtre
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") {
+                // L'utilisateur a changé d'onglet ou minimisé la fenêtre
+                if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
+                    reportProctoringIncident('screen', 'L\'étudiant a changé d\'onglet ou minimisé la fenêtre');
+                }
+            }
+        });
+    }
+    
+    // Empêcher les tentatives de copier-coller
+    function preventCopyPaste() {
+        document.addEventListener("copy", (e) => {
+            e.preventDefault();
+            if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
+                reportProctoringIncident('screen', 'Tentative de copie de texte');
+            }
+        });
+        
+        document.addEventListener("paste", (e) => {
+            e.preventDefault();
+            if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
+                reportProctoringIncident('screen', 'Tentative de collage de texte');
+            }
+        });
+        
+        document.addEventListener("cut", (e) => {
+            e.preventDefault();
+            if (proctoringEnabled && typeof reportProctoringIncident === 'function') {
+                reportProctoringIncident('screen', 'Tentative de coupage de texte');
+            }
+        });
+    }
+    
+    // Initialiser l'application
+    initAnsweredQuestions();
+    initTimer();
+    initEvents();
+    preventBackNavigation();
+    preventRightClick();
+    detectPageLeave();
+    preventCopyPaste();
+    showQuestion(0);
+});
+if(proctoringEnabled) {
+    // Initialiser le suivi oculaire
+    initEyeTracking();
+    // Démarrer la calibration
+    startCalibration();
+    
+}
+if (proctoringEnabled) {
+    // Démarrer la surveillance
+    startProctoring(attemptId, examId);
+}
+</script>
+<script src="../assets/js/proctoring-system.js"></script>
+<script src="../assets/js/face-api.min.js"></script>
+<script src="../assets/js/proctoring.js"></script>
+<script src="../assets/js/webgazer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    
+    <script>
+    // Variables globales
+    let video;
+    let isDetecting = false;
+    let detectionInterval;
+    let registeredFaces = [];
+    let faceMatcher = null;
+
+    // Charger les modèles
+    async function loadModels(modelSize) {
+        const modelPath = `https://justadudewhohacks.github.io/face-api.js/models/`;
+        
+        try {
+            // Afficher le statut de chargement
+            document.getElementById('faceDescriptions').innerHTML = 
+                '<p>Chargement des modèles de reconnaissance faciale...</p>';
             
-            // Définir les fonctions de surveillance si elles n'existent pas encore
-            window.reportProctoringIncident = function(type, description, severity = 'medium') {
-                console.log(`Incident de surveillance: ${type} - ${description}`);
-
-                // Incrémenter le compteur d'incidents
-                const warningsContainer = document.getElementById('proctoringWarnings');
-                if (warningsContainer) {
-                    const warningCount = warningsContainer.querySelector('.warning-count');
-                    if (warningCount) {
-                        warningCount.textContent = parseInt(warningCount.textContent || '0') + 1;
-                    }
-                }
-
-                // Envoyer l'incident au serveur
-                fetch('../ajax/report-incident.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            attempt_id: attemptId,
-                            incident_type: type,
-                            description: description,
-                            severity: severity,
-                            timestamp: new Date().toISOString()
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Incident signalé:', data);
-                    })
-                    .catch(error => {
-                        console.error('Erreur lors du signalement de l\'incident:', error);
-                    });
-
-                // Afficher une notification
-                showProctoringNotification("Alerte de surveillance", description, "warning");
-            };
-
-            window.captureAndSaveImage = function(incidentType, description) {
-                const video = document.getElementById('webcam');
-                if (!video || !video.srcObject) return;
-
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 480;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                // Convertir en base64
-                const imageData = canvas.toDataURL('image/jpeg', 0.7);
-
-                // Envoyer l'image au serveur
-                fetch('../ajax/save-incident-image.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            attempt_id: attemptId,
-                            incident_type: incidentType,
-                            description: description,
-                            image_data: imageData,
-                            timestamp: new Date().toISOString()
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Image d\'incident sauvegardée:', data);
-                    })
-                    .catch(error => {
-                        console.error('Erreur lors de la sauvegarde de l\'image d\'incident:', error);
-                    });
-            };
-
-            window.showProctoringNotification = function(title, message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `proctoring-notification notification-${type}`;
-
-                // Définir l'icône en fonction du type
-                let icon;
-                switch (type) {
-                    case 'success':
-                        icon = 'fa-check-circle';
-                        break;
-                    case 'warning':
-                        icon = 'fa-exclamation-triangle';
-                        break;
-                    case 'error':
-                        icon = 'fa-times-circle';
-                        break;
-                    default:
-                        icon = 'fa-info-circle';
-                }
-
-                notification.innerHTML = `
-                <div class="notification-icon">
-                    <i class="fas ${icon}"></i>
-                </div>
-                <div class="notification-content">
-                    <div class="notification-title">${title}</div>
-                    <div class="notification-message">${message}</div>
-                </div>
-            `;
-
-                // Ajouter au conteneur de notifications
-                const notificationsContainer = document.getElementById('proctoring-notifications');
-                if (notificationsContainer) {
-                    notificationsContainer.appendChild(notification);
-
-                    // Animer l'apparition
-                    setTimeout(() => {
-                        notification.classList.add('show');
-                    }, 10);
-
-                    // Masquer après 5 secondes
-                    setTimeout(() => {
-                        notification.classList.remove('show');
-                        setTimeout(() => {
-                            if (notification.parentNode) {
-                                notificationsContainer.removeChild(notification);
-                            }
-                        }, 300);
-                    }, 5000);
-                }
-            };
-
-            window.updateProctoringStatus = function(module, status, message = '') {
-                const statusElement = document.getElementById(`${module}-status`);
-                if (!statusElement) return;
-
-                // Définir l'icône et la classe en fonction du statut
-                let icon, statusClass;
-                switch (status) {
-                    case 'active':
-                        icon = 'fa-check-circle';
-                        statusClass = 'status-active';
-                        message = message || 'Actif';
-                        break;
-                    case 'warning':
-                        icon = 'fa-exclamation-triangle';
-                        statusClass = 'status-warning';
-                        break;
-                    case 'error':
-                        icon = 'fa-times-circle';
-                        statusClass = 'status-error';
-                        message = message || 'Erreur';
-                        break;
-                    case 'calibrating':
-                        icon = 'fa-sync fa-spin';
-                        statusClass = 'status-calibrating';
-                        message = message || 'Calibration en cours';
-                        break;
-                    case 'initializing':
-                        icon = 'fa-spinner fa-spin';
-                        statusClass = 'status-initializing';
-                        message = message || 'Initialisation...';
-                        break;
-                    default:
-                        icon = 'fa-question-circle';
-                        statusClass = '';
-                }
-
-                // Mettre à jour le contenu
-                statusElement.className = `status-item ${statusClass}`;
-                statusElement.innerHTML = `<i class="fas ${icon}"></i> ${getModuleName(module)}: ${message}`;
-            };
-
-            function getModuleName(module) {
-                switch (module) {
-                    case 'face':
-                        return 'Reconnaissance faciale';
-                    case 'gaze':
-                        return 'Suivi oculaire';
-                    case 'audio':
-                        return 'Surveillance audio';
-                    case 'screen':
-                        return 'Surveillance d\'écran';
-                    default:
-                        return module;
-                }
+            // Charger les modèles sélectionnés
+            await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
+            
+            if (modelSize === 'large') {
+                await faceapi.loadFaceLandmarkModel(modelPath);
+                await faceapi.loadFaceRecognitionModel(modelPath);
+                await faceapi.loadFaceExpressionModel(modelPath);
+                await faceapi.loadAgeGenderModel(modelPath);
+            } else if (modelSize === 'small') {
+                await faceapi.loadFaceLandmarkModel(modelPath);
+                await faceapi.loadFaceRecognitionModel(modelPath);
             }
+            
+            console.log('Modèles chargés avec succès');
+            return true;
+        } catch (error) {
+            console.error('Erreur de chargement des modèles:', error);
+            document.getElementById('faceDescriptions').innerHTML = 
+                '<p style="color:red">Erreur de chargement des modèles</p>';
+            return false;
+        }
+    }
 
-            // Initialiser la surveillance
-            setTimeout(() => {
-                // Vérifier si les scripts de surveillance sont chargés
-                if (typeof faceapi !== 'undefined' && typeof webgazer !== 'undefined') {
-                    // Accéder à la webcam
-                    navigator.mediaDevices.getUserMedia({
-                            video: {
-                                width: {
-                                    ideal: 640
-                                },
-                                height: {
-                                    ideal: 480
-                                },
-                                facingMode: 'user'
-                            },
-                            audio: true
-                        })
-                        .then(stream => {
-                            const video = document.getElementById('webcam');
-                            if (video) {
-                                video.srcObject = stream;
-                                video.onloadedmetadata = () => {
-                                    video.play();
+    // Démarrer la caméra
+    async function startCamera() {
+        try {
+            video = document.getElementById('video');
+            
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' },
+                audio: false
+            });
+            
+            video.srcObject = stream;
+            
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    video.play();
+                    resolve();
+                };
+            });
+        } catch (error) {
+            console.error("Erreur d'accès à la caméra:", error);
+            throw error;
+        }
+    }
 
-                                    // Initialiser les modules de surveillance
-                                    if (typeof initProctoring === 'function') {
-                                        initProctoring();
-                                    } else {
-                                        console.error('La fonction initProctoring n\'est pas définie');
-                                        showProctoringNotification('Erreur de surveillance', 'Impossible d\'initialiser la surveillance', 'error');
-                                    }
-                                };
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Erreur d\'accès à la webcam:', error);
-                            showProctoringNotification('Erreur d\'accès', 'Impossible d\'accéder à la webcam ou au microphone', 'error');
+    // Démarrer la détection faciale
+    async function startFaceDetection() {
+        const modelSize = document.getElementById('modelSelect').value;
+        const modelsLoaded = await loadModels(modelSize);
+        
+        if (!modelsLoaded) return;
+        
+        try {
+            await startCamera();
+            
+            isDetecting = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('registerBtn').disabled = false;
+            
+            // Démarrer la détection en temps réel
+            detectionInterval = setInterval(async () => {
+                await detectFaces();
+            }, 300); // Détection toutes les 300ms
+            
+        } catch (error) {
+            console.error('Erreur de démarrage:', error);
+            document.getElementById('faceDescriptions').innerHTML = 
+                '<p style="color:red">Erreur: ' + error.message + '</p>';
+        }
+    }
 
-                            // Mettre à jour les statuts
-                            updateProctoringStatus('face', 'error', 'Accès refusé');
-                            updateProctoringStatus('gaze', 'error', 'Accès refusé');
-                            updateProctoringStatus('audio', 'error', 'Accès refusé');
-                        });
-                } else {
-                    console.error('Les scripts de surveillance ne sont pas chargés');
-                    showProctoringNotification('Erreur de chargement', 'Les scripts de surveillance n\'ont pas été chargés correctement', 'error');
-                }
-            }, 1000);
-
-
-            // Initialisation de la reconnaissance faciale avec Face-API.js
-            windows.initFaceRecognition() = function() {
-                try {
-                    // Vérifier si Face-API.js est disponible
-                    if (typeof faceapi === "undefined") {
-                        throw new Error("Face-API.js n'est pas chargé");
-                    }
-
-                    updateProctoringStatus("face", "initializing", "Chargement des modèles...");
-
-                    // Charger les modèles nécessaires
-                    Promise.all([
-                        faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODELS_PATH),
-                        faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODELS_PATH),
-                        faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODELS_PATH),
-                        faceapi.nets.faceExpressionNet.loadFromUri(FACE_MODELS_PATH),
-                    ]);
-
-                    console.log("Modèles de reconnaissance faciale chargés");
-                    updateProctoringStatus("face", "initializing", "Accès à la webcam...");
-
-                    // Accéder à la webcam
-                    const video = document.getElementById("webcam");
-                    if (!video) {
-                        throw new Error("Élément vidéo non trouvé");
-                    }
-
-                    const stream =
-                        video.srcObject ||
-                        (navigator.mediaDevices.getUserMedia({
-                            video: {
-                                width: {
-                                    ideal: 640
-                                },
-                                height: {
-                                    ideal: 480
-                                },
-                                facingMode: "user",
-                            },
-                        }));
-
-                    if (!video.srcObject) {
-                        video.srcObject = stream;
-                        new Promise((resolve) => {
-                            video.onloadedmetadata = () => {
-                                video.play().then(resolve);
-                            };
-                        });
-                    }
-
-                    // Configurer le canvas pour l'affichage des résultats
-                    const canvas = document.getElementById("canvas");
-                    if (!canvas) {
-                        throw new Error("Élément canvas non trouvé");
-                    }
-
-                    canvas.width = video.videoWidth || 640;
-                    canvas.height = video.videoHeight || 480;
-
-                    updateProctoringStatus("face", "initializing", "Capture de l'image de référence...");
-
-                    // Capturer une image de référence au début
-                    const referenceSuccess = captureReferenceImage();
-                    if (!referenceSuccess) {
-                        throw new Error("Échec de la capture de l'image de référence");
-                    }
-
-                    // Démarrer la détection périodique
-                    faceDetectionInterval = setInterval(checkFace, FACE_CHECK_INTERVAL);
-
-                    // Mettre à jour le statut
-                    updateProctoringStatus("face", "active");
-
-                    return true;
-                } catch (error) {
-                    console.error("Erreur lors de l'initialisation de la reconnaissance faciale:", error);
-                    updateProctoringStatus("face", "error", error.message);
-                    reportProctoringIncident("face", "Erreur d'initialisation de la reconnaissance faciale: " + error.message);
-                    throw error;
-                }
+    // Détecter et reconnaître les visages
+    async function detectFaces() {
+        if (!isDetecting) return;
+        
+        try {
+            // Options de détection
+            const detectionOptions = {
+                inputSize: 512, // Taille d'entrée pour le détecteur
+                scoreThreshold: 0.8 // Seuil de confiance
+            };
+            
+            // Détection des visages
+            const detections = await faceapi.detectAllFaces(
+                video, 
+                new faceapi.TinyFaceDetectorOptions(detectionOptions)
+            )
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+            
+            // Afficher les résultats
+            displayDetections(detections);
+            
+            // Envoyer les données au serveur périodiquement
+            if (detections.length > 0 && Math.random() < 0.1) { // 10% de chance d'envoyer
+                sendFaceDataToServer(detections);
             }
+            
+        } catch (error) {
+            console.error('Erreur de détection:', error);
+        }
+    }
 
-            // Capture d'une image de référence pour la reconnaissance faciale
-            async function captureReferenceImage() {
-                const video = document.getElementById("webcam");
-                if (!video) return false;
+    // Afficher les détections
+    function displayDetections(detections) {
+        const videoContainer = document.getElementById('videoContainer');
+        const faceCountDiv = document.getElementById('faceCount');
+        const faceDescriptionsDiv = document.getElementById('faceDescriptions');
+        
+        // Nettoyer les résultats précédents
+        videoContainer.querySelectorAll('.face-box, .face-label').forEach(el => el.remove());
+        faceDescriptionsDiv.innerHTML = '';
+        
+        // Mettre à jour le compte de visages
+        faceCountDiv.textContent = `${detections.length} visage(s) détecté(s)`;
+        
+        if (detections.length === 0) return;
+        
+        // Ajuster les dimensions pour l'affichage
+        const displaySize = { width: video.width, height: video.height };
+        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+        
+        // Informations détaillées
+        let descriptionsHTML = '';
+        
+        resizedDetections.forEach((detection, i) => {
+            const box = detection.detection.box;
+            
+            // Dessiner le rectangle autour du visage
+            const faceBox = document.createElement('div');
+            faceBox.className = 'face-box';
+            faceBox.style.width = `${box.width}px`;
+            faceBox.style.height = `${box.height}px`;
+            faceBox.style.left = `${box.x}px`;
+            faceBox.style.top = `${box.y}px`;
+            videoContainer.appendChild(faceBox);
+            
+            // Ajouter une étiquette
+            const faceLabel = document.createElement('div');
+            faceLabel.className = 'face-label';
+            faceLabel.style.left = `${box.x}px`;
+            faceLabel.style.top = `${box.y - 20}px`;
+            faceLabel.textContent = `Visage ${i + 1}`;
+            videoContainer.appendChild(faceLabel);
+            
+            // Collecter les informations descriptives
+            descriptionsHTML += `<div><strong>Visage ${i + 1}:</strong>`;
+            descriptionsHTML += `<ul>`;
+            descriptionsHTML += `<li>Confiance: ${Math.round(detection.detection.score * 100)}%</li>`;
+            
+            // Ajouter des informations supplémentaires si le modèle large est utilisé
+            if (detection.hasOwnProperty('landmarks')) {
+                descriptionsHTML += `<li>Points de repère: ${detection.landmarks.positions.length}</li>`;
+            }
+            
+            descriptionsHTML += `</ul></div>`;
+        });
+        
+        faceDescriptionsDiv.innerHTML = descriptionsHTML;
+    }
 
-                // Attendre que la vidéo soit chargée
-                if (video.readyState !== 4) {
-                    await new Promise((resolve) => {
-                        video.onloadeddata = () => resolve();
-                    });
-                }
-
-                // Essayer plusieurs fois de détecter un visage
-                let attempts = 0;
-                const maxAttempts = 5;
-
-                while (attempts < maxAttempts) {
-                    try {
-                        // Détecter le visage et extraire le descripteur
-                        const detection = await faceapi
-                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({
-                                scoreThreshold: FACE_DETECTION_CONFIDENCE
-                            }))
-                            .withFaceLandmarks()
-                            .withFaceDescriptor();
-
-                        if (detection) {
-                            referenceDescriptor = detection.descriptor;
-                            console.log("Image de référence capturée avec succès");
-
-                            // Capturer l'image pour référence
-                            const canvas = document.createElement("canvas");
-                            canvas.width = video.videoWidth;
-                            canvas.height = video.videoHeight;
-                            const ctx = canvas.getContext("2d");
-                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                            // Sauvegarder l'image de référence
-                            const imageData = canvas.toDataURL("image/jpeg", 0.8);
-                            saveReferenceImage(imageData);
-
-                            showProctoringNotification(
-                                "Image de référence capturée",
-                                "Votre visage a été enregistré pour la surveillance.",
-                                "success",
-                            );
-
-                            return true;
-                        }
-
-                        attempts++;
-                        await new Promise((resolve) => setTimeout(resolve, 1000)); // Attendre 1 seconde avant de réessayer
-                    } catch (error) {
-                        console.error("Erreur lors de la capture de l'image de référence:", error);
-                        attempts++;
-                        await new Promise((resolve) => setTimeout(resolve, 1000));
-                    }
-                }
-
-                console.error("Aucun visage détecté après plusieurs tentatives");
-                showProctoringNotification(
-                    "Erreur de reconnaissance faciale",
-                    "Aucun visage détecté. Veuillez vous assurer que votre visage est bien visible.",
-                    "warning",
+    // Enregistrer un visage pour la reconnaissance
+    async function registerFace() {
+        try {
+            const detections = await faceapi.detectAllFaces(
+                video, 
+                new faceapi.TinyFaceDetectorOptions()
+            )
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+            
+            if (detections.length === 0) {
+                alert('Aucun visage détecté pour enregistrement');
+                return;
+            }
+            
+            const faceName = prompt("Entrez le nom pour ce visage:");
+            if (!faceName) return;
+            
+            registeredFaces.push({
+                name: faceName,
+                descriptor: detections[0].descriptor
+            });
+            
+            // Mettre à jour le FaceMatcher pour la reconnaissance
+            if (registeredFaces.length > 0) {
+                const labeledDescriptors = registeredFaces.map(face => 
+                    new faceapi.LabeledFaceDescriptors(face.name, [face.descriptor])
                 );
-
-                return false;
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors);
             }
+            
+            alert(`Visage "${faceName}" enregistré avec succès!`);
+            
+        } catch (error) {
+            console.error('Erreur lors de l\'enregistrement:', error);
+            alert('Erreur lors de l\'enregistrement du visage');
+        }
+    }
 
-            // Sauvegarder l'image de référence
-            function saveReferenceImage(imageData) {
-                const attemptId = document.querySelector("#questionContainer").dataset.attemptId;
+    // Envoyer les données au serveur PHP
+    async function sendFaceDataToServer(detections) {
+        try {
+            // Préparer les données à envoyer
+            const faceData = detections.map(detection => ({
+                score: detection.detection.score,
+                box: detection.detection.box,
+                landmarks: detection.landmarks ? detection.landmarks.positions.map(p => ({ x: p.x, y: p.y })) : null,
+                timestamp: new Date().toISOString()
+            }));
+            
+            // Envoyer via AJAX
+            const response = await fetch('facial_recognition.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `face_data=${encodeURIComponent(JSON.stringify(faceData))}`
+            });
+            
+            const result = await response.json();
+            console.log('Données faciales envoyées:', result);
+            
+        } catch (error) {
+            console.error('Erreur d\'envoi des données:', error);
+        }
+    }
 
-                fetch("../ajax/save-reference-image.php", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            attempt_id: attemptId,
-                            image_data: imageData,
-                        }),
-                    })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        console.log("Image de référence sauvegardée:", data);
-                    })
-                    .catch((error) => {
-                        console.error("Erreur lors de la sauvegarde de l'image de référence:", error);
-                    });
-            }
-            // Initialisation du suivi oculaire avec WebGazer.js
-            async function initEyeTracking() {
-                try {
-                    // Vérifier si WebGazer.js est disponible
-                    if (typeof webgazer === "undefined") {
-                        throw new Error("WebGazer.js n'est pas chargé");
-                    }
+    // Arrêter la détection
+    function stopFaceDetection() {
+        isDetecting = false;
+        clearInterval(detectionInterval);
+        
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
+        document.getElementById('registerBtn').disabled = true;
+        
+        // Arrêter le flux vidéo
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        
+        // Nettoyer l'affichage
+        document.getElementById('videoContainer').queryAll('.face-box, .face-label')
+            .forEach(el => el.remove());
+        document.getElementById('faceCount').textContent = '0 visage(s) détecté(s)';
+        document.getElementById('faceDescriptions').innerHTML = '';
+    }
 
-                    updateProctoringStatus("gaze", "initializing", "Initialisation du suivi oculaire...");
-
-                    // Initialiser WebGazer
-                    await webgazer.setGazeListener(function(data, elapsedTime) {
-                        if (data == null) return;
-
-                        // Traiter les données de suivi oculaire
-                        processGazeData(data.x, data.y);
-                    }).begin();
-
-                    // Configurer WebGazer
-                    webgazer.showPredictionPoints(false); // Masquer les points de prédiction
-                    webgazer.showVideo(false); // Masquer la vidéo de WebGazer (nous utilisons notre propre élément vidéo)
-                    webgazer.showFaceOverlay(false); // Masquer le calque de visage
-                    webgazer.showFaceFeedbackBox(false); // Masquer la boîte de feedback
-
-                    // Afficher le modal de calibration
-                    showCalibrationModal();
-
-                    // Mettre à jour le statut
-                    updateProctoringStatus("gaze", "calibrating", "Calibration nécessaire");
-                    webgazerInitialized = true;
-
-                    return true;
-                } catch (error) {
-                    console.error("Erreur lors de l'initialisation du suivi oculaire:", error);
-                    updateProctoringStatus("gaze", "error", error.message);
-                    reportProctoringIncident("gaze", "Erreur d'initialisation du suivi oculaire: " + error.message);
-                    throw error;
-                }
-            }
-
-            // Afficher le modal de calibration
-            function showCalibrationModal() {
-                const modal = document.getElementById("calibration-modal");
-                if (!modal) return;
-
-                modal.style.display = "flex";
-
-                // Configurer le bouton de démarrage de la calibration
-                const startButton = document.getElementById("start-calibration");
-                if (startButton) {
-                    startButton.addEventListener("click", startCalibration);
-                }
-            }
-
-            // Démarrer la calibration du suivi oculaire
-            function startCalibration() {
-                const modal = document.getElementById("calibration-modal");
-                const calibrationPoint = document.getElementById("calibration-point");
-                if (!modal || !calibrationPoint) return;
-
-                // Masquer le modal
-                modal.style.display = "none";
-
-                // Afficher le point de calibration
-                calibrationPoint.style.display = "block";
-
-                // Positions de calibration (9 points)
-                const positions = [{
-                        x: "10%",
-                        y: "10%"
-                    },
-                    {
-                        x: "50%",
-                        y: "10%"
-                    },
-                    {
-                        x: "90%",
-                        y: "10%"
-                    },
-                    {
-                        x: "10%",
-                        y: "50%"
-                    },
-                    {
-                        x: "50%",
-                        y: "50%"
-                    },
-                    {
-                        x: "90%",
-                        y: "50%"
-                    },
-                    {
-                        x: "10%",
-                        y: "90%"
-                    },
-                    {
-                        x: "50%",
-                        y: "90%"
-                    },
-                    {
-                        x: "90%",
-                        y: "90%"
-                    },
-                ];
-
-                let currentPosition = 0;
-
-                // Fonction pour déplacer le point de calibration
-                function moveCalibrationPoint() {
-                    if (currentPosition >= positions.length) {
-                        // Calibration terminée
-                        calibrationPoint.style.display = "none";
-                        calibrationComplete = true;
-                        updateProctoringStatus("gaze", "active");
-                        showProctoringNotification(
-                            "Calibration terminée",
-                            "Le suivi oculaire est maintenant actif.",
-                            "success",
-                        );
-
-                        // Démarrer la vérification périodique du regard
-                        gazeCheckInterval = setInterval(checkGaze, 1000);
-                        return;
-                    }
-
-                    // Déplacer le point
-                    const position = positions[currentPosition];
-                    calibrationPoint.style.left = position.x;
-                    calibrationPoint.style.top = position.y;
-
-                    // Passer à la position suivante après 2 secondes
-                    setTimeout(() => {
-                        currentPosition++;
-                        moveCalibrationPoint();
-                    }, 2000);
-                }
-
-                // Démarrer la séquence de calibration
-                moveCalibrationPoint();
-            }
-
-            // Traiter les données de suivi oculaire
-            function processGazeData(x, y) {
-                if (!calibrationComplete) return;
-
-                // Vérifier si le regard est dans les limites de l'écran
-                const screenWidth = window.innerWidth;
-                const screenHeight = window.innerHeight;
-
-                const isInBounds = x >= 0 && x <= screenWidth && y >= 0 && y <= screenHeight;
-
-                // Dessiner le point de regard sur le canvas
-                const gazeCanvas = document.getElementById("gaze-canvas");
-                if (gazeCanvas) {
-                    const ctx = gazeCanvas.getContext("2d");
-                    ctx.clearRect(0, 0, gazeCanvas.width, gazeCanvas.height);
-
-                    ctx.beginPath();
-                    ctx.arc(x, y, 10, 0, 2 * Math.PI);
-                    ctx.fillStyle = isInBounds ? "rgba(0, 255, 0, 0.5)" : "rgba(255, 0, 0, 0.5)";
-                    ctx.fill();
-                }
-
-                // Mettre à jour le temps de regard hors limites
-                const now = Date.now();
-                if (!isInBounds) {
-                    if (gazeOutOfBoundsTime === 0) {
-                        gazeOutOfBoundsTime = now;
-                    } else if (now - gazeOutOfBoundsTime > GAZE_OUT_OF_BOUNDS_THRESHOLD) {
-                        // Le regard est hors limites depuis trop longtemps
-                        updateProctoringStatus("gaze", "warning", "Regard hors écran");
-                        reportProctoringIncident("gaze", "Regard hors de l'écran pendant plus de " + (GAZE_OUT_OF_BOUNDS_THRESHOLD / 1000) + " secondes");
-                        gazeOutOfBoundsTime = now; // Réinitialiser pour éviter les rapports multiples
-                    }
-                } else {
-                    gazeOutOfBoundsTime = 0;
-                }
-
-                lastGazeCheck = now;
-            }
-            window.showProctoringNotification = function(title, message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `proctoring-notification notification-${type}`;
-
-                // Définir l'icône en fonction du type
-                let icon;
-                switch (type) {
-                    case 'success':
-                        icon = 'fa-check-circle';
-                        break;
-                    case 'warning':
-                        icon = 'fa-exclamation-triangle';
-                        break;
-                    case 'error':
-                        icon = 'fa-times-circle';
-                        break;
-                    default:
-                        icon = 'fa-info-circle';
-                }
-
-                notification.innerHTML = `
-                <div class="notification-icon">
-                    <i class="fas ${icon}"></i>
-                </div>
-                <div class="notification-content">
-                    <div class="notification-title">${title}</div>
-                    <div class="notification-message">${message}</div>
-                </div>
-            `;
-
-                // Ajouter au conteneur de notifications
-                const notificationsContainer = document.getElementById('proctoring-notifications');
-                if (notificationsContainer) {
-                    notificationsContainer.appendChild(notification);
-
-                    // Animer l'apparition
-                    setTimeout(() => {
-                        notification.classList.add('show');
-                    }, 10);
-
-                    // Masquer après 5 secondes
-                    setTimeout(() => {
-                        notification.classList.remove('show');
-                        setTimeout(() => {
-                            if (notification.parentNode) {
-                                notificationsContainer.removeChild(notification);
-                            }
-                        }, 300);
-                    }, 5000);
-                }
-            };
-
-            window.updateProctoringStatus = function(module, status, message = '') {
-                const statusElement = document.getElementById(`${module}-status`);
-                if (!statusElement) return;
-
-                // Définir l'icône et la classe en fonction du statut
-                let icon, statusClass;
-                switch (status) {
-                    case 'active':
-                        icon = 'fa-check-circle';
-                        statusClass = 'status-active';
-                        message = message || 'Actif';
-                        break;
-                    case 'warning':
-                        icon = 'fa-exclamation-triangle';
-                        statusClass = 'status-warning';
-                        break;
-                    case 'error':
-                        icon = 'fa-times-circle';
-                        statusClass = 'status-error';
-                        message = message || 'Erreur';
-                        break;
-                    case 'calibrating':
-                        icon = 'fa-sync fa-spin';
-                        statusClass = 'status-calibrating';
-                        message = message || 'Calibration en cours';
-                        break;
-                    case 'initializing':
-                        icon = 'fa-spinner fa-spin';
-                        statusClass = 'status-initializing';
-                        message = message || 'Initialisation...';
-                        break;
-                    default:
-                        icon = 'fa-question-circle';
-                        statusClass = '';
-                }
-
-                // Mettre à jour le contenu
-                statusElement.className = `status-item ${statusClass}`;
-                statusElement.innerHTML = `<i class="fas ${icon}"></i> ${getModuleName(module)}: ${message}`;
-            };
-            // Vérification périodique du regard
-            function checkGaze() {
-                if (!calibrationComplete) return;
-
-                const now = Date.now();
-
-                // Vérifier si le suivi oculaire est actif
-                if (now - lastGazeCheck > 5000) {
-                    updateProctoringStatus("gaze", "warning", "Suivi perdu");
-                    reportProctoringIncident("gaze", "Perte du suivi oculaire");
-                }
-            }
-
-
+    // Événements
+    document.getElementById('startBtn').addEventListener('click', startFaceDetection);
+    document.getElementById('stopBtn').addEventListener('click', stopFaceDetection);
+    document.getElementById('registerBtn').addEventListener('click', registerFace);
+    document.getElementById('modelSelect').addEventListener('change', () => {
+        if (isDetecting) {
+            stopFaceDetection();
+            startFaceDetection();
         }
     });
-</script>
+
+    // Vérifier la compatibilité
+    if (!navigator.mediaDevices || !window.AudioContext) {
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('faceDescriptions').innerHTML = 
+            '<p style="color:red">Votre navigateur ne supporte pas les fonctionnalités requises</p>';
+    }
+    </script>
+
+    
