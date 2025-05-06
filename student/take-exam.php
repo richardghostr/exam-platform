@@ -4,7 +4,6 @@ require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-
 // Récupérer l'ID de l'étudiant
 $studentId = $_SESSION['user_id'];
 
@@ -205,8 +204,12 @@ $extraJs = ['../assets/js/exam.js'];
 if ($proctoringEnabled) {
     $extraCss[] = '../assets/css/proctoring.css';
     $extraJs[] = '../assets/js/face-api.min.js';
-    $extraJs[] = '../assets/js/webgazer.js';
     $extraJs[] = '../assets/js/proctoring-system.js';
+   
+    // Ajouter les fichiers pour la détection d'objets
+    $extraJs[] = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js';
+    $extraJs[] = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js';
+    $extraJs[] = '../assets/js/object-detection.js';
 }
 
 include 'includes/header.php';
@@ -258,7 +261,7 @@ include 'includes/header.php';
             <div class="webcam-container">
                 <video id="webcam" autoplay playsinline muted></video>
                 <canvas id="canvas" class="overlay"></canvas>
-                <canvas id="gaze-canvas" class="overlay"></canvas>
+                <canvas id="object-canvas" class="overlay"></canvas>
             </div>
             
             <div class="proctoring-status-container">
@@ -266,14 +269,14 @@ include 'includes/header.php';
                     <div class="status-item" id="face-status">
                         <i class="fas fa-spinner fa-spin"></i> Reconnaissance faciale: Initialisation...
                     </div>
-                    <div class="status-item" id="gaze-status">
-                        <i class="fas fa-spinner fa-spin"></i> Suivi oculaire: Initialisation...
-                    </div>
                     <div class="status-item" id="audio-status">
                         <i class="fas fa-spinner fa-spin"></i> Surveillance audio: Initialisation...
                     </div>
                     <div class="status-item" id="screen-status">
                         <i class="fas fa-spinner fa-spin"></i> Surveillance d'écran: Initialisation...
+                    </div>
+                    <div class="status-item" id="object-status">
+                        <i class="fas fa-spinner fa-spin"></i> Détection d'objets: Initialisation...
                     </div>
                 </div>
                 
@@ -496,22 +499,7 @@ include 'includes/header.php';
 </div>
 
 <?php if ($proctoringEnabled): ?>
-<!-- Modal de calibration du suivi oculaire -->
-<div class="proctoring-modal" id="calibration-modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Calibration du suivi oculaire</h2>
-        </div>
-        <div class="modal-body">
-            <p>Pour une surveillance précise, veuillez suivre le point qui apparaîtra à l'écran.</p>
-            <p>Regardez fixement chaque point jusqu'à ce qu'il disparaisse.</p>
-            <div id="calibration-points"></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" id="start-calibration">Commencer la calibration</button>
-        </div>
-    </div>
-</div>
+<!-- Aucun modal de calibration n'est nécessaire car le suivi oculaire a été supprimé -->
 
 <!-- Indicateur de chargement des modèles -->
 <div class="proctoring-loading" id="proctoring-loading" style="display: none;">
@@ -521,8 +509,7 @@ include 'includes/header.php';
     </div>
 </div>
 
-<!-- Point de calibration pour le suivi oculaire -->
-<div id="calibration-point" class="calibration-point" style="display: none;"></div>
+<!-- Aucun point de calibration n'est nécessaire car le suivi oculaire a été supprimé -->
 
 <!-- Notifications de surveillance -->
 <div id="proctoring-notifications" class="proctoring-notifications"></div>
@@ -739,8 +726,14 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (proctoringEnabled && typeof stopProctoring === 'function') {
-                    stopProctoring();
+                if (proctoringEnabled) {
+                    // Arrêter tous les systèmes de surveillance
+                    if (typeof stopProctoring === 'function') {
+                        stopProctoring();
+                    }
+                    if (typeof stopObjectDetection === 'function') {
+                        stopObjectDetection();
+                    }
                 }
                 
                 window.location.href = `exam-result.php?attempt_id=${attemptId}`;
@@ -790,14 +783,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         
-        document.querySelectorAll('.next-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const index = parseInt(this.dataset.index);
-                showQuestion(index);
-            });
-        });
-        
-        // Enregistrement des réponses
         document.querySelectorAll('input[type="checkbox"]').forEach(input => {
             input.addEventListener('change', function() {
                 const questionId = this.dataset.questionId;
@@ -953,456 +938,27 @@ document.addEventListener('DOMContentLoaded', function() {
     detectPageLeave();
     preventCopyPaste();
     showQuestion(0);
-});
-if(proctoringEnabled) {
-    // Initialiser le suivi oculaire
-    initEyeTracking();
-    // Démarrer la calibration
-    startCalibration();
     
-}
-if (proctoringEnabled) {
-    // Démarrer la surveillance
-    startProctoring(attemptId, examId);
-}
+    // Initialiser la détection d'objets si la surveillance est activée
+    if (proctoringEnabled) {
+        // Attendre que le système de surveillance principal soit initialisé
+        setTimeout(() => {
+            console.log("Initialisation de la détection d'objets...");
+            if (typeof initObjectDetection === 'function') {
+                initObjectDetection();
+            } else {
+                console.error("La fonction initObjectDetection n'est pas disponible");
+            }
+        }, 3000);
+    }
+});
 </script>
+
+
 <script src="../assets/js/proctoring-system.js"></script>
 <script src="../assets/js/face-api.min.js"></script>
-<script src="../assets/js/proctoring.js"></script>
-<script src="../assets/js/webgazer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    
-    <script>
-    // Variables globales
-    let video;
-    let isDetecting = false;
-    let detectionInterval;
-    let registeredFaces = [];
-    let faceMatcher = null;
-
-    // Charger les modèles
-    async function loadModels(modelSize) {
-        const modelPath = `https://justadudewhohacks.github.io/face-api.js/models/`;
-        
-        try {
-            // Afficher le statut de chargement
-            document.getElementById('faceDescriptions').innerHTML = 
-                '<p>Chargement des modèles de reconnaissance faciale...</p>';
-            
-            // Charger les modèles sélectionnés
-            await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
-            
-            if (modelSize === 'large') {
-                await faceapi.loadFaceLandmarkModel(modelPath);
-                await faceapi.loadFaceRecognitionModel(modelPath);
-                await faceapi.loadFaceExpressionModel(modelPath);
-                await faceapi.loadAgeGenderModel(modelPath);
-            } else if (modelSize === 'small') {
-                await faceapi.loadFaceLandmarkModel(modelPath);
-                await faceapi.loadFaceRecognitionModel(modelPath);
-            }
-            
-            console.log('Modèles chargés avec succès');
-            return true;
-        } catch (error) {
-            console.error('Erreur de chargement des modèles:', error);
-            document.getElementById('faceDescriptions').innerHTML = 
-                '<p style="color:red">Erreur de chargement des modèles</p>';
-            return false;
-        }
-    }
-
-    // Démarrer la caméra
-    async function startCamera() {
-        try {
-            video = document.getElementById('video');
-            
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480, facingMode: 'user' },
-                audio: false
-            });
-            
-            video.srcObject = stream;
-            
-            return new Promise((resolve) => {
-                video.onloadedmetadata = () => {
-                    video.play();
-                    resolve();
-                };
-            });
-        } catch (error) {
-            console.error("Erreur d'accès à la caméra:", error);
-            throw error;
-        }
-    }
-
-    // Démarrer la détection faciale
-    async function startFaceDetection() {
-        const modelSize = document.getElementById('modelSelect').value;
-        const modelsLoaded = await loadModels(modelSize);
-        
-        if (!modelsLoaded) return;
-        
-        try {
-            await startCamera();
-            
-            isDetecting = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('registerBtn').disabled = false;
-            
-            // Démarrer la détection en temps réel
-            detectionInterval = setInterval(async () => {
-                await detectFaces();
-            }, 300); // Détection toutes les 300ms
-            
-        } catch (error) {
-            console.error('Erreur de démarrage:', error);
-            document.getElementById('faceDescriptions').innerHTML = 
-                '<p style="color:red">Erreur: ' + error.message + '</p>';
-        }
-    }
-
-    // Détecter et reconnaître les visages
-    async function detectFaces() {
-        if (!isDetecting) return;
-        
-        try {
-            // Options de détection
-            const detectionOptions = {
-                inputSize: 512, // Taille d'entrée pour le détecteur
-                scoreThreshold: 0.8 // Seuil de confiance
-            };
-            
-            // Détection des visages
-            const detections = await faceapi.detectAllFaces(
-                video, 
-                new faceapi.TinyFaceDetectorOptions(detectionOptions)
-            )
-            .withFaceLandmarks()
-            .withFaceDescriptors();
-            
-            // Afficher les résultats
-            displayDetections(detections);
-            
-            // Envoyer les données au serveur périodiquement
-            if (detections.length > 0 && Math.random() < 0.1) { // 10% de chance d'envoyer
-                sendFaceDataToServer(detections);
-            }
-            
-        } catch (error) {
-            console.error('Erreur de détection:', error);
-        }
-    }
-
-    // Afficher les détections
-    function displayDetections(detections) {
-        const videoContainer = document.getElementById('videoContainer');
-        const faceCountDiv = document.getElementById('faceCount');
-        const faceDescriptionsDiv = document.getElementById('faceDescriptions');
-        
-        // Nettoyer les résultats précédents
-        videoContainer.querySelectorAll('.face-box, .face-label').forEach(el => el.remove());
-        faceDescriptionsDiv.innerHTML = '';
-        
-        // Mettre à jour le compte de visages
-        faceCountDiv.textContent = `${detections.length} visage(s) détecté(s)`;
-        
-        if (detections.length === 0) return;
-        
-        // Ajuster les dimensions pour l'affichage
-        const displaySize = { width: video.width, height: video.height };
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-        
-        // Informations détaillées
-        let descriptionsHTML = '';
-        
-        resizedDetections.forEach((detection, i) => {
-            const box = detection.detection.box;
-            
-            // Dessiner le rectangle autour du visage
-            const faceBox = document.createElement('div');
-            faceBox.className = 'face-box';
-            faceBox.style.width = `${box.width}px`;
-            faceBox.style.height = `${box.height}px`;
-            faceBox.style.left = `${box.x}px`;
-            faceBox.style.top = `${box.y}px`;
-            videoContainer.appendChild(faceBox);
-            
-            // Ajouter une étiquette
-            const faceLabel = document.createElement('div');
-            faceLabel.className = 'face-label';
-            faceLabel.style.left = `${box.x}px`;
-            faceLabel.style.top = `${box.y - 20}px`;
-            faceLabel.textContent = `Visage ${i + 1}`;
-            videoContainer.appendChild(faceLabel);
-            
-            // Collecter les informations descriptives
-            descriptionsHTML += `<div><strong>Visage ${i + 1}:</strong>`;
-            descriptionsHTML += `<ul>`;
-            descriptionsHTML += `<li>Confiance: ${Math.round(detection.detection.score * 100)}%</li>`;
-            
-            // Ajouter des informations supplémentaires si le modèle large est utilisé
-            if (detection.hasOwnProperty('landmarks')) {
-                descriptionsHTML += `<li>Points de repère: ${detection.landmarks.positions.length}</li>`;
-            }
-            
-            descriptionsHTML += `</ul></div>`;
-        });
-        
-        faceDescriptionsDiv.innerHTML = descriptionsHTML;
-    }
-
-    // Enregistrer un visage pour la reconnaissance
-    async function registerFace() {
-        try {
-            const detections = await faceapi.detectAllFaces(
-                video, 
-                new faceapi.TinyFaceDetectorOptions()
-            )
-            .withFaceLandmarks()
-            .withFaceDescriptor();
-            
-            if (detections.length === 0) {
-                alert('Aucun visage détecté pour enregistrement');
-                return;
-            }
-            
-            const faceName = prompt("Entrez le nom pour ce visage:");
-            if (!faceName) return;
-            
-            registeredFaces.push({
-                name: faceName,
-                descriptor: detections[0].descriptor
-            });
-            
-            // Mettre à jour le FaceMatcher pour la reconnaissance
-            if (registeredFaces.length > 0) {
-                const labeledDescriptors = registeredFaces.map(face => 
-                    new faceapi.LabeledFaceDescriptors(face.name, [face.descriptor])
-                );
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors);
-            }
-            
-            alert(`Visage "${faceName}" enregistré avec succès!`);
-            
-        } catch (error) {
-            console.error('Erreur lors de l\'enregistrement:', error);
-            alert('Erreur lors de l\'enregistrement du visage');
-        }
-    }
-
-    // Envoyer les données au serveur PHP
-    async function sendFaceDataToServer(detections) {
-        try {
-            // Préparer les données à envoyer
-            const faceData = detections.map(detection => ({
-                score: detection.detection.score,
-                box: detection.detection.box,
-                landmarks: detection.landmarks ? detection.landmarks.positions.map(p => ({ x: p.x, y: p.y })) : null,
-                timestamp: new Date().toISOString()
-            }));
-            
-            // Envoyer via AJAX
-            const response = await fetch('facial_recognition.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `face_data=${encodeURIComponent(JSON.stringify(faceData))}`
-            });
-            
-            const result = await response.json();
-            console.log('Données faciales envoyées:', result);
-            
-        } catch (error) {
-            console.error('Erreur d\'envoi des données:', error);
-        }
-    }
-
-    // Arrêter la détection
-    function stopFaceDetection() {
-        isDetecting = false;
-        clearInterval(detectionInterval);
-        
-        document.getElementById('startBtn').disabled = false;
-        document.getElementById('stopBtn').disabled = true;
-        document.getElementById('registerBtn').disabled = true;
-        
-        // Arrêter le flux vidéo
-        if (video.srcObject) {
-            video.srcObject.getTracks().forEach(track => track.stop());
-        }
-        
-        // Nettoyer l'affichage
-        document.getElementById('videoContainer').queryAll('.face-box, .face-label')
-            .forEach(el => el.remove());
-        document.getElementById('faceCount').textContent = '0 visage(s) détecté(s)';
-        document.getElementById('faceDescriptions').innerHTML = '';
-    }
-
-    // Événements
-    document.getElementById('startBtn').addEventListener('click', startFaceDetection);
-    document.getElementById('stopBtn').addEventListener('click', stopFaceDetection);
-    document.getElementById('registerBtn').addEventListener('click', registerFace);
-    document.getElementById('modelSelect').addEventListener('change', () => {
-        if (isDetecting) {
-            stopFaceDetection();
-            startFaceDetection();
-        }
-    });
-
-    // Vérifier la compatibilité
-    if (!navigator.mediaDevices || !window.AudioContext) {
-        document.getElementById('startBtn').disabled = true;
-        document.getElementById('faceDescriptions').innerHTML = 
-            '<p style="color:red">Votre navigateur ne supporte pas les fonctionnalités requises</p>';
-    }
-    </script>
-
-      <!-- Charger TensorFlow.js et le modèle COCO-SSD -->
-      <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
-    
-    <script>
-    // Variables globales
-    let model = null;
-    let canvas = document.getElementById('canvas');
-    let ctx = canvas.getContext('2d');
-    let startButton = document.getElementById('startButton');
-    let stopButton = document.getElementById('stopButton');
-    let detectionsDiv = document.getElementById('detections');
-
-    // Charger le modèle COCO-SSD
-    async function loadModel() {
-        try {
-            model = await cocoSsd.load();
-            console.log('Modèle chargé avec succès');
-            startButton.disabled = false;
-        } catch (err) {
-            console.error('Erreur lors du chargement du modèle:', err);
-        }
-    }
-
-    // Démarrer la caméra
-    async function startCamera() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480, facingMode: 'environment' },
-                audio: false 
-            });
-            video.srcObject = stream;
-            return new Promise((resolve) => {
-                video.onloadedmetadata = () => {
-                    resolve();
-                };
-            });
-        } catch (err) {
-            console.error("Erreur d'accès à la caméra:", err);
-            throw err;
-        }
-    }
-
-    // Détecter les objets dans le flux vidéo
-    async function detectObjects() {
-        if (!isDetecting) return;
-        
-        try {
-            // Effectuer la détection
-            const predictions = await model.detect(video);
-            
-            // Effacer le canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Dessiner les boîtes englobantes
-            predictions.forEach(prediction => {
-                // Dessiner le rectangle
-                ctx.strokeStyle = '#00FF00';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(...prediction.bbox);
-                
-                // Dessiner l'étiquette
-                ctx.fillStyle = '#00FF00';
-                ctx.font = '18px Arial';
-                ctx.fillText(
-                    `${prediction.class} (${Math.round(prediction.score * 100)}%)`, 
-                    prediction.bbox[0], 
-                    prediction.bbox[1] > 10 ? prediction.bbox[1] - 5 : 10
-                );
-            });
-            
-            // Afficher les résultats textuels
-            detectionsDiv.innerHTML = predictions.map(p => 
-                `<p>${p.class} - Confiance: ${Math.round(p.score * 100)}%</p>`
-            ).join('');
-            
-            // Envoyer les données au serveur (optionnel)
-            if (predictions.length > 0) {
-                sendDetectionData(predictions);
-            }
-            
-            // Continuer la détection
-            requestAnimationFrame(detectObjects);
-        } catch (err) {
-            console.error('Erreur de détection:', err);
-            stopDetection();
-        }
-    }
-
-    // Envoyer les données au serveur PHP
-    async function sendDetectionData(predictions) {
-        try {
-            const response = await fetch('save_detections.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    timestamp: new Date().toISOString(),
-                    detections: predictions
-                })
-            });
-            
-            const data = await response.json();
-            console.log('Données enregistrées:', data);
-        } catch (err) {
-            console.error('Erreur lors de l\'envoi des données:', err);
-        }
-    }
-
-    // Démarrer la détection
-    async function startDetection() {
-        try {
-            await startCamera();
-            isDetecting = true;
-            startButton.disabled = true;
-            stopButton.disabled = false;
-            detectObjects();
-        } catch (err) {
-            console.error('Erreur lors du démarrage:', err);
-        }
-    }
-
-    // Arrêter la détection
-    function stopDetection() {
-        isDetecting = false;
-        startButton.disabled = false;
-        stopButton.disabled = true;
-        
-        // Arrêter le flux vidéo
-        if (video.srcObject) {
-            video.srcObject.getTracks().forEach(track => track.stop());
-        }
-        
-        // Effacer le canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        detectionsDiv.innerHTML = '<p>Détection arrêtée</p>';
-    }
-
-    // Événements
-    startButton.addEventListener('click', startDetection);
-    stopButton.addEventListener('click', stopDetection);
-
-    // Charger le modèle au démarrage
-    loadModel();
-    </script>
+<script src="../assets/js/proctoring.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+<script src="../assets/js/object-detection.js"></script>
