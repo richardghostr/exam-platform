@@ -1,271 +1,254 @@
 /**
- * Module de détection d'objets pour le système de surveillance d'examen
- * Version corrigée avec meilleure gestion des erreurs
+ * Module de détection d'objets pour système de surveillance d'examen
+ * Version simplifiée utilisant uniquement COCO-SSD
  */
 
 // Configuration
-const DETECTION_INTERVAL = 5000;
-const CONFIDENCE_THRESHOLD = 0.65;
+const DETECTION_INTERVAL = 2000; // Intervalle de détection en ms
+const CONFIDENCE_THRESHOLD = 0.6; // Seuil de confiance minimum
 const FORBIDDEN_OBJECTS = ["cell phone", "laptop", "book", "remote", "keyboard", "mouse", "tablet"];
-const CONSECUTIVE_DETECTIONS_THRESHOLD = 2;
-const MODEL_LOAD_TIMEOUT = 30000; // 30 secondes timeout pour le chargement du modèle
 
-// Variables globales
-let objectDetectionModel = null;
-let objectDetectionInterval = null;
-let consecutiveDetections = {};
-let lastDetectionTime = 0;
-let isObjectDetectionActive = false;
-let objectDetectionInitialized = false;
-let modelLoading = false;
+// État global
+let detectionModel = null;
+let detectionActive = false;
+let detectionInterval = null;
+let detectionCanvas = null;
+let canvasContext = null;
 
-// Fonction pour vérifier que TensorFlow.js et COCO-SSD sont correctement chargés
-function areDependenciesLoaded() {
-    const isTfLoaded = typeof tf !== 'undefined' && typeof tf.ready === 'function';
-    const isCocoSsdLoaded = typeof cocoSsd !== 'undefined' && typeof cocoSsd.load === 'function';
-    
-    if (!isTfLoaded) console.error('TensorFlow.js non chargé ou version incorrecte');
-    if (!isCocoSsdLoaded) console.error('COCO-SSD non chargé ou version incorrecte');
-    
-    return isTfLoaded && isCocoSsdLoaded;
-}
-
-// Fonction pour charger dynamiquement les dépendances
-function loadDependencies() {
-    return new Promise(async (resolve, reject) => {
-        if (areDependenciesLoaded()) {
-            resolve();
-            return;
-        }
-
-        console.log('Chargement des dépendances...');
-        
-        // Charger TensorFlow.js
-        const tfScript = document.createElement('script');
-        tfScript.src = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js';
-        tfScript.onerror = () => reject(new Error('Échec du chargement de TensorFlow.js'));
-        document.head.appendChild(tfScript);
-
-        // Charger COCO-SSD
-        const cocoSsdScript = document.createElement('script');
-        cocoSsdScript.src = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js';
-        cocoSsdScript.onerror = () => reject(new Error('Échec du chargement de COCO-SSD'));
-        document.head.appendChild(cocoSsdScript);
-
-        // Vérifier périodiquement si les dépendances sont chargées
-        const checkInterval = setInterval(() => {
-            if (areDependenciesLoaded()) {
-                clearInterval(checkInterval);
-                clearTimeout(timeout);
-                resolve();
-            }
-        }, 100);
-
-        // Timeout pour éviter une attente infinie
-        const timeout = setTimeout(() => {
-            clearInterval(checkInterval);
-            reject(new Error('Timeout du chargement des dépendances'));
-        }, MODEL_LOAD_TIMEOUT);
-    });
-}
-
-// Fonction pour initialiser la détection d'objets
-async function initObjectDetection() {
-    if (objectDetectionInitialized || modelLoading) return false;
-    
-    modelLoading = true;
-    updateObjectDetectionStatus('initializing', 'Initialisation en cours...');
-
-    try {
-        // 1. Charger les dépendances
-        await loadDependencies();
-        
-        // 2. Attendre que TensorFlow soit prêt
-        await tf.ready();
-        console.log('TensorFlow.js est prêt');
-
-        // 3. Charger le modèle COCO-SSD avec vérification
-        updateObjectDetectionStatus('initializing', 'Chargement du modèle...');
-        
-        const loadingTimeout = setTimeout(() => {
-            throw new Error('Timeout du chargement du modèle');
-        }, MODEL_LOAD_TIMEOUT);
-
-        objectDetectionModel = await cocoSsd.load({
-            base: 'lite_mobilenet_v2'
-        });
-
-        clearTimeout(loadingTimeout);
-
-        // Vérification que le modèle est bien chargé
-        if (!objectDetectionModel || typeof objectDetectionModel.detect !== 'function') {
-            throw new Error('Le modèle ne s\'est pas chargé correctement');
-        }
-
-        console.log('Modèle COCO-SSD chargé avec succès');
-        objectDetectionInitialized = true;
-        modelLoading = false;
-        
-        updateObjectDetectionStatus('active', 'Prêt à détecter');
+/**
+ * Initialisation du système de détection
+ */
+async function initDetectionSystem() {
+    if (detectionModel || detectionActive) {
+        console.log('Détection déjà initialisée');
         return true;
+    }
 
+    updateStatus('Chargement du modèle...');
+    
+    try {
+        // Charger COCO-SSD uniquement
+        if (typeof cocoSsd === 'undefined') {
+            await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js');
+        }
+
+        // Créer le canvas de superposition
+        setupDetectionCanvas();
+
+        // Charger le modèle
+        detectionModel = await cocoSsd.load();
+        updateStatus('Modèle chargé - Prêt');
+        
+        return true;
     } catch (error) {
-        console.error('Erreur d\'initialisation:', error);
-        updateObjectDetectionStatus('error', `Erreur: ${error.message}`);
-        objectDetectionModel = null;
-        modelLoading = false;
+        console.error('Erreur initialisation:', error);
+        updateStatus('Erreur de chargement', 'error');
         return false;
     }
 }
 
-// Fonction de détection d'objets avec gestion d'erreur améliorée
-async function detectObjects() {
-    if (!isObjectDetectionActive) return;
-    
-    const video = document.getElementById("webcam");
-    
-    // Vérifications approfondies
-    if (!video || !video.srcObject || video.paused || video.ended) {
-        console.warn('Détection: vidéo non disponible');
-        return;
+/**
+ * Configurer le canvas de détection
+ */
+function setupDetectionCanvas() {
+    const videoElement = document.getElementById('webcam');
+    if (!videoElement) {
+        throw new Error('Élément vidéo introuvable');
     }
 
-    if (!objectDetectionModel || typeof objectDetectionModel.detect !== 'function') {
-        console.error('Modèle de détection non valide');
-        updateObjectDetectionStatus('error', 'Modèle non valide - réinitialisation');
-        await initObjectDetection(); // Tentative de réinitialisation
-        return;
+    // Créer ou récupérer le canvas
+    detectionCanvas = document.getElementById('detection-canvas');
+    if (!detectionCanvas) {
+        detectionCanvas = document.createElement('canvas');
+        detectionCanvas.id = 'detection-canvas';
+        detectionCanvas.style.position = 'absolute';
+        detectionCanvas.style.top = '0';
+        detectionCanvas.style.left = '0';
+        detectionCanvas.style.pointerEvents = 'none';
+        
+        videoElement.parentNode.appendChild(detectionCanvas);
     }
+
+    canvasContext = detectionCanvas.getContext('2d');
+}
+
+/**
+ * Démarrer la détection en continu
+ */
+function startDetection() {
+    if (detectionActive || !detectionModel) return;
+
+    detectionActive = true;
+    updateStatus('Détection active');
+    
+    // Détection immédiate puis intervalle
+    runDetection();
+    detectionInterval = setInterval(runDetection, DETECTION_INTERVAL);
+}
+
+/**
+ * Arrêter la détection
+ */
+function stopDetection() {
+    if (!detectionActive) return;
+
+    clearInterval(detectionInterval);
+    detectionActive = false;
+    updateStatus('Détection arrêtée');
+    
+    // Nettoyer le canvas
+    if (canvasContext && detectionCanvas) {
+        canvasContext.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+    }
+}
+
+/**
+ * Exécuter une détection
+ */
+async function runDetection() {
+    const videoElement = document.getElementById('webcam');
+    if (!videoElement || videoElement.readyState < 2) return;
 
     try {
-        const now = Date.now();
-        if (now - lastDetectionTime < DETECTION_INTERVAL * 0.8) return;
-        lastDetectionTime = now;
+        // Ajuster la taille du canvas
+        resizeCanvasToVideo(videoElement);
 
-        // Détection avec gestion d'erreur
-        const predictions = await objectDetectionModel.detect(video).catch(err => {
-            throw new Error(`Erreur de détection: ${err.message}`);
-        });
-
-        // Traitement des résultats
-        const forbiddenObjects = predictions.filter(
-            p => FORBIDDEN_OBJECTS.includes(p.class) && p.score >= CONFIDENCE_THRESHOLD
-        );
-
-        if (forbiddenObjects.length > 0) {
-            console.log("Objets interdits détectés:", forbiddenObjects);
-            
-            forbiddenObjects.forEach(obj => {
-                consecutiveDetections[obj.class] = (consecutiveDetections[obj.class] || 0) + 1;
-                
-                if (consecutiveDetections[obj.class] >= CONSECUTIVE_DETECTIONS_THRESHOLD) {
-                    reportObjectDetection(forbiddenObjects);
-                    consecutiveDetections[obj.class] = 0;
-                }
-            });
-            
-            updateObjectDetectionStatus('warning', `Détection: ${forbiddenObjects.map(o => o.class).join(", ")}`);
-            drawDetectionBoxes(video, forbiddenObjects);
-        } else {
-            consecutiveDetections = {};
-            updateObjectDetectionStatus('active', 'Surveillance active');
-            clearDetectionCanvas();
-        }
+        // Détecter les objets
+        const predictions = await detectionModel.detect(videoElement);
+        
+        // Traiter les résultats
+        processDetections(predictions);
     } catch (error) {
-        console.error('Erreur de détection:', error);
-        updateObjectDetectionStatus('error', 'Erreur de détection');
-        
-        // Réinitialiser si l'erreur concerne le modèle
-        if (error.message.includes('model') || error.message.includes('détection')) {
-            await initObjectDetection();
-        }
+        console.error('Erreur détection:', error);
+        updateStatus('Erreur de détection', 'error');
     }
 }
 
-// Fonctions auxiliaires restantes (non modifiées mais nécessaires)
-function updateObjectDetectionStatus(status, message) {
-    console.log(`[Object Detection] ${status}: ${message}`);
-    const statusElement = document.getElementById('object-status');
-    if (statusElement) {
-        let icon = 'fa-spinner fa-spin';
-        if (status === 'active') icon = 'fa-check-circle';
-        if (status === 'warning') icon = 'fa-exclamation-triangle';
-        if (status === 'error') icon = 'fa-times-circle';
-        
-        statusElement.innerHTML = `<i class="fas ${icon}"></i> Détection: ${message}`;
-        statusElement.className = 'status-item status-' + status;
+/**
+ * Redimensionner le canvas selon la vidéo
+ */
+function resizeCanvasToVideo(video) {
+    if (detectionCanvas.width !== video.videoWidth || detectionCanvas.height !== video.videoHeight) {
+        detectionCanvas.width = video.videoWidth;
+        detectionCanvas.height = video.videoHeight;
     }
 }
 
-function drawDetectionBoxes(video, objects) {
-    const canvas = document.getElementById('object-canvas');
-    if (!canvas) return;
-    
-    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+/**
+ * Traiter les résultats de détection
+ */
+function processDetections(predictions) {
+    // Filtrer les objets interdits
+    const forbiddenDetections = predictions.filter(
+        pred => FORBIDDEN_OBJECTS.includes(pred.class) && pred.score >= CONFIDENCE_THRESHOLD
+    );
+
+    // Effacer le canvas
+    canvasContext.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+
+    if (forbiddenDetections.length > 0) {
+        updateStatus(`${forbiddenDetections.length} objet(s) interdit(s) détecté(s)`, 'warning');
+        drawDetections(forbiddenDetections);
+        reportDetections(forbiddenDetections);
+    } else {
+        updateStatus('Aucun objet interdit détecté');
     }
-    
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    objects.forEach(obj => {
-        ctx.strokeStyle = '#FF0000';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(...obj.bbox);
+}
+
+/**
+ * Dessiner les boîtes de détection
+ */
+function drawDetections(detections) {
+    detections.forEach(detection => {
+        const [x, y, width, height] = detection.bbox;
         
-        ctx.fillStyle = '#FF0000';
-        ctx.font = '16px Arial';
-        ctx.fillText(
-            `${obj.class} (${Math.round(obj.score * 100)}%)`, 
-            obj.bbox[0], 
-            obj.bbox[1] > 20 ? obj.bbox[1] - 5 : 20
+        // Dessiner la boîte
+        canvasContext.strokeStyle = '#FF0000';
+        canvasContext.lineWidth = 2;
+        canvasContext.strokeRect(x, y, width, height);
+        
+        // Dessiner le fond du label
+        canvasContext.fillStyle = 'rgba(255, 0, 0, 0.5)';
+        canvasContext.fillRect(x, y - 20, width, 20);
+        
+        // Dessiner le texte
+        canvasContext.fillStyle = '#FFFFFF';
+        canvasContext.font = '14px Arial';
+        canvasContext.fillText(
+            `${detection.class} (${Math.round(detection.score * 100)}%)`,
+            x + 5,
+            y - 5
         );
     });
 }
 
-function clearDetectionCanvas() {
-    const canvas = document.getElementById('object-canvas');
-    if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+/**
+ * Signaler les détections au serveur
+ */
+async function reportDetections(detections) {
+    try {
+        const attemptId = document.getElementById('exam-container')?.dataset?.attemptId;
+        if (!attemptId) return;
+
+        const response = await fetch('/api/report-violations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                attemptId,
+                detections: detections.map(d => ({
+                    object: d.class,
+                    confidence: d.score,
+                    timestamp: new Date().toISOString()
+                }))
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Échec du signalement');
+        }
+    } catch (error) {
+        console.error('Erreur signalement:', error);
     }
 }
 
-function reportObjectDetection(objects) {
-    const description = `Objets interdits détectés: ${objects.map(o => o.class).join(", ")}`;
-    console.warn(description);
-    
-    if (typeof window.reportProctoringIncident === 'function') {
-        window.reportProctoringIncident('object', description, 'high');
+/**
+ * Mettre à jour l'interface utilisateur
+ */
+function updateStatus(message, type = 'info') {
+    const statusElement = document.getElementById('detection-status');
+    if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.className = `status ${type}`;
     }
 }
 
-function startObjectDetection() {
-    if (isObjectDetectionActive) return;
-    
-    isObjectDetectionActive = true;
-    updateObjectDetectionStatus('active', 'Détection démarrée');
-    
-    // Démarrer la détection immédiate et périodique
-    detectObjects();
-    objectDetectionInterval = setInterval(detectObjects, DETECTION_INTERVAL);
+/**
+ * Charger un script dynamiquement
+ */
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
 }
 
-function stopObjectDetection() {
-    isObjectDetectionActive = false;
-    if (objectDetectionInterval) {
-        clearInterval(objectDetectionInterval);
-        objectDetectionInterval = null;
-    }
-    updateObjectDetectionStatus('inactive', 'Détection arrêtée');
-    clearDetectionCanvas();
-}
-
-// Exposer les fonctions globales
-window.ObjectDetection = {
-    init: initObjectDetection,
-    start: startObjectDetection,
-    stop: stopObjectDetection,
-    isActive: () => isObjectDetectionActive
+// Interface publique
+window.ObjectDetector = {
+    init: initDetectionSystem,
+    start: startDetection,
+    stop: stopDetection
 };
+
+// Initialisation automatique
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        initDetectionSystem().then(initialized => {
+            if (initialized) {
+                startDetection();
+            }
+        });
+    }, 3000);
+});

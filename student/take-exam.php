@@ -4,6 +4,8 @@ require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
+
+
 // Récupérer l'ID de l'étudiant
 $studentId = $_SESSION['user_id'];
 
@@ -955,10 +957,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 
+
 <script src="../assets/js/proctoring-system.js"></script>
 <script src="../assets/js/face-api.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="../assets/js/proctoring.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
 <script src="../assets/js/object-detection.js"></script>

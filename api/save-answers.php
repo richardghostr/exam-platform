@@ -1,162 +1,142 @@
 <?php
-// Inclure les fichiers de configuration et fonctions
-include_once '../includes/config.php';
-include_once '../includes/functions.php';
+require_once '../includes/config.php';
+require_once '../includes/db.php';
+require_once '../student/includes/auth.php';
 
 // Vérifier si l'utilisateur est connecté
-require_login('../login.php');
+if (!isLoggedIn() || $_SESSION['role'] !== 'student') {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Non autorisé']);
+    exit();
+}
 
-// Vérifier si la requête est de type POST
+// Vérifier si la requête est en POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Méthode non autorisée']);
-    exit;
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+    exit();
 }
 
-// Récupérer les données du formulaire
-$attempt_id = isset($_POST['attempt_id']) ? intval($_POST['attempt_id']) : 0;
-$enrollment_id = isset($_POST['enrollment_id']) ? intval($_POST['enrollment_id']) : 0;
-$answers = isset($_POST['answer']) ? $_POST['answer'] : [];
-
-// Vérifier si les données sont valides
-if ($attempt_id <= 0 || $enrollment_id <= 0 || empty($answers)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Données invalides']);
-    exit;
+// Récupérer et décoder les données JSON
+$json_data = file_get_contents('php://input');
+if (!$json_data) {
+    // Fallback pour les données de formulaire traditionnelles si aucun JSON n'est détecté
+    $attempt_id = isset($_POST['attempt_id']) ? intval($_POST['attempt_id']) : 0;
+    $question_id = isset($_POST['question_id']) ? intval($_POST['question_id']) : 0;
+    $selected_options = isset($_POST['selected_options']) ? $_POST['selected_options'] : null;
+    $answer_text = isset($_POST['answer_text']) ? $_POST['answer_text'] : null;
+} else {
+    // Traiter les données JSON
+    $data = json_decode($json_data, true);
+    
+    if (!$data) {
+        // Erreur de décodage JSON
+        error_log("Erreur de décodage JSON: " . json_last_error_msg());
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Données JSON invalides: ' . json_last_error_msg()]);
+        exit();
+    }
+    
+    $attempt_id = isset($data['attempt_id']) ? intval($data['attempt_id']) : 0;
+    $question_id = isset($data['question_id']) ? intval($data['question_id']) : 0;
+    $selected_options = isset($data['selected_options']) ? $data['selected_options'] : null;
+    $answer_text = isset($data['answer_text']) ? $data['answer_text'] : null;
 }
 
-// Connexion à la base de données
-include_once '../includes/db.php';
+// Validation des données requises
+if (!$attempt_id || !$question_id) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Données requises manquantes (attempt_id ou question_id)']);
+    exit();
+}
 
-// Vérifier si la tentative existe et appartient à l'utilisateur
-$attempt_query = "
-    SELECT ea.id, ea.status, ee.exam_id
-    FROM exam_attempts ea
-    JOIN exam_enrollments ee ON ea.enrollment_id = ee.id
-    WHERE ea.id = ? AND ee.id = ? AND ee.student_id = ?
-";
+$user_id = $_SESSION['user_id'];
 
-$stmt = $conn->prepare($attempt_query);
-$stmt->bind_param("iii", $attempt_id, $enrollment_id, $_SESSION['user_id']);
+// Vérifier que la tentative appartient à l'étudiant connecté et est en cours
+$stmt = $conn->prepare("SELECT * FROM exam_attempts WHERE id = ? AND user_id = ? AND status = 'in_progress'");
+$stmt->bind_param("ii", $attempt_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Accès non autorisé']);
-    $stmt->close();
-    $conn->close();
-    exit;
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Tentative non valide ou terminée']);
+    exit();
 }
 
+// Vérifier que la question appartient à l'examen
 $attempt = $result->fetch_assoc();
-$stmt->close();
+$exam_id = $attempt['exam_id'];
 
-// Vérifier si la tentative est en cours
-if ($attempt['status'] !== 'in_progress') {
-    http_response_code(400);
-    echo json_encode(['error' => 'La tentative n\'est pas en cours']);
-    $conn->close();
-    exit;
-}
-
-// Récupérer les questions de l'examen
-$questions_query = "
-    SELECT q.id, q.question_type
-    FROM questions q
-    WHERE q.exam_id = ?
-";
-
-$stmt = $conn->prepare($questions_query);
-$stmt->bind_param("i", $attempt['exam_id']);
+$stmt = $conn->prepare("SELECT * FROM questions WHERE id = ? AND exam_id = ?");
+$stmt->bind_param("ii", $question_id, $exam_id);
 $stmt->execute();
-$questions_result = $stmt->get_result();
-$questions = [];
+$result = $stmt->get_result();
 
-while ($row = $questions_result->fetch_assoc()) {
-    $questions[$row['id']] = $row;
+if ($result->num_rows === 0) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Question non valide pour cet examen']);
+    exit();
 }
 
-$stmt->close();
+$question = $result->fetch_assoc();
+$question_type = $question['question_type'];
 
-// Traiter les réponses
-$saved_count = 0;
+// Debug log
+error_log("Sauvegarde de réponse - Type: {$question_type}, Question ID: {$question_id}, Attempt ID: {$attempt_id}");
+error_log("Données - Selected Options: " . ($selected_options ?? 'null') . ", Answer Text: " . ($answer_text ?? 'null'));
 
-foreach ($answers as $question_id => $answer) {
-    // Vérifier si la question existe
-    if (!isset($questions[$question_id])) {
-        continue;
-    }
-    
-    $answer_text = null;
-    $selected_option_id = null;
-    
-    if ($questions[$question_id]['question_type'] === 'multiple_choice' || $questions[$question_id]['question_type'] === 'true_false') {
-        // Pour les QCM et vrai/faux
-        $selected_option_id = intval($answer);
-    } else {
-        // Pour les réponses courtes et les essais
-        $answer_text = $answer;
-    }
-    
-    // Vérifier si une réponse existe déjà
-    $check_query = "
-        SELECT id
-        FROM student_answers
-        WHERE attempt_id = ? AND question_id = ?
-    ";
-    
-    $stmt = $conn->prepare($check_query);
+// Commencer une transaction
+$conn->begin_transaction();
+
+try {
+    // Vérifier si une réponse existe déjà pour cette question
+    $stmt = $conn->prepare("SELECT id FROM user_answers WHERE attempt_id = ? AND question_id = ?");
     $stmt->bind_param("ii", $attempt_id, $question_id);
     $stmt->execute();
-    $check_result = $stmt->get_result();
-    $stmt->close();
+    $result = $stmt->get_result();
     
-    if ($check_result->num_rows > 0) {
+    if ($result->num_rows > 0) {
         // Mettre à jour la réponse existante
-        $update_query = "
-            UPDATE student_answers
-            SET answer_text = ?, selected_option_id = ?
-            WHERE attempt_id = ? AND question_id = ?
-        ";
+        $answer_id = $result->fetch_assoc()['id'];
         
-        $stmt = $conn->prepare($update_query);
-        $stmt->bind_param("siii", $answer_text, $selected_option_id, $attempt_id, $question_id);
-        $stmt->execute();
-        $stmt->close();
+        if ($question_type === 'multiple_choice' || $question_type === 'single_choice' || $question_type === 'true_false') {
+            $stmt = $conn->prepare("UPDATE user_answers SET selected_options = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->bind_param("si", $selected_options, $answer_id);
+        } else {
+            $stmt = $conn->prepare("UPDATE user_answers SET answer_text = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->bind_param("si", $answer_text, $answer_id);
+        }
     } else {
         // Insérer une nouvelle réponse
-        $insert_query = "
-            INSERT INTO student_answers (attempt_id, question_id, answer_text, selected_option_id)
-            VALUES (?, ?, ?, ?)
-        ";
-        
-        $stmt = $conn->prepare($insert_query);
-        $stmt->bind_param("iisi", $attempt_id, $question_id, $answer_text, $selected_option_id);
-        $stmt->execute();
-        $stmt->close();
+        if ($question_type === 'multiple_choice' || $question_type === 'single_choice' || $question_type === 'true_false') {
+            $stmt = $conn->prepare("INSERT INTO user_answers (attempt_id, question_id, selected_options, user_id, created_at) VALUES (?, ?, ?, ?, NOW())");
+            $stmt->bind_param("iisi", $attempt_id, $question_id, $selected_options, $user_id);
+        } else {
+            $stmt = $conn->prepare("INSERT INTO user_answers (attempt_id, question_id, answer_text, user_id, created_at) VALUES (?, ?, ?, ?, NOW())");
+            $stmt->bind_param("iisi", $attempt_id, $question_id, $answer_text, $user_id);
+        }
     }
     
-    $saved_count++;
+    if (!$stmt->execute()) {
+        throw new Exception("Erreur lors de l'enregistrement de la réponse: " . $stmt->error);
+    }
+    
+    // Valider la transaction
+    $conn->commit();
+    
+    // Renvoyer la réponse
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Réponse enregistrée avec succès'
+    ]);
+    
+} catch (Exception $e) {
+    // Annuler la transaction en cas d'erreur
+    $conn->rollback();
+    
+    error_log("Erreur lors de la sauvegarde de réponse: " . $e->getMessage());
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-
-// Mettre à jour l'horodatage de la dernière activité
-$update_activity_query = "
-    UPDATE exam_attempts
-    SET last_activity = NOW()
-    WHERE id = ?
-";
-
-$stmt = $conn->prepare($update_activity_query);
-$stmt->bind_param("i", $attempt_id);
-$stmt->execute();
-$stmt->close();
-
-// Fermer la connexion à la base de données
-$conn->close();
-
-// Renvoyer une réponse de succès
-echo json_encode([
-    'success' => true,
-    'saved_count' => $saved_count
-]);
