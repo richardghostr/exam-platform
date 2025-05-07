@@ -977,14 +977,14 @@ include 'includes/header.php';
                                     <div class="link-info">
                                         <p>Partagez ce lien avec vos étudiants pour qu'ils puissent accéder à l'examen :</p>
                                         <div class="link-container">
-                                            <input type="text" class="form-control" id="examLink" value="<?php echo SITE_URL . 'exam.php?id=' . $examId; ?>" readonly>
+                                            <input type="text" class="form-control" id="examLink" value="<?php echo SITE_URL . 'student/take-exam.php?id=' . $examId; ?>" readonly>
                                             <button class="btn btn-primary copy-link" data-clipboard-target="#examLink">
                                                 <i class="fas fa-copy"></i>
                                             </button>
                                         </div>
                                     </div>
                                     <div class="qr-code">
-                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode(SITE_URL . 'exam.php?id=' . $examId); ?>" alt="QR Code">
+                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode(SITE_URL . 'student/take-exam.php?id=' . $examId); ?>" alt="QR Code">
                                     </div>
                                 </div>
                             </div>
