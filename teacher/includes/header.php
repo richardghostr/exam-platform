@@ -21,6 +21,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
   <link rel="stylesheet" href="../assets/css/teacher.css">
   <script src="../../assets/js/main.js"></script>
+  <script src="../../assets/js/dashboard.js"></script>
   <?php if (isset($extraCss)): ?>
     <?php foreach ($extraCss as $css): ?>
       <link rel="stylesheet" href="<?php echo $css; ?>">
@@ -36,7 +37,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
     <?php include 'sidebar.php'; ?>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" >
       <!-- Header -->
       <header class="header">
         <div class="header-left">

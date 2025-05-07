@@ -4,18 +4,15 @@ require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-// Vérifier si l'utilisateur est connecté et est un enseignant
+// Vérifier si l'utilisateur est connecté et est un administrateur
 if (!isLoggedIn() || !isAdmin()) {
     header('Location:login.php');
     exit();
 }
 
-// Récupérer l'ID de l'enseignant
-$teacherId = $_SESSION['user_id'];
-
 // Paramètres de pagination
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-$itemsPerPage = 10; // Define a default value for items per page
+$itemsPerPage = 10;
 $offset = ($page - 1) * $itemsPerPage;
 
 // Paramètres de filtrage
@@ -34,7 +31,7 @@ $baseQuery = "
     JOIN exam_attempts ea ON pi.attempt_id = ea.id
     JOIN exams e ON ea.exam_id = e.id
     JOIN users u ON ea.user_id = u.id
-    WHERE e.teacher_id = ?
+    WHERE 1=1
 ";
 
 $countQuery = "
@@ -42,15 +39,17 @@ $countQuery = "
     FROM proctoring_incidents pi
     JOIN exam_attempts ea ON pi.attempt_id = ea.id
     JOIN exams e ON ea.exam_id = e.id
-    WHERE e.teacher_id = ?
+    JOIN users u ON ea.user_id = u.id
+    WHERE 1=1
 ";
 
-$params = [$teacherId];
-$types = "i";
+$params = [];
+$types = "";
 
 // Ajouter les filtres
 if ($examId > 0) {
     $baseQuery .= " AND ea.exam_id = ?";
+    $countQuery .= " AND ea.exam_id = ?";
     $params[] = $examId;
     $types .= "i";
 }
@@ -97,19 +96,21 @@ if (!empty($status)) {
     $types .= "s";
 }
 
-// Ajouter l'ordre et la pagination
-$baseQuery .= " ORDER BY pi.timestamp DESC LIMIT ?, ?";
-$params[] = $offset;
-$params[] = $itemsPerPage;
-$types .= "ii";
-
 // Exécuter la requête pour obtenir le nombre total d'incidents
 $countStmt = $conn->prepare($countQuery);
-$countStmt->bind_param("i", $teacherId);
+if (!empty($params)) {
+    $countStmt->bind_param($types, ...$params);
+}
 $countStmt->execute();
 $countResult = $countStmt->get_result();
 $totalItems = $countResult->fetch_assoc()['total'];
 $totalPages = ceil($totalItems / $itemsPerPage);
+
+// Ajouter l'ordre et la pagination à la requête principale
+$baseQuery .= " ORDER BY pi.timestamp DESC LIMIT ?, ?";
+$params[] = $offset;
+$params[] = $itemsPerPage;
+$types .= "ii";
 
 // Exécuter la requête principale
 $stmt = $conn->prepare($baseQuery);
@@ -117,14 +118,12 @@ $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Récupérer la liste des examens de l'enseignant pour le filtre
+// Récupérer la liste des examens pour le filtre
 $examsQuery = $conn->prepare("
     SELECT id, title 
     FROM exams 
-    WHERE teacher_id = ? 
     ORDER BY created_at DESC
 ");
-$examsQuery->bind_param("i", $teacherId);
 $examsQuery->execute();
 $examsResult = $examsQuery->get_result();
 $exams = [];
@@ -132,16 +131,13 @@ while ($exam = $examsResult->fetch_assoc()) {
     $exams[] = $exam;
 }
 
-// Récupérer la liste des étudiants qui ont passé les examens de cet enseignant
+// Récupérer la liste des étudiants pour le filtre
 $studentsQuery = $conn->prepare("
     SELECT DISTINCT u.id, u.username, u.first_name, u.last_name
     FROM users u
     JOIN exam_attempts ea ON u.id = ea.user_id
-    JOIN exams e ON ea.exam_id = e.id
-    WHERE e.teacher_id = ?
     ORDER BY u.last_name, u.first_name
 ");
-$studentsQuery->bind_param("i", $teacherId);
 $studentsQuery->execute();
 $studentsResult = $studentsQuery->get_result();
 $students = [];
@@ -199,11 +195,7 @@ $statsQuery = $conn->prepare("
         SUM(CASE WHEN pi.status = 'reviewed' THEN 1 ELSE 0 END) as reviewed_incidents,
         SUM(CASE WHEN pi.status = 'dismissed' THEN 1 ELSE 0 END) as dismissed_incidents
     FROM proctoring_incidents pi
-    JOIN exam_attempts ea ON pi.attempt_id = ea.id
-    JOIN exams e ON ea.exam_id = e.id
-    WHERE e.teacher_id = ?
 ");
-$statsQuery->bind_param("i", $teacherId);
 $statsQuery->execute();
 $stats = $statsQuery->get_result()->fetch_assoc();
 
@@ -212,7 +204,6 @@ $activeMenu = "proctoring";
 include 'includes/header.php';
 ?>
 
-
 <div class="content-wrapper">
     <style>
         a{
@@ -220,7 +211,6 @@ include 'includes/header.php';
         }
         /* Container principal */
         .container-fluid {
-            background-color: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
         }
@@ -243,38 +233,40 @@ include 'includes/header.php';
         .small-box h3 {
             font-size: 2.5rem;
             font-weight: 700;
-            margin: 0 0 10px 0;
-            color: #2c3e50;
+            margin: 0 170px 10px 0;
+            color:rgb(255, 255, 255);
         }
 
         .small-box p {
             font-size: 1rem;
-            color: #7f8c8d;
-            margin: 0;
+            color:rgb(255, 255, 255);
+            margin-right: 60px;
+            
         }
 
         /* Couleurs spécifiques */
         .small-box.bg-info {
             border-top-color: #17a2b8;
-            background-color: #fff !important;
+            background-color: #111c44 !important;
             color: #17a2b8;
+           
         }
 
         .small-box.bg-danger {
             border-top-color: #dc3545;
-            background-color: #fff !important;
+            background-color: #111c44 !important;
             color: #dc3545;
         }
 
         .small-box.bg-warning {
             border-top-color: #ffc107;
-            background-color: #fff !important;
+            background-color: #111c44 !important;
             color: #ffc107;
         }
 
         .small-box.bg-success {
             border-top-color: #28a745;
-            background-color: #fff !important;
+            background-color: #111c44 !important;
             color: #28a745;
         }
 
@@ -286,42 +278,11 @@ include 'includes/header.php';
             font-size: 70px;
             opacity: 0.2;
             transition: all 0.3s linear;
+            margin-right: 10px;
         }
 
         /* Section de recherche */
-        .card {
-            margin-top: 20px;
-            border-radius: 20px;
-            background-color:white ;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-header {
-            background-color: #fff;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 20px 20px 0 0;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        /* Barre de recherche */
-        .form-control {
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            padding: 10px 15px;
-            font-size: 1rem;
-        }
-
-        /* Séparateur */
-        .row.mb-2 {
-            border-bottom: 1px solid #eee;
-            padding-bottom: 20px;
-            margin-bottom: 20px !important;
-        }
+      
 
         /* Adaptation responsive */
         @media (max-width: 768px) {

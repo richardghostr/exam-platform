@@ -5,6 +5,12 @@ require_once '../includes/db.php';
 require_once '../includes/functions.php';
 require_once '../includes/auth.php';
 
+// Vérifier si l'utilisateur est connecté et est un enseignant
+if (!isLoggedIn() || !isTeacher()) {
+    header('Location: ../login.php');
+    exit();
+}
+
 // Définir le titre de la page
 $pageTitle = "Tableau de bord";
 
@@ -22,8 +28,14 @@ $examStats = $conn->query("
     WHERE teacher_id = $teacherId
 ")->fetch_assoc();
 
+// S'assurer que les valeurs ne sont pas nulles
+$examStats['active_exams'] = $examStats['active_exams'] ?? 0;
+$examStats['draft_exams'] = $examStats['draft_exams'] ?? 0;
+$examStats['completed_exams'] = $examStats['completed_exams'] ?? 0;
+$examStats['total_exams'] = $examStats['total_exams'] ?? 0;
+
 // Récupérer les statistiques des étudiants
-$studentStats = $conn->query("
+$studentStatsQuery = $conn->query("
     SELECT 
         COUNT(DISTINCT user_id) as total_students,
         AVG(score) as avg_score,
@@ -32,7 +44,55 @@ $studentStats = $conn->query("
     FROM exam_results er
     JOIN exams e ON er.exam_id = e.id
     WHERE e.teacher_id = $teacherId AND er.status = 'completed'
-")->fetch_assoc();
+");
+
+$studentStats = $studentStatsQuery->fetch_assoc();
+
+// S'assurer que les valeurs ne sont pas nulles
+$studentStats['total_students'] = $studentStats['total_students'] ?? 0;
+$studentStats['avg_score'] = $studentStats['avg_score'] ?? 0;
+$studentStats['max_score'] = $studentStats['max_score'] ?? 0;
+$studentStats['min_score'] = $studentStats['min_score'] ?? 0;
+
+// Récupérer les données mensuelles pour le graphique d'activité
+$currentYear = date('Y');
+$monthlyData = [];
+
+// Initialiser les tableaux pour chaque mois
+for ($i = 1; $i <= 12; $i++) {
+    $monthlyData['created'][$i] = 0;
+    $monthlyData['completed'][$i] = 0;
+}
+
+// Récupérer les examens créés par mois
+$createdExamsQuery = $conn->query("
+    SELECT 
+        MONTH(created_at) as month,
+        COUNT(*) as count
+    FROM exams
+    WHERE teacher_id = $teacherId AND YEAR(created_at) = $currentYear
+    GROUP BY MONTH(created_at)
+");
+
+while ($row = $createdExamsQuery->fetch_assoc()) {
+    $monthlyData['created'][$row['month']] = (int)$row['count'];
+}
+
+// Récupérer les examens complétés par mois
+$completedExamsQuery = $conn->query("
+    SELECT 
+        MONTH(e.end_date) as month,
+        COUNT(DISTINCT e.id) as count
+    FROM exams e
+    WHERE e.teacher_id = $teacherId 
+    AND e.status = 'completed' 
+    AND YEAR(e.end_date) = $currentYear
+    GROUP BY MONTH(e.end_date)
+");
+
+while ($row = $completedExamsQuery->fetch_assoc()) {
+    $monthlyData['completed'][$row['month']] = (int)$row['count'];
+}
 
 // Récupérer les examens récents
 $recentExams = $conn->query("
@@ -79,7 +139,8 @@ $proctorIncidents = $conn->query("
         u.last_name,
         p.incident_type,
         p.timestamp,
-        p.details
+        p.details,
+        p.image_path
     FROM proctoring_incidents p
     JOIN exams e ON p.exam_id = e.id
     JOIN users u ON p.user_id = u.id
@@ -87,6 +148,11 @@ $proctorIncidents = $conn->query("
     ORDER BY p.timestamp DESC
     LIMIT 5
 ");
+
+// Définir les scripts supplémentaires à charger
+$extraScripts = [
+    '<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>'
+];
 
 // Inclure le header
 include 'includes/header.php';
@@ -261,7 +327,7 @@ include 'includes/header.php';
                 </div>
             </div>
             <div class="card-body">
-                <?php if ($examsToGrade->num_rows > 0): ?>
+                <?php if ($examsToGrade && $examsToGrade->num_rows > 0): ?>
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -316,7 +382,7 @@ include 'includes/header.php';
                 </div>
             </div>
             <div class="card-body">
-                <?php if ($proctorIncidents->num_rows > 0): ?>
+                <?php if ($proctorIncidents && $proctorIncidents->num_rows > 0): ?>
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -338,7 +404,14 @@ include 'includes/header.php';
                                             </span>
                                         </td>
                                         <td>
-                                            <button class="btn btn-icon btn-sm view-incident" data-id="<?php echo $incident['id']; ?>">
+                                            <button class="btn btn-icon btn-sm view-incident" 
+                                                data-id="<?php echo $incident['id']; ?>"
+                                                data-exam="<?php echo htmlspecialchars($incident['exam_title']); ?>"
+                                                data-student="<?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?>"
+                                                data-type="<?php echo htmlspecialchars($incident['incident_type']); ?>"
+                                                data-date="<?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?>"
+                                                data-details="<?php echo htmlspecialchars($incident['details']); ?>"
+                                                data-image="<?php echo !empty($incident['image_path']) ? htmlspecialchars($incident['image_path']) : '../assets/images/placeholder.jpg'; ?>">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                         </td>
@@ -396,30 +469,47 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php
-// Ajouter les scripts JS pour les graphiques
-$extraJs = [
-    'https://cdn.jsdelivr.net/npm/chart.js'
-];
-?>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier si Chart.js est chargé
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js n\'est pas chargé. Veuillez vérifier l\'inclusion du script.');
+        return;
+    }
+
+    // Vérifier si les éléments canvas existent
+    const examsActivityCanvas = document.getElementById('examsActivityChart');
+    const examStatusCanvas = document.getElementById('examStatusChart');
+    
+    if (!examsActivityCanvas || !examStatusCanvas) {
+        console.error('Les éléments canvas pour les graphiques n\'ont pas été trouvés.');
+        return;
+    }
+
+    // Données pour le graphique d'activité
+    const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const createdData = [
+        <?php echo implode(', ', array_values($monthlyData['created'])); ?>
+    ];
+    const completedData = [
+        <?php echo implode(', ', array_values($monthlyData['completed'])); ?>
+    ];
+
     // Exams Activity Chart
-    const examsActivityCtx = document.getElementById('examsActivityChart').getContext('2d');
+    const examsActivityCtx = examsActivityCanvas.getContext('2d');
     const examsActivityChart = new Chart(examsActivityCtx, {
         type: 'bar',
         data: {
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+            labels: monthLabels,
             datasets: [{
                 label: 'Examens créés',
-                data: [12, 19, 15, 8, 22, 14, 10, 17, 21, 15, 19, 23],
+                data: createdData,
                 backgroundColor: '#4e73df',
                 borderColor: '#4e73df',
                 borderWidth: 1
             }, {
                 label: 'Examens complétés',
-                data: [10, 15, 12, 6, 17, 10, 8, 15, 18, 12, 15, 20],
+                data: completedData,
                 backgroundColor: '#36b9cc',
                 borderColor: '#36b9cc',
                 borderWidth: 1
@@ -450,18 +540,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Données pour le graphique de statut
+    const activeExams = <?php echo $examStats['active_exams']; ?>;
+    const draftExams = <?php echo $examStats['draft_exams']; ?>;
+    const completedExams = <?php echo $examStats['completed_exams']; ?>;
+    
     // Exam Status Chart
-    const examStatusCtx = document.getElementById('examStatusChart').getContext('2d');
+    const examStatusCtx = examStatusCanvas.getContext('2d');
     const examStatusChart = new Chart(examStatusCtx, {
         type: 'doughnut',
         data: {
             labels: ['Actifs', 'Brouillons', 'Terminés'],
             datasets: [{
-                data: [
-                    <?php echo $examStats['active_exams']; ?>, 
-                    <?php echo $examStats['draft_exams']; ?>, 
-                    <?php echo $examStats['completed_exams']; ?>
-                ],
+                data: [activeExams, draftExams, completedExams],
                 backgroundColor: [
                     '#4CAF50',
                     '#FFC107',
@@ -487,37 +578,50 @@ document.addEventListener('DOMContentLoaded', function() {
     const incidentModal = document.getElementById('incidentModal');
     const closeModalBtns = document.querySelectorAll('.close-modal');
     
-    viewIncidentBtns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const incidentId = this.getAttribute('data-id');
-            // Ici, vous feriez normalement une requête AJAX pour récupérer les détails de l'incident
-            // Pour l'exemple, nous allons simplement remplir le modal avec des données fictives
-            document.getElementById('incident-exam').textContent = "Physique quantique";
-            document.getElementById('incident-student').textContent = "Jean Dupont";
-            document.getElementById('incident-type').textContent = "Détection de visage";
-            document.getElementById('incident-date').textContent = "18/04/2023, 09:15";
-            document.getElementById('incident-description').textContent = "L'étudiant a quitté le champ de vision de la caméra pendant plus de 30 secondes.";
-            
-            incidentModal.classList.add('show');
+    if (viewIncidentBtns.length > 0 && incidentModal && closeModalBtns.length > 0) {
+        viewIncidentBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                // Récupérer les données de l'incident depuis les attributs data-*
+                const exam = this.getAttribute('data-exam');
+                const student = this.getAttribute('data-student');
+                const type = this.getAttribute('data-type');
+                const date = this.getAttribute('data-date');
+                const details = this.getAttribute('data-details');
+                const imagePath = this.getAttribute('data-image');
+                
+                // Remplir le modal avec les données
+                document.getElementById('incident-exam').textContent = exam;
+                document.getElementById('incident-student').textContent = student;
+                document.getElementById('incident-type').textContent = type;
+                document.getElementById('incident-date').textContent = date;
+                document.getElementById('incident-description').textContent = details;
+                document.getElementById('incident-image').src = imagePath;
+                
+                // Afficher le modal
+                incidentModal.classList.add('show');
+            });
         });
-    });
-    
-    closeModalBtns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            incidentModal.classList.remove('show');
+        
+        closeModalBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                incidentModal.classList.remove('show');
+            });
         });
-    });
-    
-    window.addEventListener('click', function(event) {
-        if (event.target == incidentModal) {
-            incidentModal.classList.remove('show');
+        
+        window.addEventListener('click', function(event) {
+            if (event.target == incidentModal) {
+                incidentModal.classList.remove('show');
+            }
+        });
+        
+        // Bouton d'examen d'incident
+        const reviewIncidentBtn = document.getElementById('review-incident');
+        if (reviewIncidentBtn) {
+            reviewIncidentBtn.addEventListener('click', function() {
+                alert('Redirection vers la page de révision détaillée de l\'incident...');
+                // Ici, vous redirigeriez normalement vers une page de révision détaillée
+            });
         }
-    });
-    
-    // Bouton d'examen d'incident
-    document.getElementById('review-incident').addEventListener('click', function() {
-        alert('Redirection vers la page de révision détaillée de l\'incident...');
-        // Ici, vous redirigeriez normalement vers une page de révision détaillée
-    });
+    }
 });
 </script>

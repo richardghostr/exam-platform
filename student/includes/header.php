@@ -102,7 +102,7 @@ $hideNavigation = isset($hideNavigation) && $hideNavigation === true;
 <body>
     <?php if (!$hideNavigation): ?>
     <!-- Header -->
-    <header class="header">
+    <header class="header" style="">
         <div class="header-container">
             <div class="header-left">
                 <button class="nav-toggle" id="navToggle">
@@ -110,7 +110,7 @@ $hideNavigation = isset($hideNavigation) && $hideNavigation === true;
                 </button>
                 <a href="index.php" class="logo">
                     <img src="../assets/images/logo.png" alt="Logo">
-                    <span>ExamPro</span>
+                    <span>ExamSafe</span>
                 </a>
             </div>
             
@@ -188,16 +188,8 @@ $hideNavigation = isset($hideNavigation) && $hideNavigation === true;
     </header>
     
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="student-info">
-                <img src="../<?php echo $user['profile_image']; ?>" alt="Avatar" class="student-avatar">
-                <div class="student-details">
-                    <h4><?php echo $user['first_name'] . ' ' . $user['last_name']; ?></h4>
-                    <p>Étudiant</p>
-                </div>
-            </div>
-        </div>
+    <aside class="sidebar" id="sidebar" >
+    <div class="menu-category">Menu</div>
         
         <nav class="sidebar-menu">
             <a href="index.php" class="menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">

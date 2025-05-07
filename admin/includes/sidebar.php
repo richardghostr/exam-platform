@@ -34,6 +34,12 @@
                 </a>
             </li>
             <li class="menu-item">
+                <a href="proctoring-incidents.php" class="menu-link <?php echo $activeMenu === 'proctoring' ? 'active' : ''; ?>">
+                   <span><i class="menu-icon fas fa-exclamation-triangle"></i></span>
+                    <span>Incidents de surveillance</span>
+                </a>
+            </li>
+            <li class="menu-item">
                 <a href="reports.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>">
                     <span class="menu-icon"><i class="fas fa-chart-bar"></i></span>
                     <span>Rapports</span>

@@ -1,9 +1,9 @@
 <!-- Sidebar -->
-<aside class="sidebar">
+<aside class="sidebar" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%)";>
     <div class="sidebar-header">
         <div class="logo">
             <img src="../assets/images/logo.png" alt="ExamSafe Logo" height="80px">
-            <span>ExamSafe</span>
+            <span>ExamSafee</span>
         </div>
     </div>
 
