@@ -54,6 +54,7 @@ $notificationsQuery = $conn->prepare("
 $notificationsQuery->bind_param("i", $userId);
 $notificationsQuery->execute();
 $notifications = $notificationsQuery->get_result();
+$notification=$notifications->fetch_assoc();
 $notificationsCount = $notifications->num_rows;
 
 // Définir le titre de la page si non défini

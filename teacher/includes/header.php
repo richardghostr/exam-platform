@@ -19,6 +19,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/teacher.css">
   <script src="../../assets/js/main.js"></script>
   <script src="../../assets/js/dashboard.js"></script>

@@ -644,7 +644,7 @@ include 'includes/header.php';
 
                                                             <div class="form-group">
                                                                 <label for="notes<?php echo $incident['id']; ?>">Notes</label>
-                                                                <textarea class="form-control" id="notes<?php echo $incident['id']; ?>" name="notes" rows="3"><?php echo htmlspecialchars($incident['notes']); ?></textarea>
+                                                                <textarea class="form-control" id="notes<?php echo $incident['id']; ?>" name="notes" rows="3"><?php echo !empty($incident['notes']) ? htmlspecialchars($incident['notes']) : 'Aucune note'; ?></textarea>
                                                             </div>
 
                                                             <button type="submit" class="btn btn-primary">

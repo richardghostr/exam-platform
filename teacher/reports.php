@@ -101,7 +101,7 @@ include 'includes/header.php';
 <style>
     /* Style général */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ 
     background-color: #f8f9fa;
     color: #333;
     line-height: 1.6;

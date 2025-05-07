@@ -14,9 +14,10 @@
   --header-height: 70px;
   --border-radius: 8px;
   --card-border-radius: 10px;
-  --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); --font-family: "Poppins", sans-serif;
   --transition-speed: 0.3s;
-  --font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* --font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; */
+
 }
 
 * {

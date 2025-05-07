@@ -5,13 +5,13 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
 // Vérifier si l'utilisateur est connecté et est un enseignant
-if (!isLoggedIn() || !isTeacher()) {
-    header('Location: ../login.php');
-    exit();
-}
+// if (!isLoggedIn() || !isAdmin()) {
+//     header('Location: login.php');
+//     exit();
+// }
 
 // Récupérer l'ID de l'enseignant
-$teacherId = $_SESSION['user_id'];
+$user_id = $_SESSION['user_id'];
 
 // Vérifier si l'ID de l'examen est fourni
 if (!isset($_GET['exam_id']) || empty($_GET['exam_id'])) {
@@ -22,7 +22,7 @@ if (!isset($_GET['exam_id']) || empty($_GET['exam_id'])) {
 $examId = intval($_GET['exam_id']);
 
 // Vérifier si l'examen appartient à l'enseignant
-$examQuery = $conn->query("SELECT * FROM exams WHERE id = $examId AND teacher_id = $teacherId");
+$examQuery = $conn->query("SELECT * FROM exams WHERE id = $examId ");
 if ($examQuery->num_rows === 0) {
     header('Location: manage-exams.php');
     exit();
@@ -79,8 +79,7 @@ $questionStatsQuery = $conn->query("
 
 $pageTitle = "Résultats de l'examen";
 include 'includes/header.php';
-?>
-<style>
+?> <style>
     a{
         text-decoration: none;
     }
@@ -99,7 +98,7 @@ include 'includes/header.php';
 
 /* Cards */
 .card {
-  background: white;
+  /* background: white; */
   border-radius: 10px;
   margin-bottom: 25px;
   border: none;
@@ -113,7 +112,7 @@ include 'includes/header.php';
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: white;
+  /* background-color: white; */
   
 }
 
@@ -136,7 +135,7 @@ include 'includes/header.php';
 }
 
 .stats-card {
-  background: white;
+  /* background: white; */
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
@@ -157,7 +156,7 @@ include 'includes/header.php';
 }
 
 .stat-card {
-  background: white;
+  /* background: white; */
   border-radius: 8px;
   padding: 20px;
   display: flex;
@@ -202,17 +201,17 @@ include 'includes/header.php';
 }
 
 .status-badge.published {
-  background-color: #e6f7ee;
+
   color: var(--success-color);
 }
 
 .status-badge.draft {
-  background-color: #fff8e6;
+
   color: var(--warning-color);
 }
 
 .status-badge.in-progress {
-  background-color: #fee;
+  
   color: var(--danger-color);
 }
 
@@ -226,12 +225,12 @@ include 'includes/header.php';
 }
 
 .score-badge.passed {
-  background-color: #e6f7ee;
+  
   color: var(--success-color);
 }
 
 .score-badge.failed {
-  background-color: #fee;
+
   color: var(--danger-color);
 }
 
@@ -433,15 +432,15 @@ include 'includes/header.php';
   color: var(--light-text);
   margin-top: 5px;
 }
-</style>
-<div class="app-container" >
-    <main class="main-content"  style="width: 100%;margin-left: 25px;;margin-right: 20px;" >
-        
+</style> 
+<div class="app-container" style="margin-right: 25px;margin-left: -20px;">
+    <main class="main-content" style="width: 100%;margin-left: 25px;;margin-right: 20px;">
+
         <div class="content-wrapper">
-            
+
             <div class="content-body">
                 <div class="exam-header" style="display: flex; justify-content: space-between; align-items: center;margin-top: 20px;">
-                    
+
                     <div class="exam-title" style="display: flex; align-items: center;">
                         <h2><?php echo htmlspecialchars($exam['title']); ?></h2>
                         <span class="status-badge <?php echo $exam['status']; ?>">
@@ -457,7 +456,7 @@ include 'includes/header.php';
                         </a>
                     </div>
                 </div><br>
-                
+
                 <div class="row">
                     <div class="col-md-12">
                         <div class="card">
@@ -475,7 +474,7 @@ include 'includes/header.php';
                                             <div class="stat-label">Tentatives totales</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="stat-card">
                                         <div class="stat-icon">
                                             <i class="fas fa-check-circle"></i>
@@ -485,7 +484,7 @@ include 'includes/header.php';
                                             <div class="stat-label">Examens complétés</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="stat-card">
                                         <div class="stat-icon">
                                             <i class="fas fa-trophy"></i>
@@ -495,7 +494,7 @@ include 'includes/header.php';
                                             <div class="stat-label">Étudiants ayant réussi</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="stat-card">
                                         <div class="stat-icon">
                                             <i class="fas fa-chart-line"></i>
@@ -505,7 +504,7 @@ include 'includes/header.php';
                                             <div class="stat-label">Score moyen</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="stat-card">
                                         <div class="stat-icon">
                                             <i class="fas fa-arrow-down"></i>
@@ -515,7 +514,7 @@ include 'includes/header.php';
                                             <div class="stat-label">Score minimum</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="stat-card">
                                         <div class="stat-icon">
                                             <i class="fas fa-arrow-up"></i>
@@ -530,7 +529,7 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div class="col-md-8">
                         <div class="card">
@@ -575,8 +574,7 @@ include 'includes/header.php';
                                                         <td><?php echo htmlspecialchars($result['class_name'] ?? 'N/A'); ?></td>
                                                         <td>
                                                             <span class="status-badge <?php echo $result['status']; ?>">
-                                
-                                                                <?php echo !empty($result['status']) ? htmlspecialchars($result['status']) : 'Aucune statut'; ?><
+                                                                <?php echo ucfirst($result['status']); ?>
                                                             </span>
                                                         </td>
                                                         <td>
@@ -589,14 +587,14 @@ include 'includes/header.php';
                                                             <?php endif; ?>
                                                         </td>
                                                         <td>
-                                                            <?php 
-                                                                if ($result['status'] === 'completed' && $result['time_spent']) {
-                                                                    $minutes = floor($result['time_spent'] / 60);
-                                                                    $seconds = $result['time_spent'] % 60;
-                                                                    echo sprintf('%02d:%02d', $minutes, $seconds);
-                                                                } else {
-                                                                    echo '<span class="text-muted">N/A</span>';
-                                                                }
+                                                            <?php
+                                                            if ($result['status'] === 'completed' && $result['time_spent']) {
+                                                                $minutes = floor($result['time_spent'] / 60);
+                                                                $seconds = $result['time_spent'] % 60;
+                                                                echo sprintf('%02d:%02d', $minutes, $seconds);
+                                                            } else {
+                                                                echo '<span class="text-muted">N/A</span>';
+                                                            }
                                                             ?>
                                                         </td>
                                                         <td><?php echo date('d/m/Y H:i', strtotime($result['completed_at'] ?? $result['started_at'])); ?></td>
@@ -629,7 +627,7 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
@@ -641,7 +639,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="card">
                             <div class="card-header">
                                 <h2 class="card-title">Performance par question</h2>
@@ -650,10 +648,10 @@ include 'includes/header.php';
                                 <?php if ($questionStatsQuery->num_rows > 0): ?>
                                     <div class="question-stats">
                                         <?php while ($questionStat = $questionStatsQuery->fetch_assoc()): ?>
-                                            <?php 
-                                                $correctPercentage = $questionStat['total_answers'] > 0 
-                                                    ? round(($questionStat['correct_answers'] / $questionStat['total_answers']) * 100) 
-                                                    : 0;
+                                            <?php
+                                            $correctPercentage = $questionStat['total_answers'] > 0
+                                                ? round(($questionStat['correct_answers'] / $questionStat['total_answers']) * 100)
+                                                : 0;
                                             ?>
                                             <div class="question-stat-item">
                                                 <div class="question-stat-header">
@@ -661,14 +659,14 @@ include 'includes/header.php';
                                                         <?php echo htmlspecialchars(substr(strip_tags($questionStat['question_text']), 0, 50)) . (strlen(strip_tags($questionStat['question_text'])) > 50 ? '...' : ''); ?>
                                                     </div>
                                                     <div class="question-type">
-                                                        <?php 
-                                                            $typeLabels = [
-                                                                'multiple_choice' => 'QCM',
-                                                                'single_choice' => 'QCU',
-                                                                'true_false' => 'V/F',
-                                                                'essay' => 'Rédaction'
-                                                            ];
-                                                            echo $typeLabels[$questionStat['question_type']] ?? $questionStat['question_type'];
+                                                        <?php
+                                                        $typeLabels = [
+                                                            'multiple_choice' => 'QCM',
+                                                            'single_choice' => 'QCU',
+                                                            'true_false' => 'V/F',
+                                                            'essay' => 'Rédaction'
+                                                        ];
+                                                        echo $typeLabels[$questionStat['question_type']] ?? $questionStat['question_type'];
                                                         ?>
                                                     </div>
                                                 </div>
@@ -714,7 +712,7 @@ include 'includes/header.php';
 </div>
 
 <!-- Modal d'exportation des résultats -->
-<div class="modal" id="exportModal">
+<div class="card" id="exportModal" style="padding: 20px;">
     <div class="modal-content">
         <div class="modal-header">
             <h2>Exporter les résultats</h2>
@@ -723,8 +721,8 @@ include 'includes/header.php';
         <div class="modal-body">
             <form id="exportForm" method="POST" action="export-results.php">
                 <input type="hidden" name="exam_id" value="<?php echo $examId; ?>">
-                
-                <div class="form-group">
+
+                <div class="form-group"  style="display:flex;align-items:center">
                     <label for="export_format">Format</label>
                     <select id="export_format" name="format" class="form-control">
                         <option value="csv">CSV</option>
@@ -732,10 +730,10 @@ include 'includes/header.php';
                         <option value="pdf">PDF</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Données à inclure</label>
-                    <div class="checkbox-group">
+                    <div class="checkbox-group"  style="display:flex;flex-direction:column">
                         <label class="checkbox-container">
                             <input type="checkbox" name="include_student_info" checked>
                             <span class="checkmark"></span>
@@ -767,8 +765,8 @@ include 'includes/header.php';
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+<script> 
 document.addEventListener('DOMContentLoaded', function() {
     // Recherche dans le tableau des résultats
     const searchInput = document.getElementById('searchResults');
@@ -873,4 +871,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script>
+</script> 

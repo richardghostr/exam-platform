@@ -7,7 +7,7 @@
   top: 0;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
   color: #ecf0f1;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Poppins", sans-serif;
   z-index: 1000;
   " >
 
