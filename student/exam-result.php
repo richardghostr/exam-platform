@@ -43,25 +43,7 @@ if ($attempt['status'] === 'in_progress') {
     exit();
 }
 
-// Vérifier si les résultats peuvent être affichés
-if ($attempt['show_results'] == 0 && $attempt['status'] !== 'graded') {
-    $pageTitle = "Examen terminé";
-    include '../includes/header.php';
-    ?>
-    <div class="container">
-        <div class="exam-result-pending">
-            <div class="result-icon">
-                <i class="fas fa-hourglass-half"></i>
-            </div>
-            <h1>Examen terminé</h1>
-            <p>Votre examen a été soumis avec succès. Les résultats seront disponibles une fois que l'enseignant aura terminé la notation.</p>
-            <a href="dashboard.php" class="btn btn-primary">Retour au tableau de bord</a>
-        </div>
-    </div>
-    <?php
-    include '../includes/footer.php';
-    exit();
-}
+
 
 // Récupérer les statistiques de l'examen
 $examId = $attempt['exam_id'];
@@ -94,7 +76,7 @@ $extraCss = ['../assets/css/exam-result.css'];
 include 'includes/header.php';
 ?>
 
-<div class="container">
+<div class="container"><br><br>
     <div class="exam-result">
         <div class="result-header">
             <div class="result-title">
