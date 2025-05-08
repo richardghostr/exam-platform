@@ -471,7 +471,7 @@ include 'includes/header.php';
             </div>
 
             <!-- Liste des incidents -->
-            <div class="card">
+            <div class="card" style="display: flex;flex-direction: column;justify-content: center;">
                 <div class="card-header">
                     <h3 class="card-title">Liste des incidents de surveillance</h3>
                 </div>

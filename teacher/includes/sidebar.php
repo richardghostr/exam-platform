@@ -7,11 +7,11 @@
   top: 0;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
   color: #ecf0f1;
-  font-family: "Poppins", sans-serif;
-  z-index: 1000;
+;
   " >
 
     <div class="sidebar-header">
+        
         <div class="logo">
             <img src="../assets/images/logo.png" alt="ExamSafe Logo" height="80px">
             <span>ExamSafe</span>
