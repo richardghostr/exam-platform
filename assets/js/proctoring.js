@@ -91,79 +91,102 @@ function hideLoadingIndicator() {
 // Initialisation de la reconnaissance faciale avec Face-API.js
 async function initFaceRecognition() {
   try {
-    // Vérifier si Face-API.js est disponible
-    if (typeof faceapi === "undefined") {
-      throw new Error("Face-API.js n'est pas chargé")
-    }
-
-    updateProctoringStatus("face", "initializing", "Chargement des modèles...")
-
-    // Charger les modèles nécessaires
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODELS_PATH),
-      faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODELS_PATH),
-      faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODELS_PATH),
-      faceapi.nets.faceExpressionNet.loadFromUri(FACE_MODELS_PATH),
-    ])
-
-    console.log("Modèles de reconnaissance faciale chargés")
-    updateProctoringStatus("face", "initializing", "Accès à la webcam...")
-
-    // Accéder à la webcam
-    const video = document.getElementById("webcam")
-    if (!video) {
-      throw new Error("Élément vidéo non trouvé")
-    }
-
-    const stream =
-      video.srcObject ||
-      (await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: "user",
-        },
-      }))
-
-    if (!video.srcObject) {
-      video.srcObject = stream
-      await new Promise((resolve) => {
-        video.onloadedmetadata = () => {
-          video.play().then(resolve)
-        }
-      })
-    }
-
-    // Configurer le canvas pour l'affichage des résultats
-    const canvas = document.getElementById("canvas")
-    if (!canvas) {
-      throw new Error("Élément canvas non trouvé")
-    }
-
-    canvas.width = video.videoWidth || 640
-    canvas.height = video.videoHeight || 480
-
-    updateProctoringStatus("face", "initializing", "Capture de l'image de référence...")
-
-    // Capturer une image de référence au début
-    const referenceSuccess = await captureReferenceImage()
-    if (!referenceSuccess) {
-      throw new Error("Échec de la capture de l'image de référence")
-    }
-
-    // Démarrer la détection périodique
-    faceDetectionInterval = setInterval(checkFace, FACE_CHECK_INTERVAL)
-
+    // Charger les modèles avec les bonnes versions
+    await faceapi.nets.tinyFaceDetector.loadFromUri('../assets/models');
+    await faceapi.nets.faceLandmark68Net.loadFromUri('../assets/models');
+    
+    // Configurer le canvas
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const displaySize = { width: video.width, height: video.height };
+    faceapi.matchDimensions(canvas, displaySize);
+    
     // Mettre à jour le statut
-    updateProctoringStatus("face", "active")
-
-    return true
-  } catch (error) {
-    console.error("Erreur lors de l'initialisation de la reconnaissance faciale:", error)
-    updateProctoringStatus("face", "error", error.message)
-    reportProctoringIncident("face", "Erreur d'initialisation de la reconnaissance faciale: " + error.message)
-    throw error
-  }
+    document.getElementById('face-status').innerHTML = '<i class="fas fa-check-circle"></i> Reconnaissance faciale: Active';
+    faceDetectionActive = true;
+    
+    // Démarrer la détection avec gestion d'erreur améliorée
+    setInterval(async () => {
+        if (!faceDetectionActive) return;
+        
+        try {
+            // Vérifier que la vidéo est prête et en cours de lecture
+            if (video.readyState !== 4 || video.paused || video.ended) {
+                return;
+            }
+            
+            // Utiliser une configuration spécifique pour éviter les erreurs de tenseur
+            const options = new faceapi.TinyFaceDetectorOptions({
+                inputSize: 416,  // Utiliser une taille d'entrée standard (multiples de 32)
+                scoreThreshold: 0.5
+            });
+            
+            // Détecter les visages avec les options configurées
+            const detections = await faceapi.detectAllFaces(video, options)
+                .withFaceLandmarks();
+            
+            // Redimensionner les résultats pour correspondre à la taille d'affichage
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+            
+            // Effacer le canvas
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dessiner les détections
+            faceapi.draw.drawDetections(canvas, resizedDetections);
+            faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+            
+            // Vérifier le nombre de visages
+            if (detections.length === 0) {
+                // Aucun visage détecté
+                if (Date.now() - lastFaceDetectionTime > 3000) { // 3 secondes sans visage
+                    noFaceDetectedCount++;
+                    if (noFaceDetectedCount >= 3) { // 3 détections consécutives sans visage
+                        reportProctoringIncident('face_missing', 'Aucun visage détecté pendant une période prolongée', captureWebcamImage());
+                        noFaceDetectedCount = 0;
+                    }
+                }
+            } else if (detections.length > 1) {
+                // Plusieurs visages détectés
+                multipleFacesDetectedCount++;
+                if (multipleFacesDetectedCount >= 3) { // 3 détections consécutives avec plusieurs visages
+                    reportProctoringIncident('multiple_faces', `${detections.length} visages détectés dans le champ de la caméra`, captureWebcamImage());
+                    multipleFacesDetectedCount = 0;
+                }
+            } else {
+                // Un seul visage détecté, réinitialiser les compteurs
+                lastFaceDetectionTime = Date.now();
+                noFaceDetectedCount = 0;
+                multipleFacesDetectedCount = 0;
+            }
+        } catch (error) {
+            console.error('Erreur lors de la détection faciale:', error);
+            
+            // Gérer spécifiquement l'erreur de tenseur
+            if (error.message && error.message.includes('tensor')) {
+                document.getElementById('face-status').innerHTML = 
+                    '<i class="fas fa-exclamation-triangle"></i> Reconnaissance faciale: Erreur de tenseur - Tentative de récupération...';
+                
+                // Tentative de récupération - recharger les modèles
+                setTimeout(async () => {
+                    try {
+                        await faceapi.nets.tinyFaceDetector.load('assets/models/tiny_face_detector_model-weights_manifest.json');
+                        document.getElementById('face-status').innerHTML = 
+                            '<i class="fas fa-check-circle"></i> Reconnaissance faciale: Récupérée';
+                    } catch (reloadError) {
+                        document.getElementById('face-status').innerHTML = 
+                            '<i class="fas fa-times-circle"></i> Reconnaissance faciale: Désactivée';
+                        faceDetectionActive = false;
+                    }
+                }, 3000);
+            }
+        }
+    }, 1000);
+} catch (error) {
+    console.error('Erreur lors de l\'initialisation de la détection faciale:', error);
+    document.getElementById('face-status').innerHTML = 
+        '<i class="fas fa-exclamation-triangle"></i> Reconnaissance faciale: Erreur d\'initialisation';
+}
 }
 
 // Capture d'une image de référence pour la reconnaissance faciale

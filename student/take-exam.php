@@ -200,7 +200,7 @@ while ($incident = $incidentsResult->fetch_assoc()) {
 
 $pageTitle = "Passer l'examen: " . $exam['title'];
 $hideNavigation = true; // Cacher la navigation pendant l'examen
-$extraCss = ['../assets/css/exam.css'];
+// $extraCss = ['../assets/css/exam.css'];
 $extraJs = ['../assets/js/exam.js'];
 
 // Ajouter les fichiers CSS et JS pour la surveillance
@@ -703,8 +703,10 @@ include 'includes/header.php';
                     }
                 });
         }
-         // Fonction pour signaler automatiquement un incident
-         function reportProctoringIncident(type, description, imageData = null) {
+
+
+        // Fonction pour signaler automatiquement un incident
+        function reportProctoringIncident(type, description, imageData = null) {
             // Préparer les données
             const formData = new FormData();
             formData.append('attempt_id', attemptId); // Variable globale définie dans votre page
@@ -735,6 +737,41 @@ include 'includes/header.php';
                 });
         }
 
+        // Exemple d'utilisation pour la détection faciale
+        function checkFaceDetection(detections) {
+            if (detections.length === 0) {
+                // Aucun visage détecté
+                reportProctoringIncident('face_missing', 'Aucun visage détecté dans le champ de la caméra', captureWebcamImage());
+            } else if (detections.length > 1) {
+                // Plusieurs visages détectés
+                reportProctoringIncident('multiple_faces', `${detections.length} visages détectés dans le champ de la caméra`, captureWebcamImage());
+            }
+        }
+
+        // Fonction pour capturer l'image de la webcam
+        function captureWebcamImage() {
+            const video = document.getElementById('webcam');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            return canvas.toDataURL('image/jpeg', 0.7); // Qualité 70% pour réduire la taille
+        }
+
+        // Fonction pour mettre à jour le compteur d'incidents dans l'interface
+        function updateIncidentCounter() {
+            const warningsElement = document.getElementById('proctoringWarnings');
+            if (warningsElement) {
+                const countElement = warningsElement.querySelector('.warning-count');
+                if (countElement) {
+                    const currentCount = parseInt(countElement.textContent);
+                    countElement.textContent = currentCount + 1;
+                }
+            }
+        }
 
         // Terminer l'examen
         function finishExam(timeExpired = false) {
@@ -966,7 +1003,7 @@ include 'includes/header.php';
                 }
             });
         }
-       
+
         // Exemple d'utilisation pour la détection faciale
         function checkFaceDetection(detections) {
             if (detections.length === 0) {
@@ -1066,14 +1103,15 @@ include 'includes/header.php';
         // Initialiser la détection d'objets si la surveillance est activée
         if (proctoringEnabled) {
             // Attendre que le système de surveillance principal soit initialisé
-            setTimeout(() => {
-                console.log("Initialisation de la détection d'objets...");
-                if (typeof initObjectDetection === 'function') {
-                    initObjectDetection();
-                } else {
-                    console.error("La fonction initObjectDetection n'est pas disponible");
-                }
-            }, 3000);
+            initDetectionSystem();
+            // setTimeout(() => {
+            //     console.log("Initialisation de la détection d'objets...");
+            //     if (typeof initObjectDetection === 'function') {
+
+            //     } else {
+            //         console.error("La fonction initObjectDetection n'est pas disponible");
+            //     }
+            // }, 3000);
         }
     });
 </script>

@@ -211,8 +211,8 @@ include_once 'includes/functions.php';
                     <div class="plan-header">
                         <h3>Basique</h3>
                         <div class="plan-price">
-                            <span class="currency">€</span>
-                            <span class="amount">29</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">19012</span>
                             <span class="period">/mois</span>
                         </div>
                         <p>Idéal pour les petits établissements</p>
@@ -237,8 +237,8 @@ include_once 'includes/functions.php';
                     <div class="plan-header">
                         <h3>Pro</h3>
                         <div class="plan-price">
-                            <span class="currency">€</span>
-                            <span class="amount">79</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">51791</span>
                             <span class="period">/mois</span>
                         </div>
                         <p>Pour les établissements de taille moyenne</p>
@@ -262,8 +262,8 @@ include_once 'includes/functions.php';
                     <div class="plan-header">
                         <h3>Entreprise</h3>
                         <div class="plan-price">
-                            <span class="currency">€</span>
-                            <span class="amount">199</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">130461</span>
                             <span class="period">/mois</span>
                         </div>
                         <p>Pour les grandes institutions</p>

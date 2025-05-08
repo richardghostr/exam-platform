@@ -27,7 +27,7 @@ include_once 'includes/functions.php';
             <div class="about-content" style="width: 50%;">
                 <h1>À propos d'ExamSafe</h1>
                 <p>ExamSafe est une plateforme d'examens en ligne innovante qui révolutionne la façon dont les établissements d'enseignement et les entreprises organisent leurs évaluations à distance.</p>
-                <p>Fondée en 2023 par une équipe d'experts en éducation et en technologie, notre mission est de fournir une solution sécurisée, fiable et facile à utiliser pour les examens en ligne, tout en garantissant l'intégrité académique grâce à notre technologie de surveillance automatisée par intelligence artificielle.</p>
+                <p>Fondée en 2025 par une équipe de jeune éleves ingenieurs et d'experts en éducation et en technologie, notre mission est de fournir une solution sécurisée, fiable et facile à utiliser pour les examens en ligne, tout en garantissant l'intégrité académique grâce à notre technologie de surveillance automatisée par intelligence artificielle.</p>
                 <p>Nous croyons fermement que l'éducation à distance ne devrait pas compromettre la qualité et la fiabilité des évaluations. C'est pourquoi nous avons développé une plateforme qui combine des fonctionnalités avancées de surveillance avec une expérience utilisateur intuitive, tant pour les enseignants que pour les étudiants.</p>
             </div>
             <div class="about-image" style="width: 50%;">

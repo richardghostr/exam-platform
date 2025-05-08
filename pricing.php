@@ -47,13 +47,13 @@ include_once 'includes/functions.php';
                     </div>
                     <div class="plan-price" style="margin-left: 20px;">
                         <div class="monthly">
-                            <span class="currency">€</span>
-                            <span class="amount">29</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">19012</span>
                             <span class="period">/mois</span>
                         </div>
                         <div class="annual" style="display: none;">
-                            <span class="currency">€</span>
-                            <span class="amount">299</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">196019</span>
                             <span class="period">/an</span>
                         </div>
                     </div>
@@ -82,13 +82,13 @@ include_once 'includes/functions.php';
                     </div>
                     <div class="plan-price" style="margin-left: 20px;">
                         <div class="monthly">
-                            <span class="currency">€</span>
-                            <span class="amount">99</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">64903</span>
                             <span class="period">/mois</span>
                         </div>
                         <div class="annual" style="display: none;">
-                            <span class="currency">€</span>
-                            <span class="amount">999</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">654926</span>
                             <span class="period">/an</span>
                         </div>
                     </div>
@@ -116,13 +116,13 @@ include_once 'includes/functions.php';
                     </div>
                     <div class="plan-price" style="margin-left: 20px;">
                         <div class="monthly">
-                            <span class="currency">€</span>
-                            <span class="amount">299</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">196019</span>
                             <span class="period">/mois</span>
                         </div>
                         <div class="annual" style="display: none;">
-                            <span class="currency">€</span>
-                            <span class="amount">2999</span>
+                            <span class="currency">fcfa</span>
+                            <span class="amount">1966090</span>
                             <span class="period">/an</span>
                         </div>
                     </div>
