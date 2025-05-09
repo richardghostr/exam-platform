@@ -449,4 +449,7 @@ function logActivity($userId, $action, $entity, $entityId, $description) {
     ");
     $query->bind_param("issis", $userId, $action, $entity, $entityId, $description);
     $query->execute();
+} 
+function clean($data) {
+    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }

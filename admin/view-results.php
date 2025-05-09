@@ -545,7 +545,7 @@ include 'includes/header.php';
                             <div class="card-body">
                                 <?php if ($resultsQuery->num_rows > 0): ?>
                                     <div class="table-responsive">
-                                        <table class="table" id="resultsTable">
+                                        <table class="table" id="resultsTable" style="width: 100%;">
                                             <thead>
                                                 <tr>
                                                     <th>Étudiant</th>
@@ -574,7 +574,7 @@ include 'includes/header.php';
                                                         <td><?php echo htmlspecialchars($result['class_name'] ?? 'N/A'); ?></td>
                                                         <td>
                                                             <span class="status-badge <?php echo $result['status']; ?>">
-                                                                <?php echo ucfirst($result['status']); ?>
+                                                             <?php echo !empty($result['status']) ? htmlspecialchars($result['status']) : 'Aucun statut'; ?>
                                                             </span>
                                                         </td>
                                                         <td>
@@ -765,7 +765,7 @@ include 'includes/header.php';
     </div>
 </div>
 
-<!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script> 
 document.addEventListener('DOMContentLoaded', function() {
     // Recherche dans le tableau des résultats
@@ -824,7 +824,9 @@ document.addEventListener('DOMContentLoaded', function() {
             data: scoresData,
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                width:600,
+                maintainAspectRatio: true,
+                
                 scales: {
                     y: {
                         beginAtZero: true,

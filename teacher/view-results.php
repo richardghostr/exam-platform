@@ -576,7 +576,7 @@ include 'includes/header.php';
                                                         <td>
                                                             <span class="status-badge <?php echo $result['status']; ?>">
                                 
-                                                                <?php echo !empty($result['status']) ? htmlspecialchars($result['status']) : 'Aucune statut'; ?><
+                                                                <?php echo !empty($result['status']) ? htmlspecialchars($result['status']) : 'Aucun statut'; ?><
                                                             </span>
                                                         </td>
                                                         <td>
