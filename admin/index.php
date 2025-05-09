@@ -60,7 +60,7 @@ include 'includes/header.php';
         <div class="stat-trend trend-up">
             <i class="fas fa-arrow-up trend-icon"></i> 2.1% vs semaine dernière
         </div>
-        <div class="stat-period">Ventes du 1-12 Déc, 2023</div>
+        <div class="stat-period">Ventes du 1-12 Mars, 2025</div>
     </div>
     
     <div class="stat-card">
@@ -108,8 +108,8 @@ include 'includes/header.php';
         </div>
     </div>
     
-    <div class="card">
-        <div class="card-body">
+    <div class="card" style="display: flex;justify-content:space-between">
+        <div class="card-body" style="width: 48%;">
             <div class="chart-container">
                 <canvas id="examTimeChart"></canvas>
             </div>
@@ -127,6 +127,11 @@ include 'includes/header.php';
                     <span class="badge badge-warning"></span>
                     <span>Soir (32%)</span>
                 </div>
+            </div>
+        </div>
+        <div class="card-body" style="width: 48%;">
+            <div class="chart-container">
+                <canvas id="studentChart"></canvas>
             </div>
         </div>
     </div>
@@ -336,3 +341,53 @@ function getStatusClass($status) {
 ?>
 
 <?php include 'includes/footer.php'; ?>
+<script>document.addEventListener('DOMContentLoaded', function() {
+    // Graphique pour l'évolution des enregistrements d'utilisateurs
+    const studentCtx = document.getElementById('studentChart').getContext('2d');
+    
+    // Données factices (à remplacer par des données réelles depuis votre base de données)
+    // Dans une application réelle, vous devriez récupérer ces données via AJAX
+    const studentChartData = {
+        labels: ['1 Déc', '2 Déc', '3 Déc', '4 Déc', '5 Déc', '6 Déc', '7 Déc'],
+        datasets: [{
+            label: 'Nouveaux utilisateurs',
+            data: [12, 19, 8, 15, 22, 17, 25],
+            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+            borderColor: 'rgba(99, 102, 241, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+        }]
+    };
+
+    const studentChart = new Chart(studentCtx, {
+        type: 'line',
+        data: studentChartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 5
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+});</script>

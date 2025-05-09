@@ -200,7 +200,7 @@ while ($incident = $incidentsResult->fetch_assoc()) {
 
 $pageTitle = "Passer l'examen: " . $exam['title'];
 $hideNavigation = true; // Cacher la navigation pendant l'examen
-// $extraCss = ['../assets/css/exam.css'];
+$extraCss = ['../assets/css/exam.css'];
 $extraJs = ['../assets/js/exam.js'];
 
 // Ajouter les fichiers CSS et JS pour la surveillance

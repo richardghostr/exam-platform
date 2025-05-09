@@ -150,13 +150,13 @@ $proctorIncidents = $conn->query("
 ");
 
 // Définir les scripts supplémentaires à charger
-$extraScripts = [
-    '<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>'
-];
 
+$monthlyData['created'] = array_values($monthlyData['created']);
+$monthlyData['completed'] = array_values($monthlyData['completed']);
 // Inclure le header
 include 'includes/header.php';
 ?>
+
 
 <!-- Dashboard Content -->
 <div class="dashboard">
@@ -176,7 +176,7 @@ include 'includes/header.php';
                 </div>
             </div>
         </div>
-        
+
         <div class="stat-card gradient-blue">
             <div class="card-body">
                 <div class="stat-icon">
@@ -191,7 +191,7 @@ include 'includes/header.php';
                 </div>
             </div>
         </div>
-        
+
         <div class="stat-card gradient-green">
             <div class="card-body">
                 <div class="stat-icon">
@@ -207,7 +207,7 @@ include 'includes/header.php';
             </div>
         </div>
     </div>
-    
+
     <!-- Charts Section -->
     <div class="charts-section">
         <div class="card chart-card">
@@ -219,11 +219,11 @@ include 'includes/header.php';
                     </button>
                 </div>
             </div>
-            <div class="card-body">
-                <canvas id="examsActivityChart" height="250"></canvas>
+            <div class="card-body" style="max-height: 300px;">
+                <canvas id="examsActivityChart" height="650"></canvas>
             </div>
         </div>
-        
+
         <div class="card chart-card">
             <div class="card-header">
                 <h2 class="card-title">Répartition des statuts</h2>
@@ -233,26 +233,12 @@ include 'includes/header.php';
                     </button>
                 </div>
             </div>
-            <div class="card-body">
-                <canvas id="examStatusChart" height="250"></canvas>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #4CAF50;"></span>
-                        <span class="legend-label">Actifs</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #FFC107;"></span>
-                        <span class="legend-label">Brouillons</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #2196F3;"></span>
-                        <span class="legend-label">Terminés</span>
-                    </div>
-                </div>
+            <div class="card-body" style="max-height: 300px;">
+                <canvas id="examStatusChart"></canvas>
             </div>
         </div>
     </div>
-    
+
     <!-- Recent Exams Table -->
     <div class="card table-card">
         <div class="card-header">
@@ -316,7 +302,7 @@ include 'includes/header.php';
             </div>
         </div>
     </div>
-    
+
     <!-- Exams to Grade and Incidents -->
     <div class="dashboard-row">
         <div class="card table-card">
@@ -373,7 +359,7 @@ include 'includes/header.php';
                 <?php endif; ?>
             </div>
         </div>
-        
+
         <div class="card table-card">
             <div class="card-header">
                 <h2 class="card-title">Incidents récents</h2>
@@ -404,7 +390,7 @@ include 'includes/header.php';
                                             </span>
                                         </td>
                                         <td>
-                                            <button class="btn btn-icon btn-sm view-incident" 
+                                            <button class="btn btn-icon btn-sm view-incident"
                                                 data-id="<?php echo $incident['id']; ?>"
                                                 data-exam="<?php echo htmlspecialchars($incident['exam_title']); ?>"
                                                 data-student="<?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?>"
@@ -468,160 +454,129 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Vérifier si Chart.js est chargé
-    if (typeof Chart === 'undefined') {
-        console.error('Chart.js n\'est pas chargé. Veuillez vérifier l\'inclusion du script.');
-        return;
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. GRAPHIQUE D'ACTIVITÉ (Barres)
+        const activityCtx = document.getElementById('examsActivityChart').getContext('2d');
+        new Chart(activityCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                datasets: [{
+                        label: 'Examens créés',
+                        data: [<?php echo implode(',', $monthlyData['created']); ?>],
+                        backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                        borderColor: 'rgba(78, 115, 223, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Examens terminés',
+                        data: [<?php echo implode(',', $monthlyData['completed']); ?>],
+                        backgroundColor: 'rgba(54, 185, 204, 0.8)',
+                        borderColor: 'rgba(54, 185, 204, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
 
-    // Vérifier si les éléments canvas existent
-    const examsActivityCanvas = document.getElementById('examsActivityChart');
-    const examStatusCanvas = document.getElementById('examStatusChart');
-    
-    if (!examsActivityCanvas || !examStatusCanvas) {
-        console.error('Les éléments canvas pour les graphiques n\'ont pas été trouvés.');
-        return;
-    }
+        // 2. GRAPHIQUE DE RÉPARTITION (Anneau)
+        const statusCtx = document.getElementById('examStatusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Actifs', 'Brouillons', 'Terminés'],
+                datasets: [{
+                    data: [
+                        5, 3, 8
+                    ],
+                    backgroundColor: [
+                        '#4CAF50', // Vert
+                        '#FFC107', // Jaune
+                        '#2196F3' // Bleu
+                    ],
+                    borderWidth: 0,
 
-    // Données pour le graphique d'activité
-    const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-    const createdData = [
-        <?php echo implode(', ', array_values($monthlyData['created'])); ?>
-    ];
-    const completedData = [
-        <?php echo implode(', ', array_values($monthlyData['completed'])); ?>
-    ];
-
-    // Exams Activity Chart
-    const examsActivityCtx = examsActivityCanvas.getContext('2d');
-    const examsActivityChart = new Chart(examsActivityCtx, {
-        type: 'bar',
-        data: {
-            labels: monthLabels,
-            datasets: [{
-                label: 'Examens créés',
-                data: createdData,
-                backgroundColor: '#4e73df',
-                borderColor: '#4e73df',
-                borderWidth: 1
-            }, {
-                label: 'Examens complétés',
-                data: completedData,
-                backgroundColor: '#36b9cc',
-                borderColor: '#36b9cc',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Désactive le ratio par défaut
+                width: 150, // Largeur fixe
+                height: 100,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'right'
                     }
                 },
-                x: {
-                    grid: {
-                        display: false
-                    }
+            }
+        });
+
+        // Gestion du modal d'incident
+        const viewIncidentBtns = document.querySelectorAll('.view-incident');
+        const incidentModal = document.getElementById('incidentModal');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+
+        if (viewIncidentBtns.length > 0 && incidentModal && closeModalBtns.length > 0) {
+            viewIncidentBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    // Récupérer les données de l'incident depuis les attributs data-*
+                    const exam = this.getAttribute('data-exam');
+                    const student = this.getAttribute('data-student');
+                    const type = this.getAttribute('data-type');
+                    const date = this.getAttribute('data-date');
+                    const details = this.getAttribute('data-details');
+                    const imagePath = this.getAttribute('data-image');
+
+                    // Remplir le modal avec les données
+                    document.getElementById('incident-exam').textContent = exam;
+                    document.getElementById('incident-student').textContent = student;
+                    document.getElementById('incident-type').textContent = type;
+                    document.getElementById('incident-date').textContent = date;
+                    document.getElementById('incident-description').textContent = details;
+                    document.getElementById('incident-image').src = imagePath;
+
+                    // Afficher le modal
+                    incidentModal.classList.add('show');
+                });
+            });
+
+            closeModalBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    incidentModal.classList.remove('show');
+                });
+            });
+
+            window.addEventListener('click', function(event) {
+                if (event.target == incidentModal) {
+                    incidentModal.classList.remove('show');
                 }
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    align: 'end'
-                }
+            });
+
+            // Bouton d'examen d'incident
+            const reviewIncidentBtn = document.getElementById('review-incident');
+            if (reviewIncidentBtn) {
+                reviewIncidentBtn.addEventListener('click', function() {
+                    alert('Redirection vers la page de révision détaillée de l\'incident...');
+                    // Ici, vous redirigeriez normalement vers une page de révision détaillée
+                });
             }
         }
     });
-    
-    // Données pour le graphique de statut
-    const activeExams = <?php echo $examStats['active_exams']; ?>;
-    const draftExams = <?php echo $examStats['draft_exams']; ?>;
-    const completedExams = <?php echo $examStats['completed_exams']; ?>;
-    
-    // Exam Status Chart
-    const examStatusCtx = examStatusCanvas.getContext('2d');
-    const examStatusChart = new Chart(examStatusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Actifs', 'Brouillons', 'Terminés'],
-            datasets: [{
-                data: [activeExams, draftExams, completedExams],
-                backgroundColor: [
-                    '#4CAF50',
-                    '#FFC107',
-                    '#2196F3'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-    
-    // Gestion du modal d'incident
-    const viewIncidentBtns = document.querySelectorAll('.view-incident');
-    const incidentModal = document.getElementById('incidentModal');
-    const closeModalBtns = document.querySelectorAll('.close-modal');
-    
-    if (viewIncidentBtns.length > 0 && incidentModal && closeModalBtns.length > 0) {
-        viewIncidentBtns.forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                // Récupérer les données de l'incident depuis les attributs data-*
-                const exam = this.getAttribute('data-exam');
-                const student = this.getAttribute('data-student');
-                const type = this.getAttribute('data-type');
-                const date = this.getAttribute('data-date');
-                const details = this.getAttribute('data-details');
-                const imagePath = this.getAttribute('data-image');
-                
-                // Remplir le modal avec les données
-                document.getElementById('incident-exam').textContent = exam;
-                document.getElementById('incident-student').textContent = student;
-                document.getElementById('incident-type').textContent = type;
-                document.getElementById('incident-date').textContent = date;
-                document.getElementById('incident-description').textContent = details;
-                document.getElementById('incident-image').src = imagePath;
-                
-                // Afficher le modal
-                incidentModal.classList.add('show');
-            });
-        });
-        
-        closeModalBtns.forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                incidentModal.classList.remove('show');
-            });
-        });
-        
-        window.addEventListener('click', function(event) {
-            if (event.target == incidentModal) {
-                incidentModal.classList.remove('show');
-            }
-        });
-        
-        // Bouton d'examen d'incident
-        const reviewIncidentBtn = document.getElementById('review-incident');
-        if (reviewIncidentBtn) {
-            reviewIncidentBtn.addEventListener('click', function() {
-                alert('Redirection vers la page de révision détaillée de l\'incident...');
-                // Ici, vous redirigeriez normalement vers une page de révision détaillée
-            });
-        }
-    }
-});
 </script>
