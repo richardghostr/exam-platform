@@ -3,6 +3,15 @@
 define('SITE_NAME', 'ExamSafe');
 define('SITE_URL', 'http://localhost/exam-platform/');
 
+// SMTP Configuration
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_USER', 'richardtiomela4@gmail.com');
+define('SMTP_PASS', 'teur cihu ajju tczp');
+define('SMTP_SECURE', 'tls');  // 'ssl' ou 'tls'
+define('SMTP_PORT', 587);      // 465 pour SSL, 587 pour TLS
+define('FROM_EMAIL', 'noreply@examsafe.com');
+define('FROM_NAME', SITE_NAME);
+
 // Configuration de la base de données
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
