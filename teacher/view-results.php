@@ -9,7 +9,8 @@ if (!isLoggedIn() || !isTeacher()) {
     header('Location: ../login.php');
     exit();
 }
-
+$up = $conn->prepare("UPDATE `exam_results` er JOIN `exam_attempts` ea ON er.id=ea.id SET er.score =ea.score,er.points_earned=ea.score WHERE er.exam_id=ea.exam_id AND er.user_id=ea.user_id AND er.created_at=ea.created_at");
+$up->execute();
 // Récupérer l'ID de l'enseignant
 $teacherId = $_SESSION['user_id'];
 

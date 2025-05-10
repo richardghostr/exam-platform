@@ -120,15 +120,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 
     <!-- Formulaire de contact -->
-    <section class="features" style="margin-top: -30px;">
-        <div class="container">
-            <div class="section-header">
+    <section class="features" style="margin-top: -30px;" >
+        <div class="container" >
+            <div class="section-header" style="text-align: center;width:100%">
                 <h2>Envoyez-nous un message</h2>
                 <p>Nous vous répondrons dans les plus brefs délais</p>
             </div>
 
             <?php if ($success): ?>
-                <div class="alert alert-success">
+                <div class="alert alert-success" style="text-align: center;width:100%">
                     <i class="fas fa-check-circle"></i>
                     Votre message a été envoyé avec succès. Nous vous répondrons dans les plus brefs délais.
                 </div>

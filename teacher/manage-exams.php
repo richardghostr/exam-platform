@@ -400,7 +400,7 @@ include 'includes/header.php';
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
-            <div class="empty-state">
+            <div class="empty-state" style="text-align: center;width:100%">
                 <div class="empty-icon">
                     <i class="fas fa-file-alt"></i>
                 </div>

@@ -9,7 +9,8 @@ require_once '../includes/functions.php';
 //     header('Location: login.php');
 //     exit();
 // }
-
+$up = $conn->prepare("UPDATE `exam_results` er JOIN `exam_attempts` ea ON er.id=ea.id SET er.score =ea.score,er.points_earned=ea.score WHERE er.exam_id=ea.exam_id AND er.user_id=ea.user_id AND er.created_at=ea.created_at");
+$up->execute();
 // Récupérer l'ID de l'enseignant
 $user_id = $_SESSION['user_id'];
 
@@ -80,359 +81,362 @@ $questionStatsQuery = $conn->query("
 $pageTitle = "Résultats de l'examen";
 include 'includes/header.php';
 ?> <style>
-    a{
+    a {
         text-decoration: none;
     }
+
     :root {
-  --success-color: #28a745;
-  --warning-color: #ffc107;
-  --danger-color: #dc3545;
-  --info-color: #17a2b8;
-}
+        --success-color: #28a745;
+        --warning-color: #ffc107;
+        --danger-color: #dc3545;
+        --info-color: #17a2b8;
+    }
 
-.content-header h1 {
-  margin: 0;
-  font-size: 1.8rem;
-  color: var(--text-color);
-}
+    .content-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: var(--text-color);
+    }
 
-/* Cards */
-.card {
-  /* background: white; */
-  border-radius: 10px;
-  margin-bottom: 25px;
-  border: none;
-  overflow: hidden;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
+    /* Cards */
+    .card {
+        /* background: white; */
+        border-radius: 10px;
+        margin-bottom: 25px;
+        border: none;
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
 
-.card-header {
-  padding: 18px 25px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  /* background-color: white; */
-  
-}
+    .card-header {
+        padding: 18px 25px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        /* background-color: white; */
 
-.card-header h2 {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--text-color);
-}
+    }
 
-.card-body {
-  padding: 25px;
-}
+    .card-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-color);
+    }
 
-.stats-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 25px;
-  margin-bottom: 30px;
-}
+    .card-body {
+        padding: 25px;
+    }
 
-.stats-card {
-  /* background: white; */
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-}
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        margin-bottom: 30px;
+    }
 
-.stats-card h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.1rem;
-  color: var(--text-color);
-  font-weight: 600;
-}
+    .stats-card {
+        /* background: white; */
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-}
+    .stats-card h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+        color: var(--text-color);
+        font-weight: 600;
+    }
 
-.stat-card {
-  /* background: white; */
-  border-radius: 8px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid var(--primary-color);
-}
-.user-info {
-  display: flex;
-  align-items: center;
-}
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+    }
 
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  background-color: var(--secondary-color);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 10px;
-  font-weight: bold;
-  color: var(--primary-color);
-}
+    .stat-card {
+        /* background: white; */
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid var(--primary-color);
+    }
 
-.user-name {
-  font-weight: 500;
-}
+    .user-info {
+        display: flex;
+        align-items: center;
+    }
 
-.user-email {
-  font-size: 0.8rem;
-  color: var(--light-text);
-}
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        background-color: var(--secondary-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
 
-/* Status badges */
-.status-badge {
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  display: inline-block;
-}
+    .user-name {
+        font-weight: 500;
+    }
 
-.status-badge.published {
+    .user-email {
+        font-size: 0.8rem;
+        color: var(--light-text);
+    }
 
-  color: var(--success-color);
-}
+    /* Status badges */
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-block;
+    }
 
-.status-badge.draft {
+    .status-badge.published {
 
-  color: var(--warning-color);
-}
+        color: var(--success-color);
+    }
 
-.status-badge.in-progress {
-  
-  color: var(--danger-color);
-}
+    .status-badge.draft {
 
-/* Score badges */
-.score-badge {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
+        color: var(--warning-color);
+    }
 
-.score-badge.passed {
-  
-  color: var(--success-color);
-}
+    .status-badge.in-progress {
 
-.score-badge.failed {
+        color: var(--danger-color);
+    }
 
-  color: var(--danger-color);
-}
+    /* Score badges */
+    .score-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
 
-/* Buttons */
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+    .score-badge.passed {
 
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
+        color: var(--success-color);
+    }
 
-.btn-primary:hover {
-  background-color: #3a5bef;
-  transform: translateY(-2px);
-}
+    .score-badge.failed {
 
-.btn-outline-secondary {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
-}
+        color: var(--danger-color);
+    }
 
-.btn-outline-secondary:hover {
-  background-color: var(--secondary-color);
-}
+    /* Buttons */
+    .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-/* Action menu */
-.action-menu {
-  list-style: none;
-  padding: 10px 0;
-  margin: 0;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-color);
-  min-width: 200px;
-}
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
 
-.action-menu li {
-  padding: 8px 15px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+    .btn-primary:hover {
+        background-color: #3a5bef;
+        transform: translateY(-2px);
+    }
 
-.action-menu li:hover {
-  background-color: var(--secondary-color);
-}
+    .btn-outline-secondary {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
 
-.action-menu li i {
-  margin-right: 10px;
-  width: 20px;
-  text-align: center;
-}
+    .btn-outline-secondary:hover {
+        background-color: var(--secondary-color);
+    }
 
-/* Examens par mois */
-.monthly-stats {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 15px;
-}
+    /* Action menu */
+    .action-menu {
+        list-style: none;
+        padding: 10px 0;
+        margin: 0;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        min-width: 200px;
+    }
 
-.monthly-stat {
-  flex: 1;
-  text-align: center;
-}
+    .action-menu li {
+        padding: 8px 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
 
-.monthly-stat h4 {
-  margin: 0 0 5px 0;
-  font-size: 0.9rem;
-  color: var(--light-text);
-}
+    .action-menu li:hover {
+        background-color: var(--secondary-color);
+    }
 
-.monthly-stat .value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
+    .action-menu li i {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+    }
 
-/* Export section */
-.export-section {
-  margin-bottom: 30px;
-}
+    /* Examens par mois */
+    .monthly-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+    }
 
-.export-options {
-  display: flex;
-  gap: 15px;
-  margin-top: 15px;
-}
+    .monthly-stat {
+        flex: 1;
+        text-align: center;
+    }
 
-.export-option {
-  display: flex;
-  align-items: center;
-  padding: 10px 15px;
-  background: white;
-  border-radius: 6px;
-  box-shadow: var(--card-shadow);
-  cursor: pointer;
-  transition: all 0.2s;
-}
+    .monthly-stat h4 {
+        margin: 0 0 5px 0;
+        font-size: 0.9rem;
+        color: var(--light-text);
+    }
 
-.export-option:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
+    .monthly-stat .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-color);
+    }
 
-.export-option i {
-  margin-right: 10px;
-  color: var(--primary-color);
-}
+    /* Export section */
+    .export-section {
+        margin-bottom: 30px;
+    }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .app-container {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    height: auto;
-  }
-  
-  .stats-section {
-    grid-template-columns: 1fr;
-  }
-  
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
+    .export-options {
+        display: flex;
+        gap: 15px;
+        margin-top: 15px;
+    }
 
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .main-content {
-    padding: 15px;
-  }
-  
-  .card-body {
-    padding: 15px;
-  }
-}
-.btn-icon {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border-radius: 50%;
-}
+    .export-option {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        background: white;
+        border-radius: 6px;
+        box-shadow: var(--card-shadow);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
 
-.stat-card h4 {
-  margin: 0 0 10px 0;
-  font-size: 1rem;
-  color: var(--light-text);
-}
+    .export-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
 
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin-bottom: 5px;
-  color: var(--text-color);
-}
+    .export-option i {
+        margin-right: 10px;
+        color: var(--primary-color);
+    }
 
-.stat-label {
-  font-size: 0.9rem;
-  color: var(--light-text);
-}
+    /* Responsive */
+    @media (max-width: 768px) {
+        .app-container {
+            flex-direction: column;
+        }
 
-.stat-trend {
-  display: flex;
-  align-items: center;
-  font-size: 0.85rem;
-  margin-top: 8px;
-}
+        .sidebar {
+            width: 100%;
+            height: auto;
+        }
 
-.trend-up {
-  color: var(--success-color);
-}
+        .stats-section {
+            grid-template-columns: 1fr;
+        }
 
-.trend-down {
-  color: var(--danger-color);
-}
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
 
-.stat-subtext {
-  font-size: 0.85rem;
-  color: var(--light-text);
-  margin-top: 5px;
-}
-</style> 
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .main-content {
+            padding: 15px;
+        }
+
+        .card-body {
+            padding: 15px;
+        }
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 50%;
+    }
+
+    .stat-card h4 {
+        margin: 0 0 10px 0;
+        font-size: 1rem;
+        color: var(--light-text);
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+        color: var(--text-color);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--light-text);
+    }
+
+    .stat-trend {
+        display: flex;
+        align-items: center;
+        font-size: 0.85rem;
+        margin-top: 8px;
+    }
+
+    .trend-up {
+        color: var(--success-color);
+    }
+
+    .trend-down {
+        color: var(--danger-color);
+    }
+
+    .stat-subtext {
+        font-size: 0.85rem;
+        color: var(--light-text);
+        margin-top: 5px;
+    }
+</style>
 <div class="app-container" style="margin-right: 25px;margin-left: -20px;">
     <main class="main-content" style="width: 100%;margin-left: 25px;;margin-right: 20px;">
 
@@ -574,7 +578,7 @@ include 'includes/header.php';
                                                         <td><?php echo htmlspecialchars($result['class_name'] ?? 'N/A'); ?></td>
                                                         <td>
                                                             <span class="status-badge <?php echo $result['status']; ?>">
-                                                             <?php echo !empty($result['status']) ? htmlspecialchars($result['status']) : 'Aucun statut'; ?>
+                                                                <?php echo !empty($result['status']) ? htmlspecialchars($result['status']) : 'Aucun statut'; ?>
                                                             </span>
                                                         </td>
                                                         <td>
@@ -722,7 +726,7 @@ include 'includes/header.php';
             <form id="exportForm" method="POST" action="export-results.php">
                 <input type="hidden" name="exam_id" value="<?php echo $examId; ?>">
 
-                <div class="form-group"  style="display:flex;align-items:center">
+                <div class="form-group" style="display:flex;align-items:center">
                     <label for="export_format">Format</label>
                     <select id="export_format" name="format" class="form-control">
                         <option value="csv">CSV</option>
@@ -733,7 +737,7 @@ include 'includes/header.php';
 
                 <div class="form-group">
                     <label>Données à inclure</label>
-                    <div class="checkbox-group"  style="display:flex;flex-direction:column">
+                    <div class="checkbox-group" style="display:flex;flex-direction:column">
                         <label class="checkbox-container">
                             <input type="checkbox" name="include_student_info" checked>
                             <span class="checkmark"></span>
@@ -766,111 +770,111 @@ include 'includes/header.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script> 
-document.addEventListener('DOMContentLoaded', function() {
-    // Recherche dans le tableau des résultats
-    const searchInput = document.getElementById('searchResults');
-    const resultsTable = document.getElementById('resultsTable');
-    
-    if (searchInput && resultsTable) {
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = resultsTable.querySelectorAll('tbody tr');
-            
-            rows.forEach(function(row) {
-                const studentName = row.querySelector('.user-name').textContent.toLowerCase();
-                const studentEmail = row.querySelector('.user-email').textContent.toLowerCase();
-                const className = row.cells[1].textContent.toLowerCase();
-                
-                if (studentName.includes(searchTerm) || studentEmail.includes(searchTerm) || className.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Recherche dans le tableau des résultats
+        const searchInput = document.getElementById('searchResults');
+        const resultsTable = document.getElementById('resultsTable');
+
+        if (searchInput && resultsTable) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = resultsTable.querySelectorAll('tbody tr');
+
+                rows.forEach(function(row) {
+                    const studentName = row.querySelector('.user-name').textContent.toLowerCase();
+                    const studentEmail = row.querySelector('.user-email').textContent.toLowerCase();
+                    const className = row.cells[1].textContent.toLowerCase();
+
+                    if (studentName.includes(searchTerm) || studentEmail.includes(searchTerm) || className.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             });
-        });
-    }
-    
-    // Graphique de distribution des scores
-    const scoresCtx = document.getElementById('scoresChart');
-    
-    if (scoresCtx) {
-        // Données fictives pour le graphique (à remplacer par des données réelles)
-        const scoresData = {
-            labels: ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'],
-            datasets: [{
-                label: 'Nombre d\'étudiants',
-                data: [2, 5, 10, 15, 8],
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.6)',
-                    'rgba(255, 159, 64, 0.6)',
-                    'rgba(255, 205, 86, 0.6)',
-                    'rgba(75, 192, 192, 0.6)',
-                    'rgba(54, 162, 235, 0.6)'
-                ],
-                borderColor: [
-                    'rgb(255, 99, 132)',
-                    'rgb(255, 159, 64)',
-                    'rgb(255, 205, 86)',
-                    'rgb(75, 192, 192)',
-                    'rgb(54, 162, 235)'
-                ],
-                borderWidth: 1
-            }]
-        };
-        
-        new Chart(scoresCtx, {
-            type: 'bar',
-            data: scoresData,
-            options: {
-                responsive: true,
-                width:600,
-                maintainAspectRatio: true,
-                
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
+        }
+
+        // Graphique de distribution des scores
+        const scoresCtx = document.getElementById('scoresChart');
+
+        if (scoresCtx) {
+            // Données fictives pour le graphique (à remplacer par des données réelles)
+            const scoresData = {
+                labels: ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'],
+                datasets: [{
+                    label: 'Nombre d\'étudiants',
+                    data: [2, 5, 10, 15, 8],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(255, 159, 64, 0.6)',
+                        'rgba(255, 205, 86, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(54, 162, 235, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            new Chart(scoresCtx, {
+                type: 'bar',
+                data: scoresData,
+                options: {
+                    responsive: true,
+                    width: 600,
+                    maintainAspectRatio: true,
+
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
                 }
-            }
-        });
-    }
-    
-    // Gestion du modal d'exportation
-    const exportResultsBtn = document.getElementById('exportResultsBtn');
-    const exportModal = document.getElementById('exportModal');
-    const closeModalBtns = document.querySelectorAll('.close-modal');
-    const confirmExportBtn = document.getElementById('confirmExport');
-    const exportForm = document.getElementById('exportForm');
-    
-    if (exportResultsBtn && exportModal) {
-        exportResultsBtn.addEventListener('click', function() {
-            exportModal.style.display = 'block';
-        });
-        
-        closeModalBtns.forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                exportModal.style.display = 'none';
             });
-        });
-        
-        window.addEventListener('click', function(event) {
-            if (event.target === exportModal) {
-                exportModal.style.display = 'none';
-            }
-        });
-        
-        confirmExportBtn.addEventListener('click', function() {
-            exportForm.submit();
-        });
-    }
-});
-</script> 
+        }
+
+        // Gestion du modal d'exportation
+        const exportResultsBtn = document.getElementById('exportResultsBtn');
+        const exportModal = document.getElementById('exportModal');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+        const confirmExportBtn = document.getElementById('confirmExport');
+        const exportForm = document.getElementById('exportForm');
+
+        if (exportResultsBtn && exportModal) {
+            exportResultsBtn.addEventListener('click', function() {
+                exportModal.style.display = 'block';
+            });
+
+            closeModalBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    exportModal.style.display = 'none';
+                });
+            });
+
+            window.addEventListener('click', function(event) {
+                if (event.target === exportModal) {
+                    exportModal.style.display = 'none';
+                }
+            });
+
+            confirmExportBtn.addEventListener('click', function() {
+                exportForm.submit();
+            });
+        }
+    });
+</script>

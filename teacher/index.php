@@ -454,6 +454,60 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+
+<?php
+// Ajoutez cette condition à la requête SQL si vous voulez filtrer par enseignant
+$teacherId = $_SESSION['user_id']; // ID de l'enseignant connecté
+$examsByStatus = $conn->query("
+    SELECT 
+        MONTH(created_at) as month,
+        YEAR(created_at) as year,
+        status,
+        COUNT(*) as count
+    FROM exams
+    WHERE teacher_id = $teacherId
+    GROUP BY YEAR(created_at), MONTH(created_at), status
+    ORDER BY year, month, status
+");
+
+// Préparer les données pour le graphique
+$months = [];
+$statusData = [
+    'draft' => [],
+    'published' => [],
+    'scheduled' => [],
+    'completed' => []
+];
+
+// Initialiser les données
+while ($row = $examsByStatus->fetch_assoc()) {
+    $monthYear = date('M Y', mktime(0, 0, 0, $row['month'], 1, $row['year']));
+
+    if (!in_array($monthYear, $months)) {
+        $months[] = $monthYear;
+    }
+
+    $statusData[$row['status']][$monthYear] = $row['count'];
+}
+
+// Remplir les données manquantes avec 0
+foreach ($statusData as $status => $data) {
+    foreach ($months as $month) {
+        if (!isset($data[$month])) {
+            $statusData[$status][$month] = 0;
+        }
+    }
+    // Réorganiser les données dans l'ordre des mois
+    ksort($statusData[$status]);
+}
+
+// Convertir en JSON pour JavaScript
+$monthsJson = json_encode($months);
+$draftDataJson = json_encode(array_values($statusData['draft']));
+$publishedDataJson = json_encode(array_values($statusData['published']));
+$scheduledDataJson = json_encode(array_values($statusData['scheduled']));
+$completedDataJson = json_encode(array_values($statusData['completed']));
+?>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -479,7 +533,8 @@ include 'includes/header.php';
                         borderColor: 'rgba(54, 185, 204, 1)',
                         borderWidth: 1
                     }
-                ]
+                ],
+
             },
             options: {
                 responsive: true,
@@ -502,16 +557,18 @@ include 'includes/header.php';
             data: {
                 labels: ['Actifs', 'Brouillons', 'Terminés'],
                 datasets: [{
-                    data: [
-                        5, 3, 8
-                    ],
+                    data: [<?php echo $publishedDataJson; ?>, <?php echo $draftDataJson; ?>, <?php echo $completedDataJson; ?>],
                     backgroundColor: [
-                        '#4CAF50', // Vert
-                        '#FFC107', // Jaune
-                        '#2196F3' // Bleu
+                        'rgba(99, 102, 241, 0.7)',
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(245, 158, 11, 0.7)'
                     ],
-                    borderWidth: 0,
-
+                    borderColor: [
+                        'rgba(99, 102, 241, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)'
+                    ],
+                    borderWidth: 1
                 }]
             },
             options: {

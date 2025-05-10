@@ -100,287 +100,291 @@ include 'includes/header.php';
 ?>
 <style>
     /* Style général */
-body {
- 
-    background-color: #f8f9fa;
-    color: #333;
-    line-height: 1.6;
-}
+    body {
 
-/* En-tête */
-.d-flex.justify-content-between {
-    padding: 15px 20px;
-    background-color: #fff;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0;
-    color: #333;
-}
-
-/* Cartes de statistiques */
-.stat-card {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.card-subtitle {
-    font-size: 0.75rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.stat-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
-.bg-primary-light {
-    background-color: rgba(13, 110, 253, 0.1);
-}
-
-.bg-success-light {
-    background-color: rgba(25, 135, 84, 0.1);
-}
-
-.bg-info-light {
-    background-color: rgba(13, 202, 240, 0.1);
-}
-
-.bg-warning-light {
-    background-color: rgba(255, 193, 7, 0.1);
-}
-
-/* Graphiques */
-.card {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
-}
-
-.card-header {
-    background-color: #fff;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 15px 20px;
-}
-
-/* Tableau des incidents */
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 2px solid #e0e0e0;
-}
-
-.table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #e0e0e0;
-    vertical-align: middle;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-.avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: #4e73df;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.75rem;
-    margin-right: 10px;
-}
-
-/* Badges */
-.badge {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.bg-primary {
-    background-color: #4e73df;
-}
-
-.bg-success {
-    background-color: #1cc88a;
-}
-
-.bg-warning {
-    background-color: #f6c23e;
-    color: #000;
-}
-
-.bg-danger {
-    background-color: #e74a3b;
-}
-
-.bg-info {
-    background-color: #36b9cc;
-}
-
-/* Boutons */
-.btn {
-    font-size: 0.875rem;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-}
-
-.btn-sm {
-    padding: 5px 10px;
-    font-size: 0.75rem;
-}
-
-.btn-outline-secondary {
-    border-color: #d1d3e2;
-    color: #6e707e;
-}
-
-.btn-outline-secondary:hover {
-    background-color: #f8f9fa;
-    border-color: #d1d3e2;
-}
-
-.btn-primary {
-    background-color: #4e73df;
-    border-color: #4e73df;
-}
-
-.btn-primary:hover {
-    background-color: #3a5bc7;
-    border-color: #3a5bc7;
-}
-
-.btn-outline-primary {
-    border-color: #4e73df;
-    color: #4e73df;
-}
-
-.btn-outline-primary:hover {
-    background-color: #4e73df;
-    color: #fff;
-}
-
-/* Formulaire */
-.form-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 5px;
-}
-
-.form-control, .form-select {
-    padding: 8px 12px;
-    font-size: 0.875rem;
-    border: 1px solid #d1d3e2;
-    border-radius: 4px;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #bac8f3;
-    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
-}
-
-/* Modals */
-.modal-content {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-    border-bottom: 1px solid #e0e0e0;
-    padding: 15px 20px;
-}
-
-.modal-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.modal-footer {
-    border-top: 1px solid #e0e0e0;
-    padding: 15px 20px;
-}
-
-/* Utilitaires */
-.mb-4 {
-    margin-bottom: 1.5rem !important;
-}
-
-.mt-4 {
-    margin-top: 1.5rem !important;
-}
-
-.py-5 {
-    padding-top: 3rem !important;
-    padding-bottom: 3rem !important;
-}
-
-.text-muted {
-    color: #858796 !important;
-}
-
-.text-success {
-    color: #1cc88a !important;
-}
-
-.text-warning {
-    color: #f6c23e !important;
-}
-
-.text-info {
-    color: #36b9cc !important;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .col-md-3, .col-md-6 {
-        flex: 0 0 100%;
-        max-width: 100%;
+        background-color: #f8f9fa;
+        color: #333;
+        line-height: 1.6;
     }
-    
+
+    /* En-tête */
+    .d-flex.justify-content-between {
+        padding: 15px 20px;
+        background-color: #fff;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+        color: #333;
+    }
+
+    /* Cartes de statistiques */
     .stat-card {
-        margin-bottom: 15px;
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
     }
-}
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .card-subtitle {
+        font-size: 0.75rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .bg-primary-light {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+
+    .bg-success-light {
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+
+    .bg-info-light {
+        background-color: rgba(13, 202, 240, 0.1);
+    }
+
+    .bg-warning-light {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+
+    /* Graphiques */
+    .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+
+    .card-header {
+        background-color: #fff;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 15px 20px;
+    }
+
+    /* Tableau des incidents */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e0e0e0;
+        vertical-align: middle;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #4e73df;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.75rem;
+        margin-right: 10px;
+    }
+
+    /* Badges */
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    .bg-primary {
+        background-color: #4e73df;
+    }
+
+    .bg-success {
+        background-color: #1cc88a;
+    }
+
+    .bg-warning {
+        background-color: #f6c23e;
+        color: #000;
+    }
+
+    .bg-danger {
+        background-color: #e74a3b;
+    }
+
+    .bg-info {
+        background-color: #36b9cc;
+    }
+
+    /* Boutons */
+    .btn {
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+    }
+
+    .btn-outline-secondary {
+        border-color: #d1d3e2;
+        color: #6e707e;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8f9fa;
+        border-color: #d1d3e2;
+    }
+
+    .btn-primary {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+
+    .btn-primary:hover {
+        background-color: #3a5bc7;
+        border-color: #3a5bc7;
+    }
+
+    .btn-outline-primary {
+        border-color: #4e73df;
+        color: #4e73df;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #4e73df;
+        color: #fff;
+    }
+
+    /* Formulaire */
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+
+    .form-control,
+    .form-select {
+        padding: 8px 12px;
+        font-size: 0.875rem;
+        border: 1px solid #d1d3e2;
+        border-radius: 4px;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #bac8f3;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+
+    /* Modals */
+    .modal-content {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid #e0e0e0;
+        padding: 15px 20px;
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        border-top: 1px solid #e0e0e0;
+        padding: 15px 20px;
+    }
+
+    /* Utilitaires */
+    .mb-4 {
+        margin-bottom: 1.5rem !important;
+    }
+
+    .mt-4 {
+        margin-top: 1.5rem !important;
+    }
+
+    .py-5 {
+        padding-top: 3rem !important;
+        padding-bottom: 3rem !important;
+    }
+
+    .text-muted {
+        color: #858796 !important;
+    }
+
+    .text-success {
+        color: #1cc88a !important;
+    }
+
+    .text-warning {
+        color: #f6c23e !important;
+    }
+
+    .text-info {
+        color: #36b9cc !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+
+        .col-md-3,
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .stat-card {
+            margin-bottom: 15px;
+        }
+    }
 </style>
 <div class="container-fluid">
     <div class="row" style="width: 100%;">
@@ -404,9 +408,9 @@ body {
                     </button>
                 </div>
             </div>
-            
+
             <!-- Cartes de statistiques -->
-            <div class="row mb-4" style="display: flex;flex-wrap:wrap;margin-left:25px;margin-top:0px;justify-content:space-between;margin-right:20px" >
+            <div class="row mb-4" style="display: flex;flex-wrap:wrap;margin-left:25px;margin-top:0px;justify-content:space-between;margin-right:20px">
                 <div class="col-md-3" style="width: 23%; margin-top  : 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
@@ -416,7 +420,7 @@ body {
                                     <h2 class="mt-2 mb-0"><?php echo $totalExams; ?></h2>
                                 </div>
                                 <div class="stat-icon bg-primary-light text-primary" style="margin-left: -8px;">
-                                    <i class="fas fa-file-alt" ></i>
+                                    <i class="fas fa-file-alt"></i>
                                 </div>
                             </div>
                             <div class="progress mt-3" style="height: 5px;">
@@ -431,7 +435,7 @@ body {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-3" style="width: 23%;margin-top: 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
@@ -456,7 +460,7 @@ body {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-3" style="width: 23%;margin-top  : 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
@@ -481,7 +485,7 @@ body {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-3" style="width: 23%;margin-top  : 20px;">
                     <div class="card stat-card" style="display: flex;flex-direction:column;justify-content:space-between;height: 100%;">
                         <div class="card-body">
@@ -499,7 +503,7 @@ body {
                             </div>
                             <div class="mt-2 small">
                                 <span class="<?php echo $avgScore >= 70 ? 'text-success' : 'text-warning'; ?>">
-                                    <i class="fas fa-<?php echo $avgScore >= 70 ? 'arrow-up' : 'arrow-down'; ?>"></i> 
+                                    <i class="fas fa-<?php echo $avgScore >= 70 ? 'arrow-up' : 'arrow-down'; ?>"></i>
                                     <?php echo $avgScore >= 70 ? 'Bon' : 'Moyen'; ?>
                                 </span>
                                 <span class="text-muted ms-1">niveau global</span>
@@ -508,9 +512,9 @@ body {
                     </div>
                 </div>
             </div>
-            
+
             <!-- Graphiques -->
-            <div class="row mb-4" >
+            <div class="row mb-4">
                 <div class="col-md-6" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
@@ -521,12 +525,12 @@ body {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
                             <h5 class="mb-0">Scores moyens par matière</h5>
-                        
+
                         </div>
                         <div class="card-body">
                             <canvas id="subjectsChart" height="250"></canvas>
@@ -534,7 +538,7 @@ body {
                     </div>
                 </div>
             </div>
-            
+
             <!-- Incidents de surveillance -->
             <div class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <div class="card-header d-flex justify-content-between align-items-center" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
@@ -606,7 +610,7 @@ body {
                     <?php endif; ?>
                 </div>
             </div>
-            
+
             <!-- Formulaire de génération de rapports -->
             <div class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <div class="card-header" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
@@ -615,7 +619,7 @@ body {
                 <div class="card-body">
                     <form id="reportForm" class="row g-3">
                         <div class="col-md-4">
-                            <label for="reportType" class="form-label" >Type de rapport</label>
+                            <label for="reportType" class="form-label">Type de rapport</label>
                             <select id="reportType" name="reportType" class="form-select">
                                 <option value="exam_results">Résultats d'examens</option>
                                 <option value="student_performance">Performance des étudiants</option>
@@ -642,7 +646,7 @@ body {
                                 <option value="csv">CSV</option>
                             </select>
                         </div>
-                        
+
                         <div class="col-12 mt-4">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-file-download me-1"></i> Générer le rapport
@@ -691,13 +695,13 @@ body {
                                 </li>
                             </ul>
                         </div>
-                        
+
                         <div>
                             <h6>Description</h6>
                             <p id="incident-description" class="p-3 bg-light rounded"></p>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <h6>Preuve</h6>
                         <div id="incident-evidence-container" class="text-center">
@@ -776,7 +780,7 @@ body {
 
 <!-- Modal pour générer un rapport -->
 <div class="modal fade" id="generateReportModal" tabindex="-1" aria-labelledby="generateReportModalLabel" aria-hidden="true" style="background-color: red;">
-    <div class="modal-dialog modal-lg" >
+    <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
             <div class="modal-header">
                 <h5 class="modal-title" id="generateReportModalLabel">Générer un rapport détaillé</h5>
@@ -799,7 +803,7 @@ body {
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="reportPeriod" class="form-label">Période</label>
@@ -821,7 +825,7 @@ body {
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Éléments à inclure</label>
                         <div class="row">
@@ -869,7 +873,7 @@ body {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="reportNotes" class="form-label">Notes additionnelles</label>
                         <textarea class="form-control" id="reportNotes" rows="3" placeholder="Ajoutez des notes ou des commentaires à inclure dans le rapport..."></textarea>
@@ -886,31 +890,264 @@ body {
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialisation des tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation des tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+
+
+        // Gestion du modal d'incident
+        const viewIncidentBtns = document.querySelectorAll('.view-incident');
+        viewIncidentBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const incidentId = this.getAttribute('data-id');
+                // Ici, vous feriez normalement une requête AJAX pour récupérer les détails de l'incident
+                // Pour l'exemple, nous allons simplement remplir le modal avec des données fictives
+                document.getElementById('incident-exam').textContent = "Physique quantique";
+                document.getElementById('incident-student').textContent = "Jean Dupont";
+                document.getElementById('incident-type').textContent = "Détection de visage";
+                document.getElementById('incident-date').textContent = "18/04/2023, 09:15";
+                document.getElementById('incident-status').textContent = "En attente";
+                document.getElementById('incident-status').className = "fw-bold text-warning";
+                document.getElementById('incident-description').textContent = "L'étudiant a quitté le champ de vision de la caméra pendant plus de 30 secondes.";
+            });
+        });
+
+        // Gestion du bouton d'examen d'incident
+        document.getElementById('review-incident').addEventListener('click', function() {
+            window.location.href = 'review-incident.php?id=1'; // Remplacer par l'ID réel
+        });
+
+        // Gestion du formulaire de génération de rapports
+        document.getElementById('reportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Ici, vous traiteriez normalement le formulaire pour générer le rapport
+            alert('Génération du rapport en cours...');
+        });
+
+        // Gestion du bouton d'impression
+        document.getElementById('printReport').addEventListener('click', function() {
+            window.print();
+        });
+
+        // Gestion de l'affichage des dates personnalisées dans le modal d'export
+        document.getElementById('dateRange').addEventListener('change', function() {
+            const dateRangeCustom = document.querySelector('.date-range-custom');
+            if (this.value === 'custom') {
+                dateRangeCustom.classList.remove('d-none');
+            } else {
+                dateRangeCustom.classList.add('d-none');
+            }
+        });
     });
-    
-    // Configuration du graphique des examens par mois
-    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+    // Fonction pour obtenir la classe de couleur en fonction du type d'incident
+    function getIncidentClass(type) {
+        switch (type) {
+            case 'Face Detection':
+                return 'warning';
+            case 'Multiple Faces':
+                return 'danger';
+            case 'No Face':
+                return 'danger';
+            case 'Tab Switch':
+                return 'warning';
+            case 'Audio Detection':
+                return 'info';
+            default:
+                return 'secondary';
+        }
+    }
+</script>
+
+<?php
+
+// Récupérer les scores moyens par matière pour les examens de cet enseignant
+$avgScoresBySubject = $conn->query("
+    SELECT 
+        s.name as subject_name,
+        AVG(er.score) as avg_score,
+        COUNT(er.id) as exam_count
+    FROM exam_results er
+    JOIN exams e ON er.exam_id = e.id
+    JOIN subjects s ON e.subject = s.id
+    WHERE er.status = 'completed'
+    AND e.teacher_id = $teacherId  
+    GROUP BY s.name
+    ORDER BY avg_score DESC
+");
+
+// Préparer les données pour le graphique
+$subjectLabels = [];
+$subjectScores = [];
+$subjectColors = [];
+
+// Couleurs pour les différentes matières
+$colors = [
+    'rgba(75, 192, 192, 0.6)',  // Mathématiques
+    'rgba(54, 162, 235, 0.6)',   // Physique
+    'rgba(255, 206, 86, 0.6)',   // Chimie
+    'rgba(75, 192, 192, 0.6)',   // Biologie
+    'rgba(153, 102, 255, 0.6)'   // Informatique
+];
+
+$colorIndex = 0;
+
+while ($row = $avgScoresBySubject->fetch_assoc()) {
+    $subjectLabels[] = $row['subject_name'];
+    $subjectScores[] = round($row['avg_score'], 1);
+    $subjectColors[] = $colors[$colorIndex % count($colors)];
+    $colorIndex++;
+}
+
+// Convertir en JSON pour JavaScript
+$subjectLabelsJson = json_encode($subjectLabels);
+$subjectScoresJson = json_encode($subjectScores);
+$subjectColorsJson = json_encode($subjectColors);
+// Dans la requête SQL, ajoutez COUNT(er.id) as exam_count
+// Puis dans le PHP après la boucle:
+$subjectCountsJson = json_encode(array_column($avgScoresBySubject->fetch_all(MYSQLI_ASSOC), 'exam_count'));
+?>
+
+<script>
+    // Configuration du graphique des scores moyens par matière
+    const scoresCtx = document.getElementById('subjectsChart').getContext('2d');
+    const scoresChart = new Chart(scoresCtx, {
+        type: 'bar',
+        data: {
+            labels: <?php echo $subjectLabelsJson; ?>,
+            datasets: [{
+                label: 'Score moyen (%)',
+                data: <?php echo $subjectScoresJson; ?>,
+                backgroundColor: <?php echo $subjectColorsJson; ?>,
+                borderColor: <?php echo str_replace('0.6', '1', $subjectColorsJson); ?>,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y', // Pour un graphique horizontal
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Score moyen (%)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Matières'
+                    }
+                }
+            },
+            // Dans les options du graphique:
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const examCounts = <?php echo $subjectCountsJson; ?>;
+                            return `Nombre d'examens: ${examCounts[context.dataIndex]}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+<?php
+// Ajoutez cette condition à la requête SQL si vous voulez filtrer par enseignant
+$teacherId = $_SESSION['user_id']; // ID de l'enseignant connecté
+$examsByStatus = $conn->query("
+    SELECT 
+        MONTH(created_at) as month,
+        YEAR(created_at) as year,
+        status,
+        COUNT(*) as count
+    FROM exams
+    WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+    AND teacher_id = $teacherId
+    GROUP BY YEAR(created_at), MONTH(created_at), status
+    ORDER BY year, month, status
+");
+
+// Préparer les données pour le graphique
+$months = [];
+$statusData = [
+    'draft' => [],
+    'published' => [],
+    'scheduled' => [],
+    'completed' => []
+];
+
+// Initialiser les données
+while ($row = $examsByStatus->fetch_assoc()) {
+    $monthYear = date('M Y', mktime(0, 0, 0, $row['month'], 1, $row['year']));
+
+    if (!in_array($monthYear, $months)) {
+        $months[] = $monthYear;
+    }
+
+    $statusData[$row['status']][$monthYear] = $row['count'];
+}
+
+// Remplir les données manquantes avec 0
+foreach ($statusData as $status => $data) {
+    foreach ($months as $month) {
+        if (!isset($data[$month])) {
+            $statusData[$status][$month] = 0;
+        }
+    }
+    // Réorganiser les données dans l'ordre des mois
+    ksort($statusData[$status]);
+}
+
+// Convertir en JSON pour JavaScript
+$monthsJson = json_encode($months);
+$draftDataJson = json_encode(array_values($statusData['draft']));
+$publishedDataJson = json_encode(array_values($statusData['published']));
+$scheduledDataJson = json_encode(array_values($statusData['scheduled']));
+$completedDataJson = json_encode(array_values($statusData['completed']));
+?>
+
+<script>
+    // Configuration du graphique des examens par mois et statut
     const examsCtx = document.getElementById('examsChart').getContext('2d');
     const examsChart = new Chart(examsCtx, {
         type: 'bar',
         data: {
-            labels: months,
-            datasets: [
+            labels: <?php echo $monthsJson; ?>,
+            datasets: [{
+                    label: 'Brouillons',
+                    data: <?php echo $draftDataJson; ?>,
+                    backgroundColor: 'rgba(201, 203, 207, 0.6)',
+                    borderColor: 'rgba(201, 203, 207, 1)',
+                    borderWidth: 1
+                },
                 {
-                    label: 'Examens créés',
-                    data: [12, 19, 15, 25, 22, 30, 18, 15, 20, 25, 28, 30],
+                    label: 'Publiés',
+                    data: <?php echo $publishedDataJson; ?>,
                     backgroundColor: 'rgba(54, 162, 235, 0.6)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1
                 },
                 {
-                    label: 'Examens complétés',
-                    data: [10, 15, 12, 20, 18, 25, 15, 12, 18, 22, 24, 28],
+                    label: 'Planifiés',
+                    data: <?php echo $scheduledDataJson; ?>,
+                    backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Terminés',
+                    data: <?php echo $completedDataJson; ?>,
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -921,7 +1158,11 @@ document.addEventListener('DOMContentLoaded', function() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
+                x: {
+                    stacked: false, // Désactive l'empilement
+                },
                 y: {
+                    stacked: false, // Désactive l'empilement
                     beginAtZero: true,
                     ticks: {
                         precision: 0
@@ -929,103 +1170,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            return `Total: ${total}`;
+                        }
+                    }
+                },
                 legend: {
-                    position: 'top',
+                    position: 'bottom',
                 }
             }
         }
     });
-    
-    // Configuration du graphique circulaire des matières
-    const subjectsCtx = document.getElementById('subjectsChart').getContext('2d');
-    const subjectsChart = new Chart(subjectsCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Mathématiques', 'Physique', 'Chimie', 'Biologie', 'Informatique'],
-            datasets: [{
-                data: [35, 25, 20, 15, 5],
-                backgroundColor: [
-                    '#4e73df',
-                    '#1cc88a',
-                    '#36b9cc',
-                    '#f6c23e',
-                    '#e74a3b'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: {
-                    position: 'right',
-                }
-            }
-        }
-    });
-    
-    // Gestion du modal d'incident
-    const viewIncidentBtns = document.querySelectorAll('.view-incident');
-    viewIncidentBtns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const incidentId = this.getAttribute('data-id');
-            // Ici, vous feriez normalement une requête AJAX pour récupérer les détails de l'incident
-            // Pour l'exemple, nous allons simplement remplir le modal avec des données fictives
-            document.getElementById('incident-exam').textContent = "Physique quantique";
-            document.getElementById('incident-student').textContent = "Jean Dupont";
-            document.getElementById('incident-type').textContent = "Détection de visage";
-            document.getElementById('incident-date').textContent = "18/04/2023, 09:15";
-            document.getElementById('incident-status').textContent = "En attente";
-            document.getElementById('incident-status').className = "fw-bold text-warning";
-            document.getElementById('incident-description').textContent = "L'étudiant a quitté le champ de vision de la caméra pendant plus de 30 secondes.";
-        });
-    });
-    
-    // Gestion du bouton d'examen d'incident
-    document.getElementById('review-incident').addEventListener('click', function() {
-        window.location.href = 'review-incident.php?id=1'; // Remplacer par l'ID réel
-    });
-    
-    // Gestion du formulaire de génération de rapports
-    document.getElementById('reportForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Ici, vous traiteriez normalement le formulaire pour générer le rapport
-        alert('Génération du rapport en cours...');
-    });
-    
-    // Gestion du bouton d'impression
-    document.getElementById('printReport').addEventListener('click', function() {
-        window.print();
-    });
-    
-    // Gestion de l'affichage des dates personnalisées dans le modal d'export
-    document.getElementById('dateRange').addEventListener('change', function() {
-        const dateRangeCustom = document.querySelector('.date-range-custom');
-        if (this.value === 'custom') {
-            dateRangeCustom.classList.remove('d-none');
-        } else {
-            dateRangeCustom.classList.add('d-none');
-        }
-    });
-});
-
-// Fonction pour obtenir la classe de couleur en fonction du type d'incident
-function getIncidentClass(type) {
-    switch(type) {
-        case 'Face Detection':
-            return 'warning';
-        case 'Multiple Faces':
-            return 'danger';
-        case 'No Face':
-            return 'danger';
-        case 'Tab Switch':
-            return 'warning';
-        case 'Audio Detection':
-            return 'info';
-        default:
-            return 'secondary';
-    }
-}
 </script>
