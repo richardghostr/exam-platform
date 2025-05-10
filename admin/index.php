@@ -62,7 +62,7 @@ include 'includes/header.php';
         </div>
         <div class="stat-period">Ventes du 1-12 Mars, 2025</div>
     </div>
-    
+
     <div class="stat-card">
         <div class="stat-header">
             <h3 class="stat-title">Étudiants</h3>
@@ -74,7 +74,7 @@ include 'includes/header.php';
         </div>
         <div class="stat-period">Total des étudiants inscrits</div>
     </div>
-    
+
     <div class="stat-card">
         <div class="stat-header">
             <h3 class="stat-title">Enseignants</h3>
@@ -86,7 +86,7 @@ include 'includes/header.php';
         </div>
         <div class="stat-period">Total des enseignants inscrits</div>
     </div>
-    
+
     <div class="stat-card">
         <div class="stat-header">
             <h3 class="stat-title">Examens</h3>
@@ -104,16 +104,19 @@ include 'includes/header.php';
     <div class="section-header">
         <h2 class="section-title">Horaires des examens</h2>
         <div class="section-actions">
-            <a href="reports.php" class="text-primary">Voir rapport</a>
+            <a href="users.php" class="text-primary">
+                <h2 class="section-title">Utilisateurs Journaliers</h2>
+            </a>
         </div>
     </div>
-    
+
     <div class="card" style="display: flex;justify-content:space-between">
+
         <div class="card-body" style="width: 48%;">
             <div class="chart-container">
                 <canvas id="examTimeChart"></canvas>
             </div>
-            
+
             <div class="d-flex justify-content-center gap-20 mt-20">
                 <div class="d-flex align-items-center gap-10">
                     <span class="badge badge-primary"></span>
@@ -144,7 +147,7 @@ include 'includes/header.php';
             <a href="manage-exams.php" class="btn btn-primary btn-sm">Voir tous</a>
         </div>
     </div>
-    
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -197,7 +200,7 @@ include 'includes/header.php';
             <div class="section-header">
                 <h2 class="section-title">Évaluation</h2>
             </div>
-            
+
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-center">
@@ -208,7 +211,7 @@ include 'includes/header.php';
                                 <div class="donut-title">Satisfaction</div>
                             </div>
                         </div>
-                        
+
                         <div class="donut-chart">
                             <div class="donut-segment" style="background-color: rgba(16, 185, 129, 0.7);"></div>
                             <div class="donut-label">
@@ -220,12 +223,12 @@ include 'includes/header.php';
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="section-header">
                 <h2 class="section-title">Examens les plus populaires</h2>
             </div>
-            
+
             <div class="card">
                 <div class="card-body">
                     <ul class="popular-exams-list">
@@ -274,60 +277,61 @@ include 'includes/header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Graphique pour les horaires d'examens
-    const examTimeCtx = document.getElementById('examTimeChart').getContext('2d');
-    const examTimeChart = new Chart(examTimeCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Matin', 'Après-midi', 'Soir'],
-            datasets: [{
-                data: [28, 40, 32],
-                backgroundColor: [
-                    'rgba(99, 102, 241, 0.7)',
-                    'rgba(16, 185, 129, 0.7)',
-                    'rgba(245, 158, 11, 0.7)'
-                ],
-                borderColor: [
-                    'rgba(99, 102, 241, 1)',
-                    'rgba(16, 185, 129, 1)',
-                    'rgba(245, 158, 11, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique pour les horaires d'examens
+        const examTimeCtx = document.getElementById('examTimeChart').getContext('2d');
+        const examTimeChart = new Chart(examTimeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Matin', 'Après-midi', 'Soir'],
+                datasets: [{
+                    data: [28, 40, 32],
+                    backgroundColor: [
+                        'rgba(99, 102, 241, 0.7)',
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(245, 158, 11, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(99, 102, 241, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)'
+                    ],
+                    borderWidth: 1
+                }]
             },
-            cutout: '70%'
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // Helper function for status badges
+        function getStatusClass(status) {
+            switch (status) {
+                case 'active':
+                    return 'success';
+                case 'draft':
+                    return 'warning';
+                case 'completed':
+                    return 'info';
+                default:
+                    return 'secondary';
+            }
         }
     });
-    
-    // Helper function for status badges
-    function getStatusClass(status) {
-        switch(status) {
-            case 'active':
-                return 'success';
-            case 'draft':
-                return 'warning';
-            case 'completed':
-                return 'info';
-            default:
-                return 'secondary';
-        }
-    }
-});
 </script>
 
 <?php
 // Helper function for status badges
-function getStatusClass($status) {
-    switch($status) {
+function getStatusClass($status)
+{
+    switch ($status) {
         case 'active':
             return 'success';
         case 'draft':
@@ -341,53 +345,117 @@ function getStatusClass($status) {
 ?>
 
 <?php include 'includes/footer.php'; ?>
-<script>document.addEventListener('DOMContentLoaded', function() {
-    // Graphique pour l'évolution des enregistrements d'utilisateurs
-    const studentCtx = document.getElementById('studentChart').getContext('2d');
-    
-    // Données factices (à remplacer par des données réelles depuis votre base de données)
-    // Dans une application réelle, vous devriez récupérer ces données via AJAX
-    const studentChartData = {
-        labels: ['1 Déc', '2 Déc', '3 Déc', '4 Déc', '5 Déc', '6 Déc', '7 Déc'],
-        datasets: [{
-            label: 'Nouveaux utilisateurs',
-            data: [12, 19, 8, 15, 22, 17, 25],
-            backgroundColor: 'rgba(99, 102, 241, 0.2)',
-            borderColor: 'rgba(99, 102, 241, 1)',
-            borderWidth: 2,
-            tension: 0.4,
-            fill: true
-        }]
-    };
+<?php
+            // Récupérer les données d'inscription quotidiennes
+            $dailyRegistrations = $conn->query("
+    SELECT 
+        DATE(created_at) as registration_date,
+        COUNT(*) as user_count,
+        SUM(CASE WHEN role = 'student' THEN 1 ELSE 0 END) as student_count,
+        SUM(CASE WHEN role = 'teacher' THEN 1 ELSE 0 END) as teacher_count
+    FROM users
+    WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    GROUP BY DATE(created_at)
+    ORDER BY registration_date ASC
+");
 
-    const studentChart = new Chart(studentCtx, {
-        type: 'line',
-        data: studentChartData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
+            // Préparer les données pour le graphique
+            $labels = [];
+            $totalData = [];
+            $studentData = [];
+            $teacherData = [];
+
+            while ($row = $dailyRegistrations->fetch_assoc()) {
+                $labels[] = date('d M', strtotime($row['registration_date']));
+                $totalData[] = $row['user_count'];
+                $studentData[] = $row['student_count'];
+                $teacherData[] = $row['teacher_count'];
+            }
+            ?>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const studentCtx = document.getElementById('studentChart').getContext('2d');
+
+        const studentChart = new Chart(studentCtx, {
+            type: 'line',
+            data: {
+                labels: <?php echo json_encode($labels); ?>,
+                datasets: [{
+                        label: 'Total des inscriptions',
+                        data: <?php echo json_encode($totalData); ?>,
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Étudiants',
+                        data: <?php echo json_encode($studentData); ?>,
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 2,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Enseignants',
+                        data: <?php echo json_encode($teacherData); ?>,
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        borderColor: 'rgba(245, 158, 11, 1)',
+                        borderWidth: 2,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
                 },
-                tooltip: {
-                    mode: 'index',
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        grid: {
+                            drawBorder: false,
+                        },
+                       
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
                     intersect: false
                 }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 5
-                    }
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
             }
-        }
-    });
-});</script>
+        });
+    }); // Dans votre JavaScript
+    fetch('api/daily-registrations.php')
+        .then(response => response.json())
+        .then(data => {
+            // Mettre à jour le graphique avec les nouvelles données
+            studentChart.data.labels = data.labels;
+            studentChart.data.datasets[0].data = data.total;
+            studentChart.data.datasets[1].data = data.students;
+            studentChart.data.datasets[2].data = data.teachers;
+            studentChart.update();
+        });
+</script>

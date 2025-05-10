@@ -78,6 +78,65 @@ $questionStatsQuery = $conn->query("
     ORDER BY q.id ASC
 ");
 
+// Récupérer les statistiques détaillées par question
+$questionStatsQuery = $conn->query("
+ SELECT 
+    q.id AS question_id,
+    q.question_text,
+    q.question_type,
+    q.points AS question_points,
+    COUNT(DISTINCT ua.id) AS total_answers,
+    SUM(CASE 
+        WHEN q.question_type IN ('multiple_choice', 'single_choice', 'true_false') THEN 
+            (SELECT COUNT(*) FROM question_options qo 
+             WHERE qo.question_id = q.id AND qo.is_correct = 1 
+             AND FIND_IN_SET(qo.id, ua.selected_options) > 0)
+        WHEN q.question_type IN ('short_answer', 'essay') THEN 
+            (CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END)
+        ELSE 0
+    END) AS correct_answers,
+    CASE 
+        WHEN COUNT(DISTINCT ua.id) = 0 THEN 0
+        ELSE ROUND(
+            (SUM(CASE 
+                WHEN q.question_type IN ('multiple_choice', 'single_choice', 'true_false') THEN 
+                    (SELECT COUNT(*) FROM question_options qo 
+                     WHERE qo.question_id = q.id AND qo.is_correct = 1 
+                     AND FIND_IN_SET(qo.id, ua.selected_options) > 0)
+                WHEN q.question_type IN ('short_answer', 'essay') THEN 
+                    (CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END)
+                ELSE 0
+            END) / COUNT(DISTINCT ua.id) * 100), 2)
+    END AS correct_percentage,
+    SUM(CASE 
+        WHEN q.question_type IN ('multiple_choice', 'single_choice', 'true_false') THEN 
+            (SELECT COUNT(*) FROM question_options qo 
+             WHERE qo.question_id = q.id AND qo.is_correct = 1 
+             AND FIND_IN_SET(qo.id, ua.selected_options) > 0) * q.points
+        WHEN q.question_type IN ('short_answer', 'essay') THEN 
+            (CASE WHEN ua.is_correct = 1 THEN q.points ELSE 0 END)
+        ELSE 0
+    END) AS total_points_earned,
+    COUNT(DISTINCT ua.id) * q.points AS total_possible_points
+FROM 
+    questions q
+LEFT JOIN 
+    user_answers ua ON q.id = ua.question_id
+LEFT JOIN 
+    exam_attempts ea ON ua.attempt_id = ea.id
+WHERE 
+    q.exam_id = $examId
+    AND (ea.exam_id = $examId OR ea.id IS NULL)
+GROUP BY 
+    q.id, q.question_text, q.question_type, q.points
+ORDER BY 
+    q.id;
+");
+
+// Vérifier s'il y a des données à afficher
+$hasQuestionStats = $questionStatsQuery->num_rows > 0;
+
+
 $pageTitle = "Résultats de l'examen";
 include 'includes/header.php';
 ?> <style>
@@ -649,18 +708,35 @@ include 'includes/header.php';
                                 <h2 class="card-title">Performance par question</h2>
                             </div>
                             <div class="card-body">
-                                <?php if ($questionStatsQuery->num_rows > 0): ?>
+                                <?php if ($hasQuestionStats): ?>
                                     <div class="question-stats">
                                         <?php while ($questionStat = $questionStatsQuery->fetch_assoc()): ?>
                                             <?php
+                                            // Calculer le pourcentage de bonnes réponses
                                             $correctPercentage = $questionStat['total_answers'] > 0
-                                                ? round(($questionStat['correct_answers'] / $questionStat['total_answers']) * 100)
+                                                ? round($questionStat['correct_percentage'])
                                                 : 0;
+
+                                            // Déterminer la classe CSS en fonction du pourcentage
+                                            $progressClass = '';
+                                            if ($correctPercentage >= 75) {
+                                                $progressClass = 'high';
+                                            } elseif ($correctPercentage >= 50) {
+                                                $progressClass = 'medium';
+                                            } else {
+                                                $progressClass = 'low';
+                                            }
                                             ?>
+
                                             <div class="question-stat-item">
                                                 <div class="question-stat-header">
+                                                    <br>
                                                     <div class="question-text">
-                                                        <?php echo htmlspecialchars(substr(strip_tags($questionStat['question_text']), 0, 50)) . (strlen(strip_tags($questionStat['question_text'])) > 50 ? '...' : ''); ?>
+                                                        <strong>Question #<?php echo $questionStat['question_id']; ?>:</strong>
+                                                        <?php echo htmlspecialchars(substr(strip_tags($questionStat['question_text']), 0, 50)); ?>
+                                                        <?php if (strlen(strip_tags($questionStat['question_text'])) > 50): ?>
+                                                            <span title="<?php echo htmlspecialchars(strip_tags($questionStat['question_text'])); ?>">...</span>
+                                                        <?php endif; ?>
                                                     </div>
                                                     <div class="question-type">
                                                         <?php
@@ -668,18 +744,23 @@ include 'includes/header.php';
                                                             'multiple_choice' => 'QCM',
                                                             'single_choice' => 'QCU',
                                                             'true_false' => 'V/F',
+                                                            'short_answer' => 'Réponse courte',
                                                             'essay' => 'Rédaction'
                                                         ];
                                                         echo $typeLabels[$questionStat['question_type']] ?? $questionStat['question_type'];
                                                         ?>
                                                     </div>
                                                 </div>
+
                                                 <div class="question-stat-progress">
-                                                    <div class="progress-bar">
+                                                    <div class="progress-bar <?php echo $progressClass; ?>">
                                                         <div class="progress-fill" style="width: <?php echo $correctPercentage; ?>%"></div>
                                                     </div>
-                                                    <div class="progress-value"><?php echo $correctPercentage; ?>% correct</div>
+                                                    <div class="progress-value">
+                                                        <?php echo $correctPercentage; ?>% correct
+                                                    </div>
                                                 </div>
+
                                                 <div class="question-stat-details">
                                                     <div class="detail-item">
                                                         <span class="detail-label">Réponses:</span>
@@ -691,7 +772,7 @@ include 'includes/header.php';
                                                     </div>
                                                     <div class="detail-item">
                                                         <span class="detail-label">Points:</span>
-                                                        <span class="detail-value"><?php echo $questionStat['points']; ?></span>
+                                                        <span class="detail-value"><?php echo $questionStat['question_points']; ?></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -795,7 +876,7 @@ include 'includes/header.php';
             });
         }
 
-      
+
 
         // Gestion du modal d'exportation
         const exportResultsBtn = document.getElementById('exportResultsBtn');
