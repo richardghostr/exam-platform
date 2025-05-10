@@ -733,14 +733,14 @@ include 'includes/header.php';
                 if (result.success) {
                     console.log('Incident enregistré:', result);
                     updateIncidentCounter();
-                    showNotification(type, description);
+                    // showNotification(type, description);
                 } else {
                     console.error('Erreur lors de l\'enregistrement:', result);
-                    showNotification('error', 'Échec de l\'enregistrement de l\'incident');
+                    // showNotification('error', 'Échec de l\'enregistrement de l\'incident');
                 }
             } catch (error) {
                 console.error('Erreur réseau:', error);
-                showNotification('error', 'Erreur réseau lors de l\'enregistrement');
+                // showNotification('error', 'Erreur réseau lors de l\'enregistrement');
             }
         }
 
