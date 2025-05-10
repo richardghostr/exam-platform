@@ -2,6 +2,10 @@
 // Inclure les fichiers de configuration et fonctions
 include_once 'includes/config.php';
 include_once 'includes/functions.php';
+require 'vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 // Initialiser les variables
 $error = '';
@@ -22,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['role'] = isset($_POST['role']) ? $_POST['role'] : 'student';
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
-    
+
     // Validation
     if (empty($formData['username']) || empty($formData['email']) || empty($formData['full_name']) || empty($password) || empty($confirm_password)) {
         $error = 'Veuillez remplir tous les champs.';
@@ -35,26 +39,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Connexion à la base de données
         include_once 'includes/db.php';
-        
+
         // Vérifier si le nom d'utilisateur ou l'email existe déjà
         $stmt = $conn->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
         $stmt->bind_param("ss", $formData['username'], $formData['email']);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         if ($result->num_rows > 0) {
             $error = 'Ce nom d\'utilisateur ou cette adresse email est déjà utilisé(e).';
         } else {
             // Hacher le mot de passe
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
+
             // Insérer le nouvel utilisateur
             $insertStmt = $conn->prepare("INSERT INTO users (username, email, password, full_name, role) VALUES (?, ?, ?, ?, ?)");
             $insertStmt->bind_param("sssss", $formData['username'], $formData['email'], $hashed_password, $formData['full_name'], $formData['role']);
-            
+
             if ($insertStmt->execute()) {
-                $success = 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.';
-                // Réinitialiser le formulaire
+                $user_id = $insertStmt->insert_id;
+                
+                // Envoi de l'email de confirmation
+                $mail = new PHPMailer(true);
+                
+                try {
+                    // Configuration SMTP (à adapter)
+                     $mail->isSMTP();
+                $mail->Host       = SMTP_HOST;
+                $mail->SMTPAuth   = true;
+                $mail->Username   = SMTP_USER;
+                $mail->Password   = SMTP_PASS;
+                $mail->SMTPSecure = SMTP_SECURE;
+                $mail->Port       = SMTP_PORT;
+                $mail->CharSet    = 'UTF-8';
+                    
+                    // Expéditeur/Destinataire
+                    $mail->setFrom(FROM_EMAIL, FROM_NAME);
+                    $mail->addAddress($formData['email'], $formData['full_name']);
+                    
+                    // Contenu HTML
+                    $mail->isHTML(true);
+                    $mail->Subject = 'Confirmation d\'inscription - ' . SITE_NAME;
+                    
+                    $mail->Body = generateWelcomeEmail(
+                        $formData['full_name'],
+                        $formData['username'],
+                        $formData['email'],
+                        $formData['role']
+                    );
+                    
+                    // Version texte alternative
+                    $mail->AltBody = sprintf(
+                        "Bonjour %s,\n\nVotre inscription sur %s est confirmée.\n\nIdentifiants :\n- Email: %s\n- Rôle: %s\n\nAccédez à votre compte : %slogin.php",
+                        $formData['full_name'],
+                        SITE_NAME,
+                        $formData['email'],
+                        $formData['role'] === 'student' ? 'Étudiant' : 'Enseignant',
+                        SITE_URL
+                    );
+                    
+                    $mail->send();
+                    $success = 'Inscription réussie ! Un email de confirmation a été envoyé à ' . htmlspecialchars($formData['email']);
+                } catch (Exception $e) {
+                    error_log("Erreur d'envoi d'email: " . $mail->ErrorInfo);
+                    $success = 'Inscription réussie ! Consultez votre email pour vous connecter.';
+                }
+                
+                // Réinitialisation du formulaire
                 $formData = [
                     'username' => '',
                     'email' => '',
@@ -62,18 +113,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'role' => 'student'
                 ];
             } else {
-                $error = 'Une erreur est survenue lors de la création de votre compte. Veuillez réessayer.';
+                $error = 'Erreur lors de la création du compte.';
             }
-            
             $insertStmt->close();
         }
-        
         $stmt->close();
         $conn->close();
     }
 }
-?>
 
+// Fonction pour générer l'email HTML
+function generateWelcomeEmail($name, $username, $email, $role) {
+    ob_start(); ?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { color: #2563eb; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+            .content { padding: 20px 0; }
+            .button { 
+                display: inline-block; padding: 10px 20px; background-color: #2563eb; 
+                color: white !important; text-decoration: none; border-radius: 5px; margin: 15px 0;
+            }
+            .footer { margin-top: 20px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>Bienvenue sur <?= SITE_NAME ?> !</h2>
+        </div>
+        
+        <div class="content">
+            <p>Bonjour <?= htmlspecialchars($name) ?>,</p>
+            
+            <p>Votre inscription en tant que <strong><?= $role === 'student' ? 'Étudiant' : 'Enseignant' ?></strong> a été confirmée avec succès.</p>
+            
+            <p><strong>Vos identifiants :</strong></p>
+            <ul>
+                <li>Nom d'utilisateur : <?= htmlspecialchars($username) ?></li>
+                <li>Email : <?= htmlspecialchars($email) ?></li>
+            </ul>
+            
+            <p style="text-align: center;">
+                <a href="<?= SITE_URL ?>login.php" class="button">Accéder à mon compte</a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
+            <p>© <?= date('Y') ?> <?= SITE_NAME ?>. Tous droits réservés.</p>
+        </div>
+    </body>
+    </html>
+    <?php
+    return ob_get_clean();
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -87,6 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <!-- En-tête -->
     <?php include 'includes/header.php'; ?>
@@ -98,19 +195,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="auth-form-container">
                     <h2>Créer un compte</h2>
                     <p>Rejoignez ExamSafe pour des examens en ligne sécurisés</p>
-                    
+
                     <?php if (!empty($error)): ?>
                         <div class="alert alert-danger">
                             <?php echo $error; ?>
                         </div>
                     <?php endif; ?>
-                    
+
                     <?php if (!empty($success)): ?>
                         <div class="alert alert-success">
                             <?php echo $success; ?>
                         </div>
                     <?php endif; ?>
-                    
+
                     <form action="register.php" method="post" class="auth-form">
                         <div class="form-group">
                             <label for="full_name">Nom complet</label>
@@ -119,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input style="padding-left: 45px;" type="text" id="full_name" name="full_name" value="<?php echo htmlspecialchars($formData['full_name']); ?>" required>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="username">Nom d'utilisateur</label>
                             <div class="input-icon-wrapper">
@@ -127,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input style="padding-left: 45px;" type="text" id="username" name="username" value="<?php echo htmlspecialchars($formData['username']); ?>" required>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="email">Adresse email</label>
                             <div class="input-icon-wrapper">
@@ -135,13 +232,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input style="padding-left: 45px;" type="email" id="email" name="email" value="<?php echo htmlspecialchars($formData['email']); ?>" required>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="password">Mot de passe</label>
                             <div class="input-icon-wrapper">
                                 <i class="fas fa-lock"></i>
                                 <input style="padding-left: 45px;" type="password" id="password" name="password" required>
-                                <button  type="button" class="password-toggle" aria-label="Afficher/Masquer le mot de passe">
+                                <button type="button" class="password-toggle" aria-label="Afficher/Masquer le mot de passe">
                                     <i style="margin-left: -30px;" class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -152,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="strength-text">Force du mot de passe: <span>Faible</span></div>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="confirm_password">Confirmer le mot de passe</label>
                             <div class="input-icon-wrapper">
@@ -160,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input style="padding-left: 45px;" type="password" id="confirm_password" name="confirm_password" required>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Type de compte</label>
                             <div class="role-selector">
@@ -180,19 +277,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="form-group terms">
                             <input type="checkbox" id="terms" name="terms" required>
                             <label for="terms">J'accepte les <a href="terms.php">conditions d'utilisation</a> et la <a href="privacy.php">politique de confidentialité</a></label>
                         </div>
-                        
+
                         <button type="submit" class="btn btn-primary btn-block">Créer un compte</button>
                     </form>
-                    
+
                     <div class="auth-separator">
                         <span>ou</span>
                     </div>
-                    
+
                     <div class="social-auth">
                         <button class="btn btn-outline btn-social">
                             <i class="fab fa-google"></i> S'inscrire avec Google
@@ -201,17 +298,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fab fa-microsoft"></i> S'inscrire avec Microsoft
                         </button>
                     </div>
-                    
+
                     <div class="auth-footer">
                         <p>Vous avez déjà un compte? <a href="login.php">Se connecter</a></p>
                     </div>
                 </div>
-                
+
                 <div class="auth-info">
                     <div class="auth-info-content">
                         <h2>Pourquoi choisir ExamSafe?</h2>
                         <p>ExamSafe révolutionne l'évaluation à distance grâce à une technologie de surveillance automatisée basée sur l'intelligence artificielle.</p>
-                        
+
                         <div class="auth-features">
                             <div class="auth-feature">
                                 <i class="fas fa-shield-alt"></i>
@@ -251,36 +348,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.addEventListener('DOMContentLoaded', function() {
             const passwordToggle = document.querySelector('.password-toggle');
             const passwordInput = document.querySelector('#password');
-            
+
             if (passwordToggle && passwordInput) {
                 passwordToggle.addEventListener('click', function() {
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
-                    
+
                     // Changer l'icône
                     const icon = this.querySelector('i');
                     icon.classList.toggle('fa-eye');
                     icon.classList.toggle('fa-eye-slash');
                 });
             }
-            
+
             // Vérification de la force du mot de passe
             const strengthMeter = document.querySelector('.strength-meter-fill');
             const strengthText = document.querySelector('.strength-text span');
-            
+
             if (passwordInput && strengthMeter && strengthText) {
                 passwordInput.addEventListener('input', function() {
                     const val = passwordInput.value;
                     let strength = 0;
-                    
+
                     if (val.length >= 8) strength += 1;
                     if (val.match(/[a-z]/) && val.match(/[A-Z]/)) strength += 1;
                     if (val.match(/\d/)) strength += 1;
                     if (val.match(/[^a-zA-Z\d]/)) strength += 1;
-                    
+
                     // Mettre à jour l'indicateur
                     strengthMeter.setAttribute('data-strength', strength);
-                    
+
                     // Mettre à jour le texte
                     switch (strength) {
                         case 0:
@@ -301,18 +398,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 });
             }
-            
+
             // Sélection du type de compte
             const roleOptions = document.querySelectorAll('.role-option');
-            
+
             roleOptions.forEach(option => {
                 option.addEventListener('click', function() {
                     // Désélectionner toutes les options
                     roleOptions.forEach(opt => opt.classList.remove('selected'));
-                    
+
                     // Sélectionner l'option cliquée
                     this.classList.add('selected');
-                    
+
                     // Cocher le radio button
                     const radio = this.querySelector('input[type="radio"]');
                     radio.checked = true;
@@ -321,4 +418,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
     </script>
 </body>
+
 </html>
