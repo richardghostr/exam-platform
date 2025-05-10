@@ -2,6 +2,10 @@
 // Inclure les fichiers de configuration et fonctions
 include_once 'includes/config.php';
 include_once 'includes/functions.php';
+require 'vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 // Initialiser les variables
 $success = false;
@@ -20,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form_data['email'] = isset($_POST['email']) ? clean_input($_POST['email']) : '';
     $form_data['subject'] = isset($_POST['subject']) ? clean_input($_POST['subject']) : '';
     $form_data['message'] = isset($_POST['message']) ? clean_input($_POST['message']) : '';
-    
+
     // Validation
     if (empty($form_data['name'])) {
         $error = 'Veuillez entrer votre nom.';
@@ -33,10 +37,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (empty($form_data['message'])) {
         $error = 'Veuillez entrer votre message.';
     } else {
-        // Envoyer l'email
-        $to = EMAIL_FROM;
-        $subject = 'Contact ExamSafe: ' . $form_data['subject'];
-        $message = '
+
+        // Envoyer un email de confirmation
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host       = SMTP_HOST;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = SMTP_USER;
+            $mail->Password   = SMTP_PASS;
+            $mail->SMTPSecure = SMTP_SECURE;
+            $mail->Port       = SMTP_PORT;
+
+            $mail->setFrom($form_data['email'], FROM_NAME);
+            $mail->addAddress(FROM_EMAIL);
+            // Envoyer l'email
+            $mail->isHTML(true);
+            $mail->Subject = 'Contact ExamSafe: ' . $form_data['subject'];
+            $mail->Body = '
             <html>
             <head>
                 <title>Nouveau message de contact</title>
@@ -51,15 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </body>
             </html>
         ';
-        
-        $headers = [
-            'From' => $form_data['name'] . ' <' . $form_data['email'] . '>',
-            'Reply-To' => $form_data['email']
-        ];
-        
-        if (send_email($to, $subject, $message, $headers)) {
-            $success = true;
-            
+
+            $mail->send();
+            $success = 'Merci de nous avoir contacté ! Nous allons vous répondre sous peu.';
+        } catch (Exception $e) {
+            $error = 'Une erreur est survenue lors de l\'envoi de votre message. Veuillez réessayer.';
             // Réinitialiser le formulaire
             $form_data = [
                 'name' => '',
@@ -67,15 +81,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'subject' => '',
                 'message' => ''
             ];
-        } else {
-            $error = 'Une erreur est survenue lors de l\'envoi de votre message. Veuillez réessayer.';
         }
+        // $headers = [
+        //     'From' => $form_data['name'] . ' <' . $form_data['email'] . '>',
+        //     'Reply-To' => $form_data['email']
+        // ];
     }
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -87,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <!-- En-tête -->
     <?php include 'includes/header.php'; ?>
@@ -108,21 +126,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2>Envoyez-nous un message</h2>
                 <p>Nous vous répondrons dans les plus brefs délais</p>
             </div>
-            
+
             <?php if ($success): ?>
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle"></i>
                     Votre message a été envoyé avec succès. Nous vous répondrons dans les plus brefs délais.
                 </div>
             <?php endif; ?>
-            
+
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-circle"></i>
                     <?php echo $error; ?>
                 </div>
             <?php endif; ?>
-            
+
             <div class="contact-form">
                 <form action="contact.php" method="post">
                     <div class="form-row">
@@ -130,33 +148,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="name">Nom complet</label>
                             <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($form_data['name']); ?>" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="email">Email</label>
                             <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($form_data['email']); ?>" required>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="subject">Sujet</label>
                         <input type="text" id="subject" name="subject" value="<?php echo htmlspecialchars($form_data['subject']); ?>" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="message">Message</label>
                         <textarea id="message" name="message" required><?php echo htmlspecialchars($form_data['message']); ?></textarea>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-primary">Envoyer le message</button>
                 </form>
             </div>
-            
+
             <div class="contact-info">
                 <div class="section-header">
                     <h2>Informations de contact</h2>
                     <p>Vous préférez nous contacter directement ?</p>
                 </div>
-                
+
                 <div class="features-grid">
                     <div class="contact-info-item">
                         <i class="fas fa-map-marker-alt"></i>
@@ -165,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p>123 Avenue des Examens<br>Douala, Cameroun</p>
                         </div>
                     </div>
-                    
+
                     <div class="contact-info-item">
                         <i class="fas fa-envelope"></i>
                         <div class="contact-info-content">
@@ -173,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p>contact@examsafe.com<br>support@examsafe.com</p>
                         </div>
                     </div>
-                    
+
                     <div class="contact-info-item">
                         <i class="fas fa-phone-alt"></i>
                         <div class="contact-info-content">
@@ -181,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p>+237 6 23 45 67 89<br>+237 6 98 76 54 32</p>
                         </div>
                     </div>
-                    
+
                     <div class="contact-info-item">
                         <i class="fas fa-clock"></i>
                         <div class="contact-info-content">
@@ -193,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </section>
-    
+
     <!-- Section carte -->
     <section class="section">
         <div class="container">
@@ -201,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2>Nous trouver</h2>
                 <p>Rendez-nous visite dans nos locaux</p>
             </div>
-            
+
             <div style="width: 100%; height: 400px; border-radius: var(--border-radius); overflow: hidden;">
                 <!-- Intégrez ici votre carte Google Maps ou OpenStreetMap -->
                 <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d127482.8610673536!2d9.6859644!3d4.0510564!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1061126c54d5c89b%3A0x9ae59a89850dad6e!2sDouala%2C%20Cameroun!5e0!3m2!1sfr!2sfr!4v1620637891673!5m2!1sfr!2sfr" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
@@ -216,4 +234,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Scripts JS -->
     <script src="assets/js/main.js"></script>
 </body>
+
 </html>

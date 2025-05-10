@@ -19,6 +19,7 @@ $formData = [
 
 // Traiter le formulaire d'inscription
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    
     // Récupérer les données du formulaire
     $formData['username'] = trim($_POST['username']);
     $formData['email'] = trim($_POST['email']);
