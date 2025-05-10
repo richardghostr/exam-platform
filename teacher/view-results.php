@@ -793,57 +793,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
-    // Graphique de distribution des scores
-    const scoresCtx = document.getElementById('scoresChart');
-    
-    if (scoresCtx) {
-        // Données fictives pour le graphique (à remplacer par des données réelles)
-        const scoresData = {
-            labels: ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'],
-            datasets: [{
-                label: 'Nombre d\'étudiants',
-                data: [2, 5, 10, 15, 8],
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.6)',
-                    'rgba(255, 159, 64, 0.6)',
-                    'rgba(255, 205, 86, 0.6)',
-                    'rgba(75, 192, 192, 0.6)',
-                    'rgba(54, 162, 235, 0.6)'
-                ],
-                borderColor: [
-                    'rgb(255, 99, 132)',
-                    'rgb(255, 159, 64)',
-                    'rgb(255, 205, 86)',
-                    'rgb(75, 192, 192)',
-                    'rgb(54, 162, 235)'
-                ],
-                borderWidth: 1
-            }]
-        };
-        
-        new Chart(scoresCtx, {
-            type: 'bar',
-            data: scoresData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-    }
+   
     
     // Gestion du modal d'exportation
     const exportResultsBtn = document.getElementById('exportResultsBtn');
@@ -874,4 +824,133 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+</script>
+
+<?php
+// Récupérer l'ID de l'enseignant depuis la session ou un paramètre
+$teacher_id = $_SESSION['user_id']; // Ou $_GET['teacher_id'] si vous passez l'ID en paramètre
+
+// Récupérer les données de distribution des scores avec filtre par enseignant
+$scoreDistributionQuery = $conn->query("
+    SELECT 
+        CASE 
+            WHEN er.score BETWEEN 0 AND 20 THEN '0-20%'
+            WHEN er.score BETWEEN 21 AND 40 THEN '21-40%'
+            WHEN er.score BETWEEN 41 AND 60 THEN '41-60%'
+            WHEN er.score BETWEEN 61 AND 80 THEN '61-80%'
+            WHEN er.score BETWEEN 81 AND 100 THEN '81-100%'
+        END as score_range,
+        COUNT(*) as count
+    FROM exam_results er
+    JOIN exams e ON er.exam_id = e.id
+    WHERE er.exam_id = $examId 
+      AND er.status = 'completed'
+      AND e.teacher_id = $teacher_id  
+    GROUP BY score_range
+    ORDER BY 
+        CASE score_range
+            WHEN '0-20%' THEN 1
+            WHEN '21-40%' THEN 2
+            WHEN '41-60%' THEN 3
+            WHEN '61-80%' THEN 4
+            WHEN '81-100%' THEN 5
+        END
+");
+
+// Initialiser les données pour le graphique
+$scoreRanges = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+$scoreCounts = array_fill_keys($scoreRanges, 0);
+
+// Remplir avec les données de la base
+while ($row = $scoreDistributionQuery->fetch_assoc()) {
+    if (isset($scoreCounts[$row['score_range']])) {
+        $scoreCounts[$row['score_range']] = $row['count'];
+    }
+}
+
+// Convertir en format JSON pour JavaScript
+$scoreRangesJson = json_encode(array_values($scoreRanges));
+$scoreCountsJson = json_encode(array_values($scoreCounts));
+?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique de distribution des scores
+        const scoresCtx = document.getElementById('scoresChart');
+
+        if (scoresCtx) {
+            // Récupérer les données PHP converties en JSON
+            const scoreRanges = <?php echo $scoreRangesJson; ?>;
+            const scoreCounts = <?php echo $scoreCountsJson; ?>;
+
+            // Couleurs pour chaque tranche de score
+            const backgroundColors = [
+                'rgba(255, 99, 132, 0.6)', // 0-20% (rouge)
+                'rgba(255, 159, 64, 0.6)', // 21-40% (orange)
+                'rgba(255, 205, 86, 0.6)', // 41-60% (jaune)
+                'rgba(75, 192, 192, 0.6)', // 61-80% (vert clair)
+                'rgba(54, 162, 235, 0.6)' // 81-100% (bleu)
+            ];
+
+            const borderColors = [
+                'rgb(255, 99, 132)',
+                'rgb(255, 159, 64)',
+                'rgb(255, 205, 86)',
+                'rgb(75, 192, 192)',
+                'rgb(54, 162, 235)'
+            ];
+
+            const scoresData = {
+                labels: scoreRanges,
+                datasets: [{
+                    label: 'Nombre d\'étudiants',
+                    data: scoreCounts,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            };
+            new Chart(scoresCtx, {
+                type: 'bar',
+                data: scoresData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Désactive le maintien du ratio hauteur/largeur
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Nombre d\'étudiants'
+                            },
+                            ticks: {
+                                precision: 0,
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tranches de scores'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ... (le reste de votre code JavaScript existant)
+    });
 </script>
