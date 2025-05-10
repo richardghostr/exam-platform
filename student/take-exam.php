@@ -3,8 +3,9 @@ require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
-
-
+file_put_contents('incident_log.txt', date('Y-m-d H:i:s') . " - " . print_r($_POST, true) . "\n", FILE_APPEND);
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Récupérer l'ID de l'étudiant
 $studentId = $_SESSION['user_id'];
@@ -706,35 +707,41 @@ include 'includes/header.php';
 
 
         // Fonction pour signaler automatiquement un incident
-        function reportProctoringIncident(type, description, imageData = null) {
-            // Préparer les données
-            const formData = new FormData();
-            formData.append('attempt_id', attemptId); // Variable globale définie dans votre page
-            formData.append('incident_type', type);
-            formData.append('description', description);
+        async function reportProctoringIncident(type, description, imageData = null) {
+            try {
+                // Préparer les données
+                const data = {
+                    attempt_id: attemptId,
+                    incident_type: type,
+                    description: description,
+                    image_data: imageData
+                };
 
-            if (imageData) {
-                formData.append('image_data', imageData);
-            }
-
-            // Envoyer la requête AJAX
-            fetch('ajax/report-incident.php', {
+                // Options pour la requête fetch
+                const options = {
                     method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Mettre à jour l'interface utilisateur si nécessaire
-                        updateIncidentCounter();
-                        showNotification(type, description);
-                    } else {
-                        console.error('Erreur lors du signalement de l\'incident:', data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                });
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                };
+
+                // Envoyer la requête AJAX
+                const response = await fetch('../ajax/report-incident.php', options);
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Incident enregistré:', result);
+                    updateIncidentCounter();
+                    showNotification(type, description);
+                } else {
+                    console.error('Erreur lors de l\'enregistrement:', result);
+                    showNotification('error', 'Échec de l\'enregistrement de l\'incident');
+                }
+            } catch (error) {
+                console.error('Erreur réseau:', error);
+                showNotification('error', 'Erreur réseau lors de l\'enregistrement');
+            }
         }
 
         // Exemple d'utilisation pour la détection faciale
