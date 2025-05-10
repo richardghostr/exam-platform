@@ -303,10 +303,10 @@ include 'includes/header.php';
         </div>
     </div>
     
-    <div class="exams-grid">
+    <div class="exams-grid" >
         <?php if ($exams->num_rows > 0): ?>
             <?php while ($exam = $exams->fetch_assoc()): ?>
-                <div class="card exam-card">
+                <div class="card exam-card" >
                     <div class="card-header">
                         <h3 class="exam-title"><?php echo htmlspecialchars($exam['title']); ?></h3>
                         <span class="status-badge <?php echo $exam['status']; ?>">
@@ -314,7 +314,7 @@ include 'includes/header.php';
                         </span>
                     </div>
                     
-                    <div class="card-body">
+                    <div class="card-body" >
                         <div class="exam-details">
                             <div class="detail-item">
                                 <i class="fas fa-book"></i>
@@ -368,7 +368,7 @@ include 'includes/header.php';
                             <a href="?action=delete&id=<?php echo $exam['id']; ?>"class="btn btn-success btn-sm" style="background-color: red;border:none">
                                 <i class="fas fa-trash"></i> 
                             </a>
-                            <div class="dropdown">
+                            <div class="dropdown" >
                                 <!-- <button class="btn btn-secondary btn-sm dropdown-toggle">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button> -->

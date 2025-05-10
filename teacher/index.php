@@ -45,7 +45,8 @@ $studentStatsQuery = $conn->query("
     JOIN exams e ON er.exam_id = e.id
     WHERE e.teacher_id = $teacherId AND er.status = 'completed'
 ");
-
+$up = $conn->prepare("UPDATE `exam_results` er JOIN `exam_attempts` ea ON er.id=ea.id SET er.score =ea.score,er.points_earned=ea.score WHERE er.exam_id=ea.exam_id AND er.user_id=ea.user_id AND er.created_at=ea.created_at");
+$up->execute();
 $studentStats = $studentStatsQuery->fetch_assoc();
 
 // S'assurer que les valeurs ne sont pas nulles

@@ -16,6 +16,31 @@ $totalTeachers = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 
 $totalExams = $conn->query("SELECT COUNT(*) as count FROM exams")->fetch_assoc()['count'];
 // $totalCompletedExams = $conn->query("SELECT COUNT(*) as count FROM exam_results WHERE status = 'completed'")->fetch_assoc()['count'];
 
+// Récupérer les examens les plus populaires (avec le plus d'étudiants inscrits)
+$popularExams = $conn->query("
+    SELECT 
+        e.id,
+        e.title,
+        COUNT(ee.user_id) as student_count,
+        s.name as subject_name
+    FROM exams e
+    LEFT JOIN exam_attempts ee ON e.id = ee.exam_id
+    LEFT JOIN subjects s ON e.subject = s.id
+    GROUP BY e.id
+    ORDER BY student_count DESC
+    LIMIT 4
+");
+
+// Icônes par matière (vous pouvez personnaliser cela)
+$subjectIcons = [
+    'Mathématiques' => 'fa-calculator',
+    'Informatique' => 'fa-laptop-code',
+    'Physique' => 'fa-atom',
+    'Chimie' => 'fa-flask',
+    'Biologie' => 'fa-dna'
+];
+$up = $conn->prepare("UPDATE `exam_results` er JOIN `exam_attempts` ea ON er.id=ea.id SET er.score =ea.score,er.points_earned=ea.score WHERE er.exam_id=ea.exam_id AND er.user_id=ea.user_id AND er.created_at=ea.created_at");
+$up->execute();
 // // Récupérer les examens récents
 $recentExams = $conn->query("
     SELECT 
@@ -63,10 +88,10 @@ include 'includes/header.php';
         <div class="stat-period">Ventes du 1-12 Mars, 2025</div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" >
         <div class="stat-header">
             <h3 class="stat-title">Étudiants</h3>
-            <a href="users.php?role=student" class="text-primary">Voir tous</a>
+            <a href="users.php?role=student" id="et" class="text-primary">Voir tous</a>
         </div>
         <div class="stat-value"><?php echo $totalStudents; ?></div>
         <div class="stat-trend trend-up">
@@ -232,42 +257,23 @@ include 'includes/header.php';
             <div class="card">
                 <div class="card-body">
                     <ul class="popular-exams-list">
-                        <li class="d-flex justify-content-between align-items-center mb-10">
-                            <div class="d-flex align-items-center gap-10">
-                                <div class="exam-icon">
-                                    <i class="fas fa-calculator"></i>
-                                </div>
-                                <span>Mathématiques Avancées</span>
-                            </div>
-                            <span class="badge badge-primary">45 étudiants</span>
-                        </li>
-                        <li class="d-flex justify-content-between align-items-center mb-10">
-                            <div class="d-flex align-items-center gap-10">
-                                <div class="exam-icon">
-                                    <i class="fas fa-flask"></i>
-                                </div>
-                                <span>Chimie Organique</span>
-                            </div>
-                            <span class="badge badge-primary">38 étudiants</span>
-                        </li>
-                        <li class="d-flex justify-content-between align-items-center mb-10">
-                            <div class="d-flex align-items-center gap-10">
-                                <div class="exam-icon">
-                                    <i class="fas fa-laptop-code"></i>
-                                </div>
-                                <span>Programmation Web</span>
-                            </div>
-                            <span class="badge badge-primary">32 étudiants</span>
-                        </li>
-                        <li class="d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center gap-10">
-                                <div class="exam-icon">
-                                    <i class="fas fa-book"></i>
-                                </div>
-                                <span>Littérature Française</span>
-                            </div>
-                            <span class="badge badge-primary">29 étudiants</span>
-                        </li>
+                        <?php if ($popularExams->num_rows > 0): ?>
+                            <?php while ($exam = $popularExams->fetch_assoc()): ?>
+                                <li class="d-flex justify-content-between align-items-center mb-10">
+                                    <div class="d-flex align-items-center gap-10">
+                                        <div class="exam-icon">
+                                            <i class="fas <?php echo $subjectIcons[$exam['subject_name']] ?? 'fa-book'; ?>"></i>
+                                        </div>
+                                        <span><?php echo htmlspecialchars($exam['title']); ?></span>
+                                    </div>
+                                    <span class="badge badge-primary">
+                                        <?php echo $exam['student_count']; ?> étudiant<?php echo $exam['student_count'] > 1 ? 's' : ''; ?>
+                                    </span>
+                                </li>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <li class="text-center">Aucun examen avec des inscriptions</li>
+                        <?php endif; ?>
                     </ul>
                 </div>
             </div>
@@ -346,8 +352,8 @@ function getStatusClass($status)
 
 <?php include 'includes/footer.php'; ?>
 <?php
-            // Récupérer les données d'inscription quotidiennes
-            $dailyRegistrations = $conn->query("
+// Récupérer les données d'inscription quotidiennes
+$dailyRegistrations = $conn->query("
     SELECT 
         DATE(created_at) as registration_date,
         COUNT(*) as user_count,
@@ -359,19 +365,19 @@ function getStatusClass($status)
     ORDER BY registration_date ASC
 ");
 
-            // Préparer les données pour le graphique
-            $labels = [];
-            $totalData = [];
-            $studentData = [];
-            $teacherData = [];
+// Préparer les données pour le graphique
+$labels = [];
+$totalData = [];
+$studentData = [];
+$teacherData = [];
 
-            while ($row = $dailyRegistrations->fetch_assoc()) {
-                $labels[] = date('d M', strtotime($row['registration_date']));
-                $totalData[] = $row['user_count'];
-                $studentData[] = $row['student_count'];
-                $teacherData[] = $row['teacher_count'];
-            }
-            ?>
+while ($row = $dailyRegistrations->fetch_assoc()) {
+    $labels[] = date('d M', strtotime($row['registration_date']));
+    $totalData[] = $row['user_count'];
+    $studentData[] = $row['student_count'];
+    $teacherData[] = $row['teacher_count'];
+}
+?>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const studentCtx = document.getElementById('studentChart').getContext('2d');
@@ -432,7 +438,7 @@ function getStatusClass($status)
                         grid: {
                             drawBorder: false,
                         },
-                       
+
                     },
                     x: {
                         grid: {

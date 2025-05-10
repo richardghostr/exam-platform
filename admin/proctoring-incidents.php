@@ -211,7 +211,7 @@ include 'includes/header.php';
         }
         /* Container principal */
         .container-fluid {
-            padding: 20px;
+          width: 100%;
             border-radius: 8px;
         }
 

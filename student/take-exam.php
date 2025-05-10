@@ -446,7 +446,7 @@ include 'includes/header.php';
                             <?php endif; ?>
 
                             <?php if ($index < count($questions) - 1): ?>
-                                <button class="btn btn-primary next-btn" data-index="<?php echo $index + 1; ?>">
+                                <button class="btn btn-primary next-btn" id="nextQuestion" data-index="<?php echo $index + 1; ?>">
                                     Question suivante <i class="fas fa-chevron-right"></i>
                                 </button>
                             <?php else: ?>
