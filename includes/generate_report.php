@@ -139,9 +139,10 @@ switch ($format) {
 function generatePDFReport($result, $reportTitle, $filename, $reportType)
 {
     require_once '../vendor/autoload.php';
-
-    // Créer un nouveau document PDF
-    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    require_once '../libs/TCPDF-main/tcpdf.php';
+    
+    // Créer un nouveau document PDF en mode paysage pour plus d'espace
+    $pdf = new TCPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
     // Définir les informations du document
     $pdf->SetCreator(PDF_CREATOR);
@@ -150,59 +151,132 @@ function generatePDFReport($result, $reportTitle, $filename, $reportType)
     $pdf->SetSubject('Rapport ExamSafe');
 
     // Définir les marges
-    $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
-    $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
-    $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+    $pdf->SetMargins(10, 20, 10);
+    $pdf->SetHeaderMargin(5);
+    $pdf->SetFooterMargin(10);
 
     // Définir la rupture de page automatique
-    $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+    $pdf->SetAutoPageBreak(TRUE, 15);
 
-    // Définir la police
-    $pdf->SetFont('helvetica', '', 10);
+    // Définir la police par défaut
+    $pdf->SetFont('helvetica', '', 8);
 
     // Ajouter une page
     $pdf->AddPage();
 
     // Logo et titre du rapport
-    $pdf->Image('../assets/images/logo.png', 10, 10, 30, '5', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+    $pdf->Image('../assets/images/logo.png', 10, 10, 30, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
     $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 30, $reportTitle, 0, 1, 'C');
-    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 10, $reportTitle, 0, 1, 'C');
+    $pdf->SetFont('helvetica', '', 8);
 
     // Date du rapport
-    $pdf->Cell(0, 10, 'Date du rapport: ' . date('d/m/Y'), 0, 1, 'R');
+    $pdf->Cell(0, 5, 'Date du rapport: ' . date('d/m/Y H:i'), 0, 1, 'R');
     $pdf->Ln(5);
 
     // Créer le tableau
     if ($result->num_rows > 0) {
         $fields = $result->fetch_fields();
         $headers = [];
+        $maxWidths = [];
+        
+        // Préparer les en-têtes et déterminer les largeurs maximales
         foreach ($fields as $field) {
-            $headers[] = ucfirst(str_replace('_', ' ', $field->name));
+            $header = ucfirst(str_replace('_', ' ', $field->name));
+            $headers[] = $header;
+            $maxWidths[$field->name] = $pdf->GetStringWidth($header) + 2;
         }
 
-        // Largeur des colonnes
-        $colWidth = 180 / count($headers);
+        // Analyser toutes les lignes pour déterminer les largeurs optimales
+        $result->data_seek(0);
+        while ($row = $result->fetch_assoc()) {
+            foreach ($row as $key => $value) {
+                // Formater les valeurs pour l'affichage
+                if (is_numeric($value)) {
+                    if (strpos($value, '.') !== false) {
+                        $value = number_format($value, 2, ',', ' ');
+                    }
+                }
+                
+                $cellWidth = $pdf->GetStringWidth($value) + 2;
+                if ($cellWidth > $maxWidths[$key]) {
+                    $maxWidths[$key] = min($cellWidth, 60); // Limiter la largeur max à 60
+                }
+            }
+        }
+
+        // Calculer la largeur totale et ajuster si nécessaire
+        $totalWidth = array_sum($maxWidths);
+        $pageWidth = $pdf->getPageWidth() - 20; // Largeur utilisable de la page
+        
+        if ($totalWidth > $pageWidth) {
+            $ratio = $pageWidth / $totalWidth;
+            foreach ($maxWidths as &$width) {
+                $width = $width * $ratio;
+            }
+        }
 
         // En-têtes du tableau
         $pdf->SetFillColor(230, 230, 230);
-        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->SetFont('helvetica', 'B', 8);
+        $pdf->SetTextColor(0);
+        
+        $i = 0;
         foreach ($headers as $header) {
-            $pdf->Cell($colWidth, 7, $header, 1, 0, 'C', 1);
+            $fieldName = $fields[$i]->name;
+            $pdf->MultiCell($maxWidths[$fieldName], 7, $header, 1, 'C', true, 0);
+            $i++;
         }
         $pdf->Ln();
 
         // Données du tableau
-        $pdf->SetFont('helvetica', '', 9);
+        $pdf->SetFont('helvetica', '', 8);
+        $pdf->SetTextColor(0);
+        $fill = false;
+        
+        $result->data_seek(0);
         while ($row = $result->fetch_assoc()) {
-            foreach ($row as $value) {
-                // Formater les valeurs numériques
+            $maxHeight = 0;
+            $nb = 0;
+            
+            // Calculer la hauteur nécessaire pour chaque cellule
+            foreach ($row as $key => $value) {
                 if (is_numeric($value) && strpos($value, '.') !== false) {
                     $value = number_format($value, 2, ',', ' ');
                 }
-                $pdf->Cell($colWidth, 6, $value, 1, 0, 'L');
+                
+                $nb = max($nb, $pdf->getNumLines($value, $maxWidths[$key]));
             }
+            
+            $height = $nb * 5;
+            
+            // Dessiner chaque cellule
+            foreach ($row as $key => $value) {
+                if (is_numeric($value) && strpos($value, '.') !== false) {
+                    $value = number_format($value, 2, ',', ' ');
+                }
+                
+                $pdf->MultiCell(
+                    $maxWidths[$key], 
+                    $height, 
+                    $value, 
+                    1, 
+                    'L', 
+                    $fill, 
+                    0, 
+                    '', 
+                    '', 
+                    true, 
+                    0, 
+                    false, 
+                    true, 
+                    0, 
+                    'M'
+                );
+            }
+            
             $pdf->Ln();
+            $fill = !$fill;
         }
     } else {
         $pdf->Cell(0, 10, 'Aucune donnée disponible pour ce rapport', 0, 1, 'C');
@@ -214,113 +288,152 @@ function generatePDFReport($result, $reportTitle, $filename, $reportType)
     $pdf->Cell(0, 10, 'Résumé', 0, 1, 'L');
     $pdf->SetFont('helvetica', '', 10);
 
+    // Réinitialiser le pointeur de résultat pour les calculs
+    $result->data_seek(0);
+    
     switch ($reportType) {
         case 'exam_results':
-            // Calculer des statistiques sur les résultats
-            $result->data_seek(0);
-            $totalStudents = $result->num_rows;
-            $totalPassed = 0;
-            $totalScore = 0;
-
-            while ($row = $result->fetch_assoc()) {
-                $totalScore += $row['score'];
-                if ($row['passed']) $totalPassed++;
-            }
-
-            $avgScore = $totalStudents > 0 ? $totalScore / $totalStudents : 0;
-            $passRate = $totalStudents > 0 ? ($totalPassed / $totalStudents) * 100 : 0;
-
-            $pdf->Cell(0, 6, "Nombre total d'étudiants: $totalStudents", 0, 1, 'L');
-            $pdf->Cell(0, 6, "Score moyen: " . number_format($avgScore, 2, ',', ' ') . "%", 0, 1, 'L');
-            $pdf->Cell(0, 6, "Taux de réussite: " . number_format($passRate, 2, ',', ' ') . "%", 0, 1, 'L');
+            $stats = calculateExamStats($result);
+            $pdf->MultiCell(0, 6, "Nombre total d'étudiants: " . $stats['totalStudents'], 0, 'L');
+            $pdf->MultiCell(0, 6, "Score moyen: " . $stats['avgScore'] . "%", 0, 'L');
+            $pdf->MultiCell(0, 6, "Taux de réussite: " . $stats['passRate'] . "%", 0, 'L');
             break;
 
         case 'student_performance':
-            // Calculer des statistiques sur la performance
-            $result->data_seek(0);
-            $totalStudents = $result->num_rows;
-            $totalExams = 0;
-            $totalPassed = 0;
-
-            while ($row = $result->fetch_assoc()) {
-                $totalExams += $row['exams_taken'];
-                $totalPassed += $row['exams_passed'];
-            }
-
-            $avgExams = $totalStudents > 0 ? $totalExams / $totalStudents : 0;
-            $passRate = $totalExams > 0 ? ($totalPassed / $totalExams) * 100 : 0;
-
-            $pdf->Cell(0, 6, "Nombre total d'étudiants: $totalStudents", 0, 1, 'L');
-            $pdf->Cell(0, 6, "Nombre moyen d'examens par étudiant: " . number_format($avgExams, 2, ',', ' '), 0, 1, 'L');
-            $pdf->Cell(0, 6, "Taux de réussite global: " . number_format($passRate, 2, ',', ' ') . "%", 0, 1, 'L');
+            $stats = calculateStudentStats($result);
+            $pdf->MultiCell(0, 6, "Nombre total d'étudiants: " . $stats['totalStudents'], 0, 'L');
+            $pdf->MultiCell(0, 6, "Nombre moyen d'examens par étudiant: " . $stats['avgExams'], 0, 'L');
+            $pdf->MultiCell(0, 6, "Taux de réussite global: " . $stats['passRate'] . "%", 0, 'L');
             break;
 
         case 'proctoring_incidents':
-            // Calculer des statistiques sur les incidents
-            $result->data_seek(0);
-            $totalIncidents = $result->num_rows;
-            $incidentTypes = [];
-
-            while ($row = $result->fetch_assoc()) {
-                $type = $row['incident_type'];
-                if (!isset($incidentTypes[$type])) {
-                    $incidentTypes[$type] = 0;
-                }
-                $incidentTypes[$type]++;
-            }
-
-            $pdf->Cell(0, 6, "Nombre total d'incidents: $totalIncidents", 0, 1, 'L');
-            foreach ($incidentTypes as $type => $count) {
-                $percentage = ($count / $totalIncidents) * 100;
-                $pdf->Cell(0, 6, "$type: $count (" . number_format($percentage, 2, ',', ' ') . "%)", 0, 1, 'L');
+            $stats = calculateIncidentStats($result);
+            $pdf->MultiCell(0, 6, "Nombre total d'incidents: " . $stats['totalIncidents'], 0, 'L');
+            foreach ($stats['incidentTypes'] as $type => $data) {
+                $pdf->MultiCell(0, 6, "$type: {$data['count']} ({$data['percentage']}%)", 0, 'L');
             }
             break;
 
         case 'question_analysis':
-            // Calculer des statistiques sur les questions
-            $result->data_seek(0);
-            $totalQuestions = $result->num_rows;
-            $totalAttempts = 0;
-            $totalCorrect = 0;
-            $difficultyStats = [
-                'easy' => ['count' => 0, 'success' => 0],
-                'medium' => ['count' => 0, 'success' => 0],
-                'hard' => ['count' => 0, 'success' => 0]
-            ];
-
-            while ($row = $result->fetch_assoc()) {
-                $totalAttempts += $row['attempts'];
-                $totalCorrect += $row['correct_answers'];
-                $difficulty = $row['difficulty'];
-
-                if (isset($difficultyStats[$difficulty])) {
-                    $difficultyStats[$difficulty]['count']++;
-                    $difficultyStats[$difficulty]['success'] += $row['success_rate'];
-                }
-            }
-
-            $overallSuccessRate = $totalAttempts > 0 ? ($totalCorrect / $totalAttempts) * 100 : 0;
-
-            $pdf->Cell(0, 6, "Nombre total de questions: $totalQuestions", 0, 1, 'L');
-            $pdf->Cell(0, 6, "Taux de réussite global: " . number_format($overallSuccessRate, 2, ',', ' ') . "%", 0, 1, 'L');
-
-            foreach ($difficultyStats as $difficulty => $stats) {
-                if ($stats['count'] > 0) {
-                    $avgSuccess = $stats['success'] / $stats['count'];
-                    $pdf->Cell(0, 6, "Taux de réussite " . ucfirst($difficulty) . ": " . number_format($avgSuccess, 2, ',', ' ') . "%", 0, 1, 'L');
-                }
+            $stats = calculateQuestionStats($result);
+            $pdf->MultiCell(0, 6, "Nombre total de questions: " . $stats['totalQuestions'], 0, 'L');
+            $pdf->MultiCell(0, 6, "Taux de réussite global: " . $stats['overallSuccessRate'] . "%", 0, 'L');
+            foreach ($stats['difficultyStats'] as $difficulty => $rate) {
+                $pdf->MultiCell(0, 6, "Taux de réussite " . ucfirst($difficulty) . ": $rate%", 0, 'L');
             }
             break;
     }
 
     // Pied de page
-    $pdf->SetY(-30);
+    $pdf->SetY(-15);
     $pdf->SetFont('helvetica', 'I', 8);
-    $pdf->Cell(0, 10, 'Ce rapport a été généré automatiquement par ExamSafe. © ' . date('Y') . ' ExamSafe', 0, 0, 'C');
+    $pdf->Cell(0, 10, 'Page ' . $pdf->getAliasNumPage() . '/{nb}', 0, 0, 'C');
+    $pdf->SetY(-20);
+    $pdf->Cell(0, 10, '© ' . date('Y') . ' ExamSafe - Généré le ' . date('d/m/Y H:i'), 0, 0, 'C');
 
     // Fermer et générer le PDF
     $pdf->Output($filename . '.pdf', 'D');
     exit;
+}
+
+// Fonctions helper pour les calculs de statistiques
+function calculateExamStats($result) {
+    $totalStudents = $result->num_rows;
+    $totalPassed = 0;
+    $totalScore = 0;
+
+    while ($row = $result->fetch_assoc()) {
+        $totalScore += $row['score'];
+        if ($row['passed'] ?? $row['score'] >= ($row['passing_score'] ?? 50)) $totalPassed++;
+    }
+
+    $avgScore = $totalStudents > 0 ? number_format($totalScore / $totalStudents, 2, ',', ' ') : 0;
+    $passRate = $totalStudents > 0 ? number_format(($totalPassed / $totalStudents) * 100, 2, ',', ' ') : 0;
+
+    return [
+        'totalStudents' => $totalStudents,
+        'avgScore' => $avgScore,
+        'passRate' => $passRate
+    ];
+}
+
+function calculateStudentStats($result) {
+    $totalStudents = $result->num_rows;
+    $totalExams = 0;
+    $totalPassed = 0;
+
+    while ($row = $result->fetch_assoc()) {
+        $totalExams += $row['exams_taken'] ?? 0;
+        $totalPassed += $row['exams_passed'] ?? 0;
+    }
+
+    $avgExams = $totalStudents > 0 ? number_format($totalExams / $totalStudents, 2, ',', ' ') : 0;
+    $passRate = $totalExams > 0 ? number_format(($totalPassed / $totalExams) * 100, 2, ',', ' ') : 0;
+
+    return [
+        'totalStudents' => $totalStudents,
+        'avgExams' => $avgExams,
+        'passRate' => $passRate
+    ];
+}
+
+function calculateIncidentStats($result) {
+    $totalIncidents = $result->num_rows;
+    $incidentTypes = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $type = $row['incident_type'];
+        if (!isset($incidentTypes[$type])) {
+            $incidentTypes[$type] = 0;
+        }
+        $incidentTypes[$type]++;
+    }
+
+    $stats = [];
+    foreach ($incidentTypes as $type => $count) {
+        $percentage = number_format(($count / $totalIncidents) * 100, 2, ',', ' ');
+        $stats[$type] = ['count' => $count, 'percentage' => $percentage];
+    }
+
+    return [
+        'totalIncidents' => $totalIncidents,
+        'incidentTypes' => $stats
+    ];
+}
+
+function calculateQuestionStats($result) {
+    $totalQuestions = $result->num_rows;
+    $totalAttempts = 0;
+    $totalCorrect = 0;
+    $difficultyStats = [
+        'easy' => ['count' => 0, 'success' => 0],
+        'medium' => ['count' => 0, 'success' => 0],
+        'hard' => ['count' => 0, 'success' => 0]
+    ];
+
+    while ($row = $result->fetch_assoc()) {
+        $totalAttempts += $row['attempts'] ?? 0;
+        $totalCorrect += $row['correct_answers'] ?? 0;
+        $difficulty = strtolower($row['difficulty'] ?? 'medium');
+
+        if (isset($difficultyStats[$difficulty])) {
+            $difficultyStats[$difficulty]['count']++;
+            $difficultyStats[$difficulty]['success'] += $row['success_rate'] ?? 0;
+        }
+    }
+
+    $overallSuccessRate = $totalAttempts > 0 ? number_format(($totalCorrect / $totalAttempts) * 100, 2, ',', ' ') : 0;
+
+    $rates = [];
+    foreach ($difficultyStats as $difficulty => $stats) {
+        $rates[$difficulty] = $stats['count'] > 0 ? number_format($stats['success'] / $stats['count'], 2, ',', ' ') : 0;
+    }
+
+    return [
+        'totalQuestions' => $totalQuestions,
+        'overallSuccessRate' => $overallSuccessRate,
+        'difficultyStats' => $rates
+    ];
 }
 
 // Fonction pour générer un rapport Excel
