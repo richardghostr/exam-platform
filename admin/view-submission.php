@@ -4,9 +4,9 @@ require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-// Vérifier si l'utilisateur est connecté et est un enseignant
-if (!isLoggedIn() || !isTeacher()) {
-    header('Location: ../login.php');
+// Vérifier si l'utilisateur est connecté et est un administrateur
+if (!isLoggedIn() || !isAdmin()) {
+    header('Location:login.php');
     exit();
 }
 
@@ -91,9 +91,8 @@ include 'includes/header.php';
                 <h1>Détails de la soumission</h1>
                 <h2><?php echo htmlspecialchars($submission['exam_title']); ?></h2>
             </div>
-            
             <div class="submission-actions">
-                <a href="exam-results.php?exam_id=<?php echo $submission['exam_id']; ?>" class="btn btn-outline-primary">
+                <a href="view-results.php?exam_id=<?php echo $submission['exam_id']; ?>" class="btn btn-outline-primary">
                     <i class="fas fa-arrow-left"></i> Retour aux résultats
                 </a>
                 <button class="btn btn-primary" id="printSubmissionBtn">
@@ -101,8 +100,8 @@ include 'includes/header.php';
                 </button>
             </div>
         </div>
-        
-        <div class="student-info">
+        <br>
+        <div class="student-info" style="background-color: #1a2357;border-radius:20px ;box-shadow: 0 7px 14px rgba(0, 117, 255, 0.4);">
             <div class="student-profile">
                 <?php if ($submission['profile_image']): ?>
                     <img src="<?php echo htmlspecialchars($submission['profile_image']); ?>" alt="Photo de profil" class="profile-img">
@@ -120,7 +119,7 @@ include 'includes/header.php';
                 </div>
             </div>
             
-            <div class="submission-summary">
+            <div class="submission-summary"style="background-color: #1a2357">
                 <div class="summary-card <?php echo $submission['score'] >= $submission['passing_score'] ? 'passed' : 'failed'; ?>">
                     <div class="summary-header">
                         <div class="summary-title">
@@ -170,7 +169,7 @@ include 'includes/header.php';
                     </div>
                 </div>
             </div>
-        </div>
+        </div><br>
         
         <div class="questions-review">
             <h3>Revue des questions</h3>
@@ -312,7 +311,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 /* Styles pour la page de détails de soumission */
 .submission-details {
-    background-color: #fff;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     margin-bottom: 2rem;
@@ -320,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .submission-header {
-    padding: 2rem;
+    
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -371,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background-color: var(--primary-color);
+    /* background-color: var(--primary-color); */
     color: white;
     display: flex;
     align-items: center;
@@ -415,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #f8f9fa;
+    background-color: #2d3867;
     border-bottom: 1px solid var(--gray-200);
 }
 
@@ -497,7 +495,6 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .questions-review {
-    padding: 2rem;
     border-bottom: 1px solid var(--gray-200);
 }
 
@@ -529,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .question-header {
     padding: 1rem 1.5rem;
-    background-color: #f8f9fa;
+    background-color: #1a2357;
     border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;

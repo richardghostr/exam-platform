@@ -93,7 +93,7 @@ include 'includes/header.php';
             </div>
             
             <div class="submission-actions">
-                <a href="exam-results.php?exam_id=<?php echo $submission['exam_id']; ?>" class="btn btn-outline-primary">
+                <a href="view-results.php?exam_id=<?php echo $submission['exam_id']; ?>" class="btn btn-outline-primary">
                     <i class="fas fa-arrow-left"></i> Retour aux résultats
                 </a>
                 <button class="btn btn-primary" id="printSubmissionBtn">
@@ -102,7 +102,7 @@ include 'includes/header.php';
             </div>
         </div>
         
-        <div class="student-info">
+        <div class="student-info" >
             <div class="student-profile">
                 <?php if ($submission['profile_image']): ?>
                     <img src="<?php echo htmlspecialchars($submission['profile_image']); ?>" alt="Photo de profil" class="profile-img">
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background-color: var(--primary-color);
+    /* background-color: var(--primary-color); */
     color: white;
     display: flex;
     align-items: center;
