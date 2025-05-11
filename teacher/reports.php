@@ -67,23 +67,12 @@ $avgScoreResult = $conn->query("
 $avgScore = $avgScoreResult['avg_score'] !== null ? round($avgScoreResult['avg_score'], 1) : 0;
 // Récupérer les incidents de surveillance
 $proctorIncidents = $conn->query("
-    SELECT 
-        p.id,
-        p.exam_id,
-        e.title as exam_title,
-        u.id as user_id,
-        u.username,
-        u.first_name,
-        u.last_name,
-        p.incident_type,
-        p.timestamp,
-        p.details,
-        p.status
-    FROM proctoring_incidents p
-    JOIN exams e ON p.exam_id = e.id
-    JOIN users u ON p.user_id = u.id
-    WHERE e.teacher_id = $teacherId
-    ORDER BY p.timestamp DESC
+    SELECT pi.*, ea.exam_id, e.title as exam_title, u.username, u.first_name, u.last_name
+    FROM proctoring_incidents pi
+    JOIN exam_attempts ea ON pi.attempt_id = ea.id
+    JOIN exams e ON ea.exam_id = e.id
+    JOIN users u ON ea.user_id = u.id
+    WHERE 1=1 AND e.teacher_id = $teacherId
     LIMIT 10
 ");
 
@@ -396,16 +385,16 @@ include 'includes/header.php';
                 <h1 class="h2"><?php echo $pageTitle; ?></h1><br>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <a href="#no" style="text-decoration: none;" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#exportModal">
                             <i class="fas fa-download me-1"></i> Exporter
-                        </button>
+                        </a>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="printReport">
                             <i class="fas fa-print me-1"></i> Imprimer
                         </button>
                     </div><br>
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                    <a href="#no" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#generateReportModal" style="text-decoration: none;">
                         <i class="fas fa-file-alt me-1"></i> Générer un rapport
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -576,29 +565,67 @@ include 'includes/header.php';
                                             </td>
                                             <td><?php echo htmlspecialchars($incident['exam_title']); ?></td>
                                             <td>
-                                                <span class="badge bg-<?php echo getIncidentClass($incident['incident_type']); ?>">
+                                                <span class=" bg-<?php echo getIncidentClass($incident['incident_type']); ?>">
                                                     <?php echo htmlspecialchars($incident['incident_type']); ?>
                                                 </span>
                                             </td>
                                             <td><?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?></td>
                                             <td>
-                                                <span class="badge bg-<?php echo $incident['status'] === 'resolved' ? 'success' : 'warning'; ?>">
+                                                <span style="border-radius: 5px ;padding:5px" class=" bg-<?php echo $incident['status'] === 'resolved' ? 'success' : 'warning'; ?>">
                                                     <?php echo ucfirst($incident['status']); ?>
                                                 </span>
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-info view-incident" data-id="<?php echo $incident['id']; ?>" data-bs-toggle="modal" data-bs-target="#incidentModal">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <a href="review-incident.php?id=<?php echo $incident['id']; ?>" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-check"></i>
-                                                </a>
+                                              <button class="btn btn-icon btn-sm view-incident"
+                                            data-id="<?php echo $incident['id']; ?>"
+                                            data-exam="<?php echo htmlspecialchars($incident['exam_title']); ?>"
+                                            data-student="<?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?>"
+                                            data-type="<?php echo htmlspecialchars($incident['incident_type']); ?>"
+                                            data-date="<?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?>"
+                                            data-details="<?php echo htmlspecialchars($incident['description']); ?>"
+                                            data-image="<?php echo !empty($incident['image_path']) ? htmlspecialchars($incident['image_path']) : '../assets/images/placeholder.jpg'; ?>">
+                                            <i class="fas fa-eye"></i>
+                                        </button><br>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
                                 </tbody>
                             </table>
                         </div>
+                        <!-- Modal pour afficher les détails d'un incident -->
+            <div class="modal" id="incidentModal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title">Détails de l'incident</h3>
+                            <button type="button" class="close-modal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="incident-details">
+                                <div class="incident-info">
+                                    <p><strong>Examen:</strong> <span id="incident-exam"></span></p>
+                                    <p><strong>Étudiant:</strong> <span id="incident-student"></span></p>
+                                    <p><strong>Type d'incident:</strong> <span id="incident-type"></span></p>
+                                    <p><strong>Date:</strong> <span id="incident-date"></span></p>
+                                </div>
+                                <div class="incident-description">
+                                    <h4>Description</h4>
+                                    <p id="incident-description"></p>
+                                </div>
+                                <div class="incident-evidence">
+                                    <h4>Preuves</h4>
+                                    <div id="incident-evidence-container">
+                                        <img id="incident-image" src="../assets/images/placeholder.jpg" alt="Preuve de l'incident">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary close-modal">Fermer</button>
+                        </div>
+                    </div>
+                </div>
+            </div><br>
                     <?php else: ?>
                         <div class="text-center py-5" style="text-align: center;">
                             <div class="mb-3">
@@ -612,7 +639,7 @@ include 'includes/header.php';
             </div>
 
             <!-- Formulaire de génération de rapports -->
-            <div class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <div id="no" class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <div class="card-header" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
                     <h5 class="mb-0"><i class="fas fa-file-alt me-2" style="margin-right: 3px;"></i>Générer des rapports personnalisés</h5>
                 </div>
@@ -1176,3 +1203,137 @@ $completedDataJson = json_encode(array_values($statusData['completed']));
     });
 </script>
 
+<style>
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal.show {
+        display: block;
+    }
+
+    .modal-dialog {
+        margin: 10% auto;
+        width: 90%;
+        max-width: 600px;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        ;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--box-shadow);
+        animation: modalFadeIn 0.3s;
+        border-radius: 20px;
+    }
+
+    @keyframes modalFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin: 0;
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+</style>
+
+<script>
+  
+        // Gestion du modal d'incident
+        const viewIncidentBtns = document.querySelectorAll('.view-incident');
+        const incidentModal = document.getElementById('incidentModal');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+
+        if (viewIncidentBtns.length > 0 && incidentModal && closeModalBtns.length > 0) {
+            viewIncidentBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    // Récupérer les données de l'incident depuis les attributs data-*
+                    const exam = this.getAttribute('data-exam');
+                    const student = this.getAttribute('data-student');
+                    const type = this.getAttribute('data-type');
+                    const date = this.getAttribute('data-date');
+                    const details = this.getAttribute('data-details');
+                    const imagePath = this.getAttribute('data-image');
+
+                    // Remplir le modal avec les données
+                    document.getElementById('incident-exam').textContent = exam;
+                    document.getElementById('incident-student').textContent = student;
+                    document.getElementById('incident-type').textContent = type;
+                    document.getElementById('incident-date').textContent = date;
+                    document.getElementById('incident-description').textContent = details;
+                    document.getElementById('incident-image').src = imagePath;
+
+                    // Afficher le modal
+                    incidentModal.classList.add('show');
+                });
+            });
+
+            closeModalBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    incidentModal.classList.remove('show');
+                });
+            });
+
+            window.addEventListener('click', function(event) {
+                if (event.target == incidentModal) {
+                    incidentModal.classList.remove('show');
+                }
+            });
+
+            // Bouton d'examen d'incident
+            const reviewIncidentBtn = document.getElementById('review-incident');
+            if (reviewIncidentBtn) {
+                reviewIncidentBtn.addEventListener('click', function() {
+                    alert('Redirection vers la page de révision détaillée de l\'incident...');
+                    // Ici, vous redirigeriez normalement vers une page de révision détaillée
+                });
+            }
+        }
+</script>
