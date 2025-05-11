@@ -388,8 +388,8 @@ include 'includes/header.php';
 </style>
 <div class="container-fluid">
     <div class="row" style="width: 100%;">
-        
-        
+
+
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" style="margin-top: 30px;">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom" style="margin-bottom:20px;border-radius: 20px;margin-right:20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
@@ -718,65 +718,6 @@ include 'includes/header.php';
     </div>
 </div>
 
-<!-- Modal pour exporter les rapports -->
-<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exportModalLabel">Exporter les données</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="mb-3">
-                        <label for="exportType" class="form-label">Type de données</label>
-                        <select id="exportType" class="form-select">
-                            <option value="all_data">Toutes les données</option>
-                            <option value="exam_results">Résultats d'examens</option>
-                            <option value="student_data">Données des étudiants</option>
-                            <option value="incidents">Incidents de surveillance</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="exportFormat" class="form-label">Format</label>
-                        <select id="exportFormat" class="form-select">
-                            <option value="excel">Excel (.xlsx)</option>
-                            <option value="csv">CSV</option>
-                            <option value="pdf">PDF</option>
-                            <option value="json">JSON</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="dateRange" class="form-label">Période</label>
-                        <select id="dateRange" class="form-select">
-                            <option value="all_time">Tout le temps</option>
-                            <option value="this_month">Ce mois</option>
-                            <option value="last_month">Mois dernier</option>
-                            <option value="this_year">Cette année</option>
-                            <option value="custom">Personnalisé</option>
-                        </select>
-                    </div>
-                    <div class="mb-3 date-range-custom d-none">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="startDate" class="form-label">Date de début</label>
-                                <input type="date" class="form-control" id="startDate">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="endDate" class="form-label">Date de fin</label>
-                                <input type="date" class="form-control" id="endDate">
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-primary">Exporter</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Modal pour générer un rapport -->
 <div class="modal fade" id="generateReportModal" tabindex="-1" aria-labelledby="generateReportModalLabel" aria-hidden="true" style="background-color: red;">
@@ -1185,3 +1126,53 @@ $completedDataJson = json_encode(array_values($statusData['completed']));
         }
     });
 </script>
+
+
+
+<script>
+    // Gestion du formulaire de génération de rapports
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const reportType = document.getElementById('reportType').value;
+        const examId = document.getElementById('examId').value;
+        const format = document.getElementById('format').value;
+
+        // Afficher un indicateur de chargement
+        const loadingMessage = document.createElement('div');
+        loadingMessage.className = 'alert alert-info position-fixed top-50 start-50 translate-middle';
+        loadingMessage.style.zIndex = '9999';
+        loadingMessage.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Génération du rapport en cours...';
+        document.body.appendChild(loadingMessage);
+
+        // Créer un formulaire pour soumettre la requête
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '../includes/generate_report.php';
+        form.style.display = 'none';
+
+        // Ajouter les champs du formulaire
+        const addField = (name, value) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        };
+
+        addField('reportType', reportType);
+        addField('examId', examId);
+        addField('format', format);
+
+        // Ajouter le formulaire au document et le soumettre
+        document.body.appendChild(form);
+        form.submit();
+
+        // Supprimer le formulaire et le message de chargement après un délai
+        setTimeout(() => {
+            document.body.removeChild(form);
+            document.body.removeChild(loadingMessage);
+        }, 3000);
+    });
+</script>
+

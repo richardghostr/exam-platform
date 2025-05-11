@@ -478,15 +478,13 @@ include 'includes/header.php';
                 <div class="card-body">
                     <?php if ($result->num_rows > 0): ?>
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
+                            <table class="table table-bordered table-striped" style="width:100%;text-align:center">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Date et heure</th>
                                         <th>Examen</th>
                                         <th>Étudiant</th>
                                         <th>Type d'incident</th>
-                                        <th>Description</th>
                                         <th>Sévérité</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
@@ -494,27 +492,35 @@ include 'includes/header.php';
                                 </thead>
                                 <tbody>
                                     <?php while ($incident = $result->fetch_assoc()): ?>
+                                       
                                         <tr>
-                                            <td><?php echo $incident['id']; ?></td>
-                                            <td><?php echo formatDateTime($incident['timestamp']); ?></td>
-                                            <td><?php echo htmlspecialchars($incident['exam_title']); ?></td>
-                                            <td><?php echo htmlspecialchars($incident['last_name'] . ' ' . $incident['first_name']); ?></td>
-                                            <td><?php echo getIncidentTypeLabel($incident['incident_type']); ?></td>
-                                            <td><?php echo htmlspecialchars($incident['description']); ?></td>
+                                            <td><?php echo $incident['id']; ?><br></td>
+                                         
+                                            <td><?php echo htmlspecialchars($incident['exam_title']); ?><br></td>
+                                            <td><?php echo htmlspecialchars($incident['last_name'] . ' ' . $incident['first_name']); ?><br></td>
+                                            <td><?php echo getIncidentTypeLabel($incident['incident_type']); ?><br></td>
+                                           
                                             <td>
                                                 <span class="badge badge-<?php echo getSeverityClass($incident['severity']); ?>">
                                                     <?php echo getSeverityLabel($incident['severity']); ?>
-                                                </span>
+                                                </span><br>
                                             </td>
                                             <td>
                                                 <span class="badge badge-<?php echo getStatusClass($incident['status']); ?>">
                                                     <?php echo getStatusLabel($incident['status']); ?>
-                                                </span>
+                                                </span><br>
                                             </td>
                                             <td>
-                                                <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#incidentModal<?php echo $incident['id']; ?>">
-                                                    <i class="fas fa-eye"></i> Détails
-                                                </button>
+                                                <button class="btn btn-icon btn-sm view-incident"
+                                                    data-id="<?php echo $incident['id']; ?>"
+                                                    data-exam="<?php echo htmlspecialchars($incident['exam_title']); ?>"
+                                                    data-student="<?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?>"
+                                                    data-type="<?php echo htmlspecialchars($incident['incident_type']); ?>"
+                                                    data-date="<?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?>"
+                                                    data-details="<?php echo htmlspecialchars($incident['description']); ?>"
+                                                    data-image="<?php echo !empty($incident['image_path']) ? htmlspecialchars($incident['image_path']) : '../assets/images/placeholder.jpg'; ?>">
+                                                    <i class="fas fa-eye"></i>
+                                                </button><br>
                                             </td>
                                         </tr>
 
@@ -523,11 +529,64 @@ include 'includes/header.php';
                                 </tbody>
                             </table>
                         </div>
+ <!-- Modal pour afficher les détails d'un incident -->
+                        <div class="modal" id="incidentModal">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Détails de l'incident</h3>
+                                        <button type="button" class="close-modal">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="incident-details">
+                                            <div class="incident-info">
+                                                <p><strong>Examen:</strong> <span id="incident-exam"></span></p>
+                                                <p><strong>Étudiant:</strong> <span id="incident-student"></span></p>
+                                                <p><strong>Type d'incident:</strong> <span id="incident-type"></span></p>
+                                                <p><strong>Date:</strong> <span id="incident-date"></span></p>
+                                            </div>
+                                            <div class="incident-description">
+                                                <h4>Description</h4>
+                                                <p id="incident-description"></p>
+                                            </div>
+                                            <div class="incident-evidence">
+                                                <h4>Preuves</h4>
+                                                <div id="incident-evidence-container">
+                                                    <img id="incident-image" src="../assets/images/placeholder.jpg" alt="Preuve de l'incident">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <form method="POST" action="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query($_GET); ?>" style="margin-left: 20px;margin-right:20px">
 
+                                        <div class="form-group">
+                                            <label for="status<?php echo $incident['id']; ?>">Mettre à jour le statut</label>
+                                            <select class="form-control"   name="status">
+                                                <option value="pending">En attente</option>
+                                                <option value="reviewed">Traité</option>
+                                                <option value="dismissed" >Ignoré</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="notes<?php echo $incident['id']; ?>">Notes</label>
+                                            <textarea class="form-control" id="notes<?php echo $incident['id']; ?>" name="notes" rows="3"><?php echo !empty($incident['notes']) ? htmlspecialchars($incident['notes']) : 'Aucune note'; ?></textarea>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Enregistrer les modifications
+                                        </button>
+                                    </form><br>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary close-modal">Fermer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><br>
                         <!-- Pagination -->
                         <?php if ($totalPages > 1): ?>
-                            <div class="pagination-container">
-                                <ul class="pagination">
+                            <div class="pagination-container" >
+                                <ul class="pagination" style="display: flex;justify-content:space-between;width:30%;margin-left:20px;">
                                     <?php if ($page > 1): ?>
                                         <li class="page-item">
                                             <a class="page-link" href="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
@@ -707,4 +766,138 @@ function formatDateTime($datetime)
     $date = new DateTime($datetime);
     return $date->format('d/m/Y H:i:s');
 }
-?>
+?><script>
+    // Gestion du modal d'incident
+    const viewIncidentBtns = document.querySelectorAll('.view-incident');
+    const incidentModal = document.getElementById('incidentModal');
+    const closeModalBtns = document.querySelectorAll('.close-modal');
+
+    if (viewIncidentBtns.length > 0 && incidentModal && closeModalBtns.length > 0) {
+        viewIncidentBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                // Récupérer les données de l'incident depuis les attributs data-*
+                const exam = this.getAttribute('data-exam');
+                const student = this.getAttribute('data-student');
+                const type = this.getAttribute('data-type');
+                const date = this.getAttribute('data-date');
+                const details = this.getAttribute('data-details');
+                const imagePath = this.getAttribute('data-image');
+     
+
+
+                // Remplir le modal avec les données
+                document.getElementById('incident-exam').textContent = exam;
+                document.getElementById('incident-student').textContent = student;
+                document.getElementById('incident-type').textContent = type;
+                document.getElementById('incident-date').textContent = date;
+                document.getElementById('incident-description').textContent = details;
+                document.getElementById('incident-image').src = imagePath;
+            
+
+                // Afficher le modal
+                incidentModal.classList.add('show');
+            });
+        });
+
+        closeModalBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                incidentModal.classList.remove('show');
+            });
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target == incidentModal) {
+                incidentModal.classList.remove('show');
+            }
+        });
+
+        // Bouton d'examen d'incident
+        const reviewIncidentBtn = document.getElementById('review-incident');
+        if (reviewIncidentBtn) {
+            reviewIncidentBtn.addEventListener('click', function() {
+                alert('Redirection vers la page de révision détaillée de l\'incident...');
+                // Ici, vous redirigeriez normalement vers une page de révision détaillée
+            });
+        }
+    }
+</script>
+
+<style>
+    /* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal.show {
+  display: block;
+}
+
+.modal-dialog {
+  margin: 10% auto;
+  width: 90%;
+  max-width: 600px;
+}
+
+.modal-content {
+    background-color: #1a2357;;
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--box-shadow);
+  animation: modalFadeIn 0.3s;
+  border-radius: 20px;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--dark-color);
+  margin: 0;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--secondary-color);
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+</style>

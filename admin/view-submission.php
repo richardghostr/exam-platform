@@ -280,7 +280,7 @@ include 'includes/header.php';
                 <form action="save-teacher-notes.php" method="POST">
                     <input type="hidden" name="result_id" value="<?php echo $resultId; ?>">
                     <textarea name="teacher_notes" class="form-control" rows="4" placeholder="Ajoutez des notes ou des commentaires sur cette soumission..."><?php echo htmlspecialchars($submission['teacher_notes'] ?? ''); ?></textarea>
-                    <button type="submit" class="btn btn-primary mt-2">Enregistrer les notes</button>
+                    <br><br><button type="submit" class="btn btn-primary mt-2">Enregistrer les notes</button>
                 </form>
             </div>
             

@@ -510,7 +510,7 @@ include 'includes/header.php';
                             <?php echo ucfirst($exam['status']); ?>
                         </span>
                     </div>
-                    <div class="exam-actions">
+                   <div class="exam-actions">
                         <button class="btn btn-primary" id="exportResultsBtn">
                             <i class="fas fa-download"></i> Exporter les résultats
                         </button>
@@ -797,7 +797,7 @@ include 'includes/header.php';
 </div>
 
 <!-- Modal d'exportation des résultats -->
-<div class="card" id="exportModal" style="padding: 20px;">
+<div class="modal" id="exportModal">
     <div class="modal-content">
         <div class="modal-header">
             <h2>Exporter les résultats</h2>
@@ -806,8 +806,8 @@ include 'includes/header.php';
         <div class="modal-body">
             <form id="exportForm" method="POST" action="export-results.php">
                 <input type="hidden" name="exam_id" value="<?php echo $examId; ?>">
-
-                <div class="form-group" style="display:flex;align-items:center">
+                
+                <div class="form-group">
                     <label for="export_format">Format</label>
                     <select id="export_format" name="format" class="form-control">
                         <option value="csv">CSV</option>
@@ -815,10 +815,10 @@ include 'includes/header.php';
                         <option value="pdf">PDF</option>
                     </select>
                 </div>
-
-                <div class="form-group">
+                
+                <div class="form-group" >
                     <label>Données à inclure</label>
-                    <div class="checkbox-group" style="display:flex;flex-direction:column">
+                    <div class="checkbox-group" style="display: flex;flex-direction:column">
                         <label class="checkbox-container">
                             <input type="checkbox" name="include_student_info" checked>
                             <span class="checkmark"></span>
@@ -849,7 +849,85 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+<style>
+    /* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+}
 
+.modal.show {
+  display: block;
+}
+
+.modal-dialog {
+  margin: 10% auto;
+  width: 90%;
+  max-width: 600px;
+}
+
+.modal-content {
+    background-color: #1a2357;;
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--box-shadow);
+  animation: modalFadeIn 0.3s;
+  border-radius: 20px;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--dark-color);
+  margin: 0;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--secondary-color);
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {

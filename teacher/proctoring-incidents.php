@@ -342,11 +342,11 @@ include 'includes/header.php';
 
     <script>
         function montrer() {
-                const incidentId = $(this).data('incident-id');
-                const modal = $('#incidentDetailsModal');
+            const incidentId = $(this).data('incident-id');
+            const modal = $('#incidentDetailsModal');
 
-                // Afficher le loader
-                modal.find('.modal-body').html(`
+            // Afficher le loader
+            modal.find('.modal-body').html(`
             <div class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only">Chargement...</span>
@@ -355,33 +355,33 @@ include 'includes/header.php';
             </div>
         `);
 
-                // Afficher le modal
-                modal.modal('show');
+            // Afficher le modal
+            modal.modal('show');
 
-                // Debug
-                console.log("Tentative de chargement des détails pour l'incident ID:", incidentId);
+            // Debug
+            console.log("Tentative de chargement des détails pour l'incident ID:", incidentId);
 
-                // Requête AJAX
-                $.ajax({
-                    url: '../ajax/get_incident_details.php',
-                    type: 'GET',
-                    dataType: 'json',
-                    data: {
-                        id: incidentId
-                    },
-                    success: function(response) {
-                        console.log("Réponse reçue:", response);
+            // Requête AJAX
+            $.ajax({
+                url: '../ajax/get_incident_details.php',
+                type: 'GET',
+                dataType: 'json',
+                data: {
+                    id: incidentId
+                },
+                success: function(response) {
+                    console.log("Réponse reçue:", response);
 
-                        if (response.success) {
-                            const incident = response.incident;
+                    if (response.success) {
+                        const incident = response.incident;
 
-                            // Formater la date
-                            const date = new Date(incident.timestamp);
-                            const formattedDate = date.toLocaleDateString('fr-FR') + ' ' + date.toLocaleTimeString('fr-FR');
+                        // Formater la date
+                        const date = new Date(incident.timestamp);
+                        const formattedDate = date.toLocaleDateString('fr-FR') + ' ' + date.toLocaleTimeString('fr-FR');
 
-                            // Mettre à jour le modal
-                            modal.find('.modal-title').text("Détails de l'incident #" + incident.id);
-                            modal.find('.modal-body').html(`
+                        // Mettre à jour le modal
+                        modal.find('.modal-title').text("Détails de l'incident #" + incident.id);
+                        modal.find('.modal-body').html(`
                         <div class="row">
                             <div class="col-md-6">
                                 <h6>Informations sur l'incident</h6>
@@ -465,44 +465,44 @@ include 'includes/header.php';
                         </form>
                     `);
 
-                            // Gérer la soumission du formulaire
-                            $('#updateIncidentForm').on('submit', function(e) {
-                                e.preventDefault();
-                                $.ajax({
-                                    url: window.location.href,
-                                    type: 'POST',
-                                    data: $(this).serialize(),
-                                    success: function(response) {
-                                        // Cette partie dépend de comment votre backend gère la réponse
-                                        alert('Statut mis à jour avec succès');
-                                        modal.modal('hide');
-                                        location.reload();
-                                    },
-                                    error: function() {
-                                        alert('Erreur lors de la mise à jour');
-                                    }
-                                });
+                        // Gérer la soumission du formulaire
+                        $('#updateIncidentForm').on('submit', function(e) {
+                            e.preventDefault();
+                            $.ajax({
+                                url: window.location.href,
+                                type: 'POST',
+                                data: $(this).serialize(),
+                                success: function(response) {
+                                    // Cette partie dépend de comment votre backend gère la réponse
+                                    alert('Statut mis à jour avec succès');
+                                    modal.modal('hide');
+                                    location.reload();
+                                },
+                                error: function() {
+                                    alert('Erreur lors de la mise à jour');
+                                }
                             });
-                        } else {
-                            modal.find('.modal-body').html(`
+                        });
+                    } else {
+                        modal.find('.modal-body').html(`
                         <div class="alert alert-danger">
                             ${response.message || 'Erreur lors du chargement des détails'}
                             <br><small>${response.debug ? JSON.stringify(response.debug) : ''}</small>
                         </div>
                     `);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Erreur AJAX:", status, error);
-                        modal.find('.modal-body').html(`
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erreur AJAX:", status, error);
+                    modal.find('.modal-body').html(`
                     <div class="alert alert-danger">
                         Erreur réseau: ${error}
                         <br>Veuillez réessayer ou vérifier la console pour plus de détails.
                     </div>
                 `);
-                    }
-                });
-            
+                }
+            });
+
 
             // Fonctions utilitaires
             function escapeHtml(text) {
@@ -756,18 +756,24 @@ include 'includes/header.php';
                                             <td><?php echo getIncidentTypeLabel($incident['incident_type']); ?></td>
                                             <td><?php echo htmlspecialchars($incident['description']); ?></td>
                                             <td>
-                                                <span class="badge badge-<?php echo getSeverityClass($incident['severity']); ?>">
+                                                <span class=" badge-<?php echo getSeverityClass($incident['severity']); ?>">
                                                     <?php echo getSeverityLabel($incident['severity']); ?>
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="badge badge-<?php echo getStatusClass($incident['status']); ?>">
+                                                <span class=" badge-<?php echo getStatusClass($incident['status']); ?>">
                                                     <?php echo getStatusLabel($incident['status']); ?>
                                                 </span>
                                             </td>
-                                            <td>
-                                                <button type="button" onclick=" montrer()" class="btn btn-sm btn-info view-details" data-incident-id="<?php echo $incident['id']; ?>">
-                                                    <i class="fas fa-eye"></i> Détails
+                                            <td> <button class="btn btn-icon btn-sm view-incident"
+                                                    data-id="<?php echo $incident['id']; ?>"
+                                                    data-exam="<?php echo htmlspecialchars($incident['exam_title']); ?>"
+                                                    data-student="<?php echo htmlspecialchars($incident['first_name'] . ' ' . $incident['last_name']); ?>"
+                                                    data-type="<?php echo htmlspecialchars($incident['incident_type']); ?>"
+                                                    data-date="<?php echo date('d/m/Y H:i', strtotime($incident['timestamp'])); ?>"
+                                                    data-details="<?php echo htmlspecialchars($incident['description']); ?>"
+                                                    data-image="<?php echo !empty($incident['image_path']) ? htmlspecialchars($incident['image_path']) : '../assets/images/placeholder.jpg'; ?>">
+                                                    <i class="fas fa-eye"></i>
                                                 </button>
                                             </td>
                                         </tr>
@@ -792,7 +798,60 @@ include 'includes/header.php';
                                 </tbody>
                             </table>
                         </div>
+                        <!-- Modal pour afficher les détails d'un incident -->
+                        <div class="modal" id="incidentModal">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Détails de l'incident</h3>
+                                        <button type="button" class="close-modal">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="incident-details">
+                                            <div class="incident-info">
+                                                <p><strong>Examen:</strong> <span id="incident-exam"></span></p>
+                                                <p><strong>Étudiant:</strong> <span id="incident-student"></span></p>
+                                                <p><strong>Type d'incident:</strong> <span id="incident-type"></span></p>
+                                                <p><strong>Date:</strong> <span id="incident-date"></span></p>
+                                            </div>
+                                            <div class="incident-description">
+                                                <h4>Description</h4>
+                                                <p id="incident-description"></p>
+                                            </div>
+                                            <div class="incident-evidence">
+                                                <h4>Preuves</h4>
+                                                <div id="incident-evidence-container">
+                                                    <img id="incident-image" src="../assets/images/placeholder.jpg" alt="Preuve de l'incident">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <form method="POST" action="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query($_GET); ?>" style="margin-left: 20px;margin-right:20px">
 
+                                        <div class="form-group">
+                                            <label for="status<?php echo $incident['id']; ?>">Mettre à jour le statut</label>
+                                            <select class="form-control"   name="status">
+                                                <option value="pending">En attente</option>
+                                                <option value="reviewed">Traité</option>
+                                                <option value="dismissed" >Ignoré</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="notes<?php echo $incident['id']; ?>">Notes</label>
+                                            <textarea class="form-control" id="notes<?php echo $incident['id']; ?>" name="notes" rows="3"><?php echo !empty($incident['notes']) ? htmlspecialchars($incident['notes']) : 'Aucune note'; ?></textarea>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Enregistrer les modifications
+                                        </button>
+                                    </form><br>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary close-modal">Fermer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <!-- Pagination -->
                         <?php if ($totalPages > 1): ?>
                             <div class="pagination-container"><br>
@@ -976,4 +1035,61 @@ function formatDateTime($datetime)
     $date = new DateTime($datetime);
     return $date->format('d/m/Y H:i:s');
 }
+
+
 ?>
+<script>
+    // Gestion du modal d'incident
+    const viewIncidentBtns = document.querySelectorAll('.view-incident');
+    const incidentModal = document.getElementById('incidentModal');
+    const closeModalBtns = document.querySelectorAll('.close-modal');
+
+    if (viewIncidentBtns.length > 0 && incidentModal && closeModalBtns.length > 0) {
+        viewIncidentBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                // Récupérer les données de l'incident depuis les attributs data-*
+                const exam = this.getAttribute('data-exam');
+                const student = this.getAttribute('data-student');
+                const type = this.getAttribute('data-type');
+                const date = this.getAttribute('data-date');
+                const details = this.getAttribute('data-details');
+                const imagePath = this.getAttribute('data-image');
+     
+
+
+                // Remplir le modal avec les données
+                document.getElementById('incident-exam').textContent = exam;
+                document.getElementById('incident-student').textContent = student;
+                document.getElementById('incident-type').textContent = type;
+                document.getElementById('incident-date').textContent = date;
+                document.getElementById('incident-description').textContent = details;
+                document.getElementById('incident-image').src = imagePath;
+            
+
+                // Afficher le modal
+                incidentModal.classList.add('show');
+            });
+        });
+
+        closeModalBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                incidentModal.classList.remove('show');
+            });
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target == incidentModal) {
+                incidentModal.classList.remove('show');
+            }
+        });
+
+        // Bouton d'examen d'incident
+        const reviewIncidentBtn = document.getElementById('review-incident');
+        if (reviewIncidentBtn) {
+            reviewIncidentBtn.addEventListener('click', function() {
+                alert('Redirection vers la page de révision détaillée de l\'incident...');
+                // Ici, vous redirigeriez normalement vers une page de révision détaillée
+            });
+        }
+    }
+</script>
