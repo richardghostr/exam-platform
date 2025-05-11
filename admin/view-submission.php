@@ -104,7 +104,7 @@ include 'includes/header.php';
         <div class="student-info" style="background-color: #1a2357;border-radius:20px ;box-shadow: 0 7px 14px rgba(0, 117, 255, 0.4);">
             <div class="student-profile">
                 <?php if ($submission['profile_image']): ?>
-                    <img src="<?php echo htmlspecialchars($submission['profile_image']); ?>" alt="Photo de profil" class="profile-img">
+                    <img src="../<?php echo htmlspecialchars($submission['profile_image']); ?>" alt="Photo de profil" class="profile-img">
                 <?php else: ?>
                     <div class="profile-initials">
                         <?php echo strtoupper(substr($submission['first_name'], 0, 1) . substr($submission['last_name'], 0, 1)); ?>

@@ -102,10 +102,10 @@ include 'includes/header.php';
             </div>
         </div>
         
-        <div class="student-info" >
+        <div class="student-info" style="margin-bottom:20px;border-radius: 20px;margin-right:20px;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
             <div class="student-profile">
                 <?php if ($submission['profile_image']): ?>
-                    <img src="<?php echo htmlspecialchars($submission['profile_image']); ?>" alt="Photo de profil" class="profile-img">
+                    <img src="../<?php echo htmlspecialchars($submission['profile_image']); ?>" alt="Photo de profil" class="profile-img">
                 <?php else: ?>
                     <div class="profile-initials">
                         <?php echo strtoupper(substr($submission['first_name'], 0, 1) . substr($submission['last_name'], 0, 1)); ?>
