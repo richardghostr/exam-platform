@@ -903,12 +903,12 @@ include 'includes/header.php';
                             <div class="card-header">
                                 <h2 class="card-title">Statistiques</h2>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body" style="display: flex;flex-direction:column;align-items:center">
                                 <?php if ($stats['total_attempts'] > 0): ?>
-                                    <div class="stats-container">
+                                    <div class="stats-container"  style="display: flex;justify-content:space-between;width:100% ;flex-wrap:wrap">
                                         <div class="stat-item">
-                                            <div class="stat-icon">
-                                                <i class="fas fa-users"></i>
+                                            <div class="stat-icon" >
+                                                <i class="fas fa-users" ></i>
                                             </div>
                                             <div class="stat-info">
                                                 <div class="stat-value"><?php echo $stats['total_attempts']; ?></div>
@@ -946,7 +946,7 @@ include 'includes/header.php';
                                             </div>
                                         </div>
                                     </div>
-
+<br>
                                     <div class="text-center mt-3">
                                         <a href="view-results.php?exam_id=<?php echo $examId; ?>" class="btn btn-primary">
                                             <i class="fas fa-chart-bar"></i> Voir tous les résultats

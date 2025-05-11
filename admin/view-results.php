@@ -599,7 +599,7 @@ include 'includes/header.php';
                             <div class="card-header">
                                 <h2 class="card-title">Résultats des étudiants</h2>
                                 <div class="card-actions">
-                                    <div class="search-box">
+                                    <div class="search-bar">
                                         <input type="text" id="searchResults" placeholder="Rechercher un étudiant...">
                                         <i class="fas fa-search"></i>
                                     </div>

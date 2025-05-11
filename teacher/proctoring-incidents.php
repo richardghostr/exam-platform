@@ -215,9 +215,10 @@ include 'includes/header.php';
 
 <div class="content-wrapper">
     <style>
-        a{
+        a {
             text-decoration: none;
         }
+
         /* Container principal */
         .container-fluid {
             background-color: #f8f9fa;
@@ -292,7 +293,7 @@ include 'includes/header.php';
         .card {
             margin-top: 20px;
             border-radius: 20px;
-            background-color:white ;
+            background-color: white;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
@@ -338,16 +339,230 @@ include 'includes/header.php';
             }
         }
     </style>
-    
 
+    <script>
+        function montrer() {
+                const incidentId = $(this).data('incident-id');
+                const modal = $('#incidentDetailsModal');
+
+                // Afficher le loader
+                modal.find('.modal-body').html(`
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Chargement...</span>
+                </div>
+                <p>Chargement des détails de l'incident...</p>
+            </div>
+        `);
+
+                // Afficher le modal
+                modal.modal('show');
+
+                // Debug
+                console.log("Tentative de chargement des détails pour l'incident ID:", incidentId);
+
+                // Requête AJAX
+                $.ajax({
+                    url: '../ajax/get_incident_details.php',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: {
+                        id: incidentId
+                    },
+                    success: function(response) {
+                        console.log("Réponse reçue:", response);
+
+                        if (response.success) {
+                            const incident = response.incident;
+
+                            // Formater la date
+                            const date = new Date(incident.timestamp);
+                            const formattedDate = date.toLocaleDateString('fr-FR') + ' ' + date.toLocaleTimeString('fr-FR');
+
+                            // Mettre à jour le modal
+                            modal.find('.modal-title').text("Détails de l'incident #" + incident.id);
+                            modal.find('.modal-body').html(`
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Informations sur l'incident</h6>
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <th>Date et heure</th>
+                                        <td>${formattedDate}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Type d'incident</th>
+                                        <td>${getIncidentTypeLabel(incident.incident_type)}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Description</th>
+                                        <td>${escapeHtml(incident.description)}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Sévérité</th>
+                                        <td>
+                                            <span class="badge badge-${getSeverityClass(incident.severity)}">
+                                                ${getSeverityLabel(incident.severity)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Statut actuel</th>
+                                        <td>
+                                            <span class="badge badge-${getStatusClass(incident.status)}">
+                                                ${getStatusLabel(incident.status)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Informations sur l'examen</h6>
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <th>Examen</th>
+                                        <td>${escapeHtml(incident.exam_title)}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Étudiant</th>
+                                        <td>${escapeHtml(incident.last_name + ' ' + incident.first_name)}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>ID de tentative</th>
+                                        <td>${incident.attempt_id}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Notes</th>
+                                        <td>${incident.notes ? escapeHtml(incident.notes) : '<em>Aucune note</em>'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <form id="updateIncidentForm" method="POST">
+                            <input type="hidden" name="action" value="update_status">
+                            <input type="hidden" name="incident_id" value="${incident.id}">
+                            
+                            <div class="form-group">
+                                <label for="status">Mettre à jour le statut</label>
+                                <select class="form-control" id="status" name="status">
+                                    <option value="pending" ${incident.status === 'pending' ? 'selected' : ''}>En attente</option>
+                                    <option value="reviewed" ${incident.status === 'reviewed' ? 'selected' : ''}>Traité</option>
+                                    <option value="dismissed" ${incident.status === 'dismissed' ? 'selected' : ''}>Ignoré</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="notes">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3">${incident.notes ? escapeHtml(incident.notes) : ''}</textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer les modifications
+                            </button>
+                        </form>
+                    `);
+
+                            // Gérer la soumission du formulaire
+                            $('#updateIncidentForm').on('submit', function(e) {
+                                e.preventDefault();
+                                $.ajax({
+                                    url: window.location.href,
+                                    type: 'POST',
+                                    data: $(this).serialize(),
+                                    success: function(response) {
+                                        // Cette partie dépend de comment votre backend gère la réponse
+                                        alert('Statut mis à jour avec succès');
+                                        modal.modal('hide');
+                                        location.reload();
+                                    },
+                                    error: function() {
+                                        alert('Erreur lors de la mise à jour');
+                                    }
+                                });
+                            });
+                        } else {
+                            modal.find('.modal-body').html(`
+                        <div class="alert alert-danger">
+                            ${response.message || 'Erreur lors du chargement des détails'}
+                            <br><small>${response.debug ? JSON.stringify(response.debug) : ''}</small>
+                        </div>
+                    `);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erreur AJAX:", status, error);
+                        modal.find('.modal-body').html(`
+                    <div class="alert alert-danger">
+                        Erreur réseau: ${error}
+                        <br>Veuillez réessayer ou vérifier la console pour plus de détails.
+                    </div>
+                `);
+                    }
+                });
+            
+
+            // Fonctions utilitaires
+            function escapeHtml(text) {
+                return $('<div>').text(text).html();
+            }
+
+            function getIncidentTypeLabel(type) {
+                const labels = {
+                    'face_not_detected': 'Visage non détecté',
+                    'multiple_faces': 'Plusieurs visages détectés',
+                    'face_position': 'Position du visage incorrecte',
+                    'webcam_access_denied': 'Accès à la webcam refusé',
+                    'tab_switch': 'Changement d\'onglet',
+                    'screen_activity': 'Activité suspecte sur l\'écran',
+                    'audio_activity': 'Activité audio suspecte'
+                };
+                return labels[type] || type;
+            }
+
+            function getSeverityClass(severity) {
+                return {
+                    'high': 'danger',
+                    'medium': 'warning',
+                    'low': 'info'
+                } [severity] || 'secondary';
+            }
+
+            function getSeverityLabel(severity) {
+                return {
+                    'high': 'Critique',
+                    'medium': 'Moyenne',
+                    'low': 'Faible'
+                } [severity] || 'Inconnue';
+            }
+
+            function getStatusClass(status) {
+                return {
+                    'pending': 'warning',
+                    'reviewed': 'success',
+                    'dismissed': 'secondary'
+                } [status] || 'info';
+            }
+
+            function getStatusLabel(status) {
+                return {
+                    'pending': 'En attente',
+                    'reviewed': 'Traité',
+                    'dismissed': 'Ignoré'
+                } [status] || 'Inconnu';
+            }
+        };
+    </script>
     <section class="content" style="margin-top: 0;">
         <div class="container-fluid">
             <?php displayFlashMessages(); ?>
 
             <!-- Statistiques des incidents -->
             <div class="row" style="display: flex;justify-content: space-between;">
-                <div class="col-lg-3 col-6"style="width: 23%;">
-                    <div class="small-box bg-info" >
+                <div class="col-lg-3 col-6" style="width: 23%;">
+                    <div class="small-box bg-info">
                         <div class="inner">
                             <h3><?php echo $stats['total_incidents']; ?></h3>
                             <p>Total des incidents</p>
@@ -358,8 +573,8 @@ include 'includes/header.php';
                     </div>
                 </div>
 
-                <div class="col-lg-3 col-6"style="width: 23%;">
-                    <div class="small-box bg-danger" >
+                <div class="col-lg-3 col-6" style="width: 23%;">
+                    <div class="small-box bg-danger">
                         <div class="inner">
                             <h3>
                                 <?php echo isset($stats['high_severity']) ? round($stats['high_severity'], 1) : 0; ?>
@@ -372,7 +587,7 @@ include 'includes/header.php';
                     </div>
                 </div>
 
-                <div class="col-lg-3 col-6"style="width: 23%;">
+                <div class="col-lg-3 col-6" style="width: 23%;">
                     <div class="small-box bg-warning">
                         <div class="inner">
                             <h3>
@@ -385,7 +600,7 @@ include 'includes/header.php';
                     </div>
                 </div>
 
-                <div class="col-lg-3 col-6"style="width: 23%;">
+                <div class="col-lg-3 col-6" style="width: 23%;">
                     <div class="small-box bg-success">
                         <div class="inner">
                             <h3>
@@ -551,125 +766,43 @@ include 'includes/header.php';
                                                 </span>
                                             </td>
                                             <td>
-                                                <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#incidentModal<?php echo $incident['id']; ?>">
+                                                <button type="button" onclick=" montrer()" class="btn btn-sm btn-info view-details" data-incident-id="<?php echo $incident['id']; ?>">
                                                     <i class="fas fa-eye"></i> Détails
                                                 </button>
                                             </td>
                                         </tr>
+                                    <?php endwhile; ?>
+                                    <!-- Ajoutez ce div unique pour afficher les détails -->
+                                    <div id="incidentDetailsModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Détails de l'incident <span id="incidentId"></span></h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body" id="incidentDetailsContent">
+                                                    <!-- Le contenu sera chargé dynamiquement via JavaScript -->
 
-                                        <!-- Modal de détails et de mise à jour -->
-                                        <div class="modal fade" id="incidentModal<?php echo $incident['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="incidentModalLabel<?php echo $incident['id']; ?>" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg" role="document">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="incidentModalLabel<?php echo $incident['id']; ?>">
-                                                            Détails de l'incident #<?php echo $incident['id']; ?>
-                                                        </h5>
-                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                            <span aria-hidden="true">&times;</span>
-                                                        </button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="row">
-                                                            <div class="col-md-6">
-                                                                <h6>Informations sur l'incident</h6>
-                                                                <table class="table table-bordered">
-                                                                    <tr>
-                                                                        <th>Date et heure</th>
-                                                                        <td><?php echo formatDateTime($incident['timestamp']); ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th>Type d'incident</th>
-                                                                        <td><?php echo getIncidentTypeLabel($incident['incident_type']); ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th>Description</th>
-                                                                        <td><?php echo htmlspecialchars($incident['description']); ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th>Sévérité</th>
-                                                                        <td>
-                                                                            <span class="badge badge-<?php echo getSeverityClass($incident['severity']); ?>">
-                                                                                <?php echo getSeverityLabel($incident['severity']); ?>
-                                                                            </span>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th>Statut actuel</th>
-                                                                        <td>
-                                                                            <span class="badge badge-<?php echo getStatusClass($incident['status']); ?>">
-                                                                                <?php echo getStatusLabel($incident['status']); ?>
-                                                                            </span>
-                                                                        </td>
-                                                                    </tr>
-                                                                </table>
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <h6>Informations sur l'examen</h6>
-                                                                <table class="table table-bordered">
-                                                                    <tr>
-                                                                        <th>Examen</th>
-                                                                        <td><?php echo htmlspecialchars($incident['exam_title']); ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th>Étudiant</th>
-                                                                        <td><?php echo htmlspecialchars($incident['last_name'] . ' ' . $incident['first_name']); ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th>ID de tentative</th>
-                                                                        <td><?php echo $incident['attempt_id']; ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th>Notes</th>
-                                                                        <td><?php echo !empty($incident['notes']) ? htmlspecialchars($incident['notes']) : '<em>Aucune note</em>'; ?></td>
-                                                                    </tr>
-                                                                </table>
-                                                            </div>
-                                                        </div>
-
-                                                        <hr>
-
-                                                        <form method="POST" action="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query($_GET); ?>">
-                                                            <input type="hidden" name="action" value="update_status">
-                                                            <input type="hidden" name="incident_id" value="<?php echo $incident['id']; ?>">
-
-                                                            <div class="form-group">
-                                                                <label for="status<?php echo $incident['id']; ?>">Mettre à jour le statut</label>
-                                                                <select class="form-control" id="status<?php echo $incident['id']; ?>" name="status">
-                                                                    <option value="pending" <?php echo $incident['status'] === 'pending' ? 'selected' : ''; ?>>En attente</option>
-                                                                    <option value="reviewed" <?php echo $incident['status'] === 'reviewed' ? 'selected' : ''; ?>>Traité</option>
-                                                                    <option value="dismissed" <?php echo $incident['status'] === 'dismissed' ? 'selected' : ''; ?>>Ignoré</option>
-                                                                </select>
-                                                            </div>
-
-                                                            <div class="form-group">
-                                                                <label for="notes<?php echo $incident['id']; ?>">Notes</label>
-                                                                <textarea class="form-control" id="notes<?php echo $incident['id']; ?>" name="notes" rows="3"><?php echo !empty($incident['notes']) ? htmlspecialchars($incident['notes']) : 'Aucune note'; ?></textarea>
-                                                            </div>
-
-                                                            <button type="submit" class="btn btn-primary">
-                                                                <i class="fas fa-save"></i> Enregistrer les modifications
-                                                            </button>
-                                                        </form>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    <?php endwhile; ?>
+                                    </div>
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
                         <?php if ($totalPages > 1): ?>
-                            <div class="pagination-container">
-                                <ul class="pagination">
+                            <div class="pagination-container"><br>
+                                <ul class="pagination" style="display: flex;justify-content:space-between;width:30%;margin-left:20px;color:black">
                                     <?php if ($page > 1): ?>
                                         <li class="page-item">
                                             <a class="page-link" href="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
                                                 <i class="fas fa-chevron-left"></i> Précédent
                                             </a>
-                                        </li>
+                                        </li><br>
                                     <?php endif; ?>
 
                                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
@@ -677,7 +810,7 @@ include 'includes/header.php';
                                             <a class="page-link" href="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, ['page' => $i])); ?>">
                                                 <?php echo $i; ?>
                                             </a>
-                                        </li>
+                                        </li><br>
                                     <?php endfor; ?>
 
                                     <?php if ($page < $totalPages): ?>
@@ -685,7 +818,7 @@ include 'includes/header.php';
                                             <a class="page-link" href="<?php echo $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
                                                 Suivant <i class="fas fa-chevron-right"></i>
                                             </a>
-                                        </li>
+                                        </li><br>
                                     <?php endif; ?>
                                 </ul>
                             </div>

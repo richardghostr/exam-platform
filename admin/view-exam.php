@@ -606,7 +606,7 @@ include 'includes/header.php';
 </style>
 <div class="app-container">
 
-    <main class="main-content" >
+    <main class="main-content">
 
         <div class="content-wrapper">
 
@@ -710,7 +710,8 @@ include 'includes/header.php';
                                                 border: 1px solid rgba(78, 115, 223, 0.3);
                                             }
 
-                                            .badge-info {display: inline-flex;
+                                            .badge-info {
+                                                display: inline-flex;
                                                 align-items: center;
                                                 padding: 6px 12px;
                                                 border-radius: 16px;
@@ -873,12 +874,12 @@ include 'includes/header.php';
                             <div class="card-header">
                                 <h2 class="card-title">Statistiques</h2>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body" style="display: flex;flex-direction:column;align-items:center">
                                 <?php if ($stats['total_attempts'] > 0): ?>
-                                    <div class="stats-container">
-                                        <div class="stat-item">
+                                    <div class="stats-container" style="display: flex;justify-content:space-between;width:100% ;flex-wrap:wrap">
+                                        <div class="stat-item" style="box-shadow: 0 7px 14px rgba(0, 117, 255, 0.4);">
                                             <div class="stat-icon">
-                                                <i class="fas fa-users"></i>
+                                                <i class="fas fa-users" style="color: white;"></i>
                                             </div>
                                             <div class="stat-info">
                                                 <div class="stat-value"><?php echo $stats['total_attempts']; ?></div>
@@ -886,9 +887,9 @@ include 'includes/header.php';
                                             </div>
                                         </div>
 
-                                        <div class="stat-item">
+                                        <div class="stat-item" style="box-shadow: 0 7px 14px rgba(0, 117, 255, 0.4);">
                                             <div class="stat-icon">
-                                                <i class="fas fa-check-circle"></i>
+                                                <i class="fas fa-check-circle" style="color: white;"></i>
                                             </div>
                                             <div class="stat-info">
                                                 <div class="stat-value"><?php echo $stats['completed_attempts']; ?></div>
@@ -896,9 +897,9 @@ include 'includes/header.php';
                                             </div>
                                         </div>
 
-                                        <div class="stat-item">
+                                        <div class="stat-item" style="box-shadow: 0 7px 14px rgba(0, 117, 255, 0.4);">
                                             <div class="stat-icon">
-                                                <i class="fas fa-chart-line"></i>
+                                                <i class="fas fa-chart-line" style="color: white;"></i>
                                             </div>
                                             <div class="stat-info">
                                                 <div class="stat-value"><?php echo round($stats['avg_score'], 1); ?>%</div>
@@ -906,16 +907,16 @@ include 'includes/header.php';
                                             </div>
                                         </div>
 
-                                        <div class="stat-item">
+                                        <div class="stat-item" style="box-shadow: 0 7px 14px rgba(0, 117, 255, 0.4);">
                                             <div class="stat-icon">
-                                                <i class="fas fa-trophy"></i>
+                                                <i class="fas fa-trophy" style="color: white;"></i>
                                             </div>
                                             <div class="stat-info">
                                                 <div class="stat-value"><?php echo round($stats['max_score'], 1); ?>%</div>
                                                 <div class="stat-label">Meilleur score</div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div><br>
 
                                     <div class="text-center mt-3">
                                         <a href="view-results.php?exam_id=<?php echo $examId; ?>" class="btn btn-primary">

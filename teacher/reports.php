@@ -543,7 +543,7 @@ include 'includes/header.php';
             <div class="card mb-4" style="border-radius: 20px;width:96.5%;margin-left:25px;background-color: white;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <div class="card-header d-flex justify-content-between align-items-center" style="border-top-left-radius: 20px;border-top-right-radius: 20px;">
                     <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning" style="margin-right: 5px;"></i>Incidents de surveillance</h5>
-                    <a href="all-incidents.php" class="btn btn-sm btn-outline-primary" style="text-decoration: none;">
+                    <a href="proctoring-incidents.php" class="btn btn-sm btn-outline-primary" style="text-decoration: none;">
                         Voir tous les incidents
                     </a>
                 </div>
