@@ -73,6 +73,31 @@ $questionsResult = $questionsQuery->get_result();
 
 $pageTitle = "Résultats de l'examen";
 $extraCss = ['../assets/css/exam-result.css'];
+// $migrationQuery = "
+//         INSERT INTO exam_results (
+//             id, exam_id, user_id, score, total_points, points_earned, passing_score,
+//             passed, time_spent, completed_at, graded_by, graded_at, feedback,
+//             created_at, updated_at, status, is_graded
+//         )
+//         SELECT 
+//             ea.id, ea.exam_id, ea.user_id, COALESCE(ea.score, 0), 100, COALESCE(ea.score, 0), 60,
+//             CASE WHEN ea.score >= 60 THEN 1 ELSE 0 END,
+//             TIMESTAMPDIFF(SECOND, ea.start_time, ea.end_time), ea.end_time,
+//             NULL, CASE WHEN ea.status = 'graded' THEN ea.updated_at ELSE NULL END, NULL,
+//             ea.created_at, ea.updated_at, ea.status,
+//             CASE WHEN ea.status = 'graded' THEN 'yes' ELSE 'no' END
+//         FROM 
+//             exam_attempts ea
+//         WHERE 
+//             ea.status IN ('completed', 'graded', 'failed')
+//             AND ea.end_time IS NOT NULL
+//             AND NOT EXISTS (
+//                 SELECT 1 FROM exam_results er WHERE er.id = ea.id
+//             )
+//     ";
+// // $migrationQuery->bind_param("", $examId);
+// $migration = $conn->prepare($migrationQuery);
+// $migration->execute();
 include 'includes/header.php';
 ?>
 
